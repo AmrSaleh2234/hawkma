@@ -52,8 +52,16 @@ abstract class TestCase extends BaseTestCase
         $user = User::factory()->consultant()->create($attrs);
         $user->assignRole(Role::CONSULTANT);
 
-        // The default Sun-Thu 09:00-17:00 availability is wired up in Phase 6,
-        // when the Consultants module introduces ConsultantAvailability.
+        if ($withDefaultAvailability) {
+            // Sunday–Thursday 09:00–17:00.
+            foreach (range(0, 4) as $day) {
+                $user->availabilities()->create([
+                    'day_of_week' => $day,
+                    'start_time' => '09:00',
+                    'end_time' => '17:00',
+                ]);
+            }
+        }
 
         return $user;
     }

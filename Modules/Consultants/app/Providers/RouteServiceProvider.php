@@ -4,6 +4,7 @@ namespace Modules\Consultants\Providers;
 
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Route;
+use Modules\Users\Models\User;
 
 class RouteServiceProvider extends ServiceProvider
 {
@@ -17,6 +18,10 @@ class RouteServiceProvider extends ServiceProvider
     public function boot(): void
     {
         parent::boot();
+
+        // {consultant} resolves only User rows with type = consultant
+        // (an admin user id is a 404).
+        Route::bind('consultant', fn ($id) => User::consultants()->findOrFail($id));
     }
 
     /**

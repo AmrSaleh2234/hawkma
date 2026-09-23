@@ -3,6 +3,11 @@
 namespace Modules\Consultants\Providers;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Gate;
+use Modules\Consultants\Contracts\BusyTimeProvider;
+use Modules\Consultants\Policies\ConsultantPolicy;
+use Modules\Consultants\Support\NullBusyTimeProvider;
+use Modules\Users\Models\User;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class ConsultantsServiceProvider extends ModuleServiceProvider
@@ -33,6 +38,29 @@ class ConsultantsServiceProvider extends ModuleServiceProvider
         EventServiceProvider::class,
         RouteServiceProvider::class,
     ];
+
+    /**
+     * Register the service provider.
+     */
+    public function register(): void
+    {
+        parent::register();
+
+        // Phase 9 replaces this binding with the Bookings implementation.
+        $this->app->bind(BusyTimeProvider::class, NullBusyTimeProvider::class);
+    }
+
+    /**
+     * Boot the application events.
+     */
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->loadTranslationsFrom(module_path($this->name, 'lang'), $this->nameLower);
+
+        Gate::policy(User::class, ConsultantPolicy::class);
+    }
 
     /**
      * Define module schedules.
