@@ -23,4 +23,5 @@ return [
     'payment_method_added' => 'تمت إضافة طريقة الدفع بنجاح.',
     'payment_method_deleted' => 'تم حذف طريقة الدفع بنجاح.',
     'default_payment_method_set' => 'تم تحديث طريقة الدفع الافتراضية بنجاح.',
+    'cannot_deactivate_self' => 'لا يمكنك تعطيل حسابك الخاص.',
 ];

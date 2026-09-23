@@ -23,4 +23,5 @@ return [
     'payment_method_added' => 'Payment method added successfully.',
     'payment_method_deleted' => 'Payment method deleted successfully.',
     'default_payment_method_set' => 'Default payment method updated successfully.',
+    'cannot_deactivate_self' => 'You cannot deactivate your own account.',
 ];
