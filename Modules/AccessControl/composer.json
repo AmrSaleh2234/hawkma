@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/accesscontrol",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\AccessControl\\": "app/",
+            "Modules\\AccessControl\\Database\\Factories\\": "database/factories/",
+            "Modules\\AccessControl\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\AccessControl\\Tests\\": "tests/"
+        }
+    }
+}

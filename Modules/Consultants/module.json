@@ -1,0 +1,11 @@
+{
+    "name": "Consultants",
+    "alias": "consultants",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Consultants\\Providers\\ConsultantsServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,12 @@
+{
+    "Core": true,
+    "AccessControl": true,
+    "Users": true,
+    "Consultants": true,
+    "Clients": true,
+    "Packages": true,
+    "Payments": true,
+    "Bookings": true,
+    "Reports": true,
+    "Dashboard": true
+}

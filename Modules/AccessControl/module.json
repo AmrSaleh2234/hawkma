@@ -1,0 +1,11 @@
+{
+    "name": "AccessControl",
+    "alias": "accesscontrol",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\AccessControl\\Providers\\AccessControlServiceProvider"
+    ],
+    "files": []
+}
