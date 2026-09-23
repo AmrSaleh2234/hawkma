@@ -12,6 +12,7 @@ use Modules\Clients\Models\Client;
 use Modules\Clients\Services\ClientService;
 use Modules\Core\Http\Controllers\ApiController;
 use Modules\Core\Support\QueryFilters;
+use Modules\Packages\Http\Resources\SubscriptionResource;
 use Modules\Packages\Models\ClientSubscription;
 use Modules\Reports\Models\Report;
 
@@ -149,5 +150,23 @@ class ClientController extends ApiController
         $this->clients->delete($client);
 
         return $this->noContent(__('core::messages.deleted'));
+    }
+
+    /**
+     * ADM-CL-08 GET /api/v1/admin/clients/{client}/subscriptions
+     *
+     * SubscriptionResource list. Same visibility policy as ADM-CL-02: a
+     * consultant must have a booking with this client, else 403.
+     */
+    public function subscriptions(Client $client): JsonResponse
+    {
+        $this->authorize('view', $client);
+
+        $subscriptions = $client->subscriptions()
+            ->with('package')
+            ->latest()
+            ->paginate(QueryFilters::perPage(request()));
+
+        return $this->paginated(SubscriptionResource::collection($subscriptions));
     }
 }

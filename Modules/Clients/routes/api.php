@@ -55,8 +55,11 @@ Route::prefix('v1')->group(function () {
             ->middleware('permission:delete-clients,admin')
             ->name('clients.destroy');
 
+        Route::get('clients/{client}/subscriptions', [AdminClientController::class, 'subscriptions'])
+            ->middleware('permission:view-clients,admin')
+            ->name('clients.subscriptions');
+
         // TODO Phase 9: ADM-CL-06 GET clients/{client}/bookings (view-bookings)
         // TODO Phase 10: ADM-CL-07 GET clients/{client}/reports (view-reports)
-        // TODO Phase 7: ADM-CL-08 GET clients/{client}/subscriptions (view-clients)
     });
 });

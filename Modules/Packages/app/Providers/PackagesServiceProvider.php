@@ -3,6 +3,7 @@
 namespace Modules\Packages\Providers;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Modules\Packages\Console\ExpireSubscriptionsCommand;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class PackagesServiceProvider extends ModuleServiceProvider
@@ -22,7 +23,9 @@ class PackagesServiceProvider extends ModuleServiceProvider
      *
      * @var string[]
      */
-    // protected array $commands = [];
+    protected array $commands = [
+        ExpireSubscriptionsCommand::class,
+    ];
 
     /**
      * Provider classes to register.
@@ -35,12 +38,21 @@ class PackagesServiceProvider extends ModuleServiceProvider
     ];
 
     /**
-     * Define module schedules.
-     *
-     * @param  $schedule
+     * Boot the application events.
      */
-    // protected function configureSchedules(Schedule $schedule): void
-    // {
-    //     $schedule->command('inspire')->hourly();
-    // }
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->loadTranslationsFrom(module_path($this->name, 'lang'), $this->nameLower);
+    }
+
+    /**
+     * Define module schedules.
+     */
+    protected function configureSchedules(Schedule $schedule): void
+    {
+        // Plan §9.4: expire subscriptions daily at 00:05.
+        $schedule->command('subscriptions:expire')->dailyAt('00:05');
+    }
 }

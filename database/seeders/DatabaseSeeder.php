@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Modules\AccessControl\Database\Seeders\RolesAndPermissionsSeeder;
+use Modules\Packages\Database\Seeders\PackagesSeeder;
 use Modules\Users\Database\Seeders\SuperAdminSeeder;
 
 class DatabaseSeeder extends Seeder
@@ -16,6 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             SuperAdminSeeder::class,
+            PackagesSeeder::class,
         ]);
     }
 }

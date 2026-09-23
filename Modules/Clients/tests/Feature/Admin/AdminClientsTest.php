@@ -3,6 +3,8 @@
 namespace Modules\Clients\Tests\Feature\Admin;
 
 use Modules\Clients\Models\Client;
+use Modules\Packages\Models\ClientSubscription;
+use Modules\Packages\Models\Package;
 use Tests\TestCase;
 
 class AdminClientsTest extends TestCase
@@ -55,13 +57,17 @@ class AdminClientsTest extends TestCase
         $this->assertCount(1, $inactive->json('data'));
     }
 
-    public function test_adm_cl_01_has_active_subscription_filter_matches_nothing_until_phase_7(): void
+    public function test_adm_cl_01_filters_by_has_active_subscription(): void
     {
         $this->actingAsAdmin();
+        $withSubscription = $this->createClient();
         $this->createClient();
+        ClientSubscription::factory()->create(['client_id' => $withSubscription->id]);
 
         $yes = $this->getJson('/api/v1/admin/clients?has_active_subscription=1');
-        $this->assertCount(0, $yes->json('data'));
+        $this->assertCount(1, $yes->json('data'));
+        $this->assertSame($withSubscription->id, $yes->json('data.0.id'));
+        $this->assertSame('active', $yes->json('data.0.active_subscription.status'));
 
         $no = $this->getJson('/api/v1/admin/clients?has_active_subscription=0');
         $this->assertCount(1, $no->json('data'));
@@ -260,5 +266,57 @@ class AdminClientsTest extends TestCase
         $response = $this->getJson('/api/v1/admin/clients');
 
         $this->assertCount(1, $response->json('data'));
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | ADM-CL-08 GET /api/v1/admin/clients/{client}/subscriptions
+    |----------------------------------------------------------------------
+    */
+
+    public function test_adm_cl_08_lists_the_clients_subscriptions(): void
+    {
+        $this->actingAsAdmin();
+        $client = $this->createClient();
+        $package = Package::factory()->silver()->create();
+        ClientSubscription::factory()->forPackage($package)->create(['client_id' => $client->id]);
+        ClientSubscription::factory()->forPackage($package)->expired()->create(['client_id' => $client->id]);
+
+        // Another client's subscription must not leak in.
+        ClientSubscription::factory()->create();
+
+        $response = $this->getJson("/api/v1/admin/clients/{$client->id}/subscriptions");
+
+        $this->assertApiSuccess($response);
+        $this->assertPaginated($response);
+        $this->assertCount(2, $response->json('data'));
+        $this->assertSame('silver', $response->json('data.0.package.slug'));
+    }
+
+    public function test_adm_cl_08_requires_the_view_clients_permission(): void
+    {
+        $staff = $this->createStaffWithPermissions(['view-bookings']);
+        $this->actingAsAdmin($staff);
+        $client = $this->createClient();
+
+        $this->assertApiError(
+            $this->getJson("/api/v1/admin/clients/{$client->id}/subscriptions"),
+            403,
+            'FORBIDDEN',
+        );
+    }
+
+    public function test_adm_cl_08_consultant_without_a_booking_gets_403(): void
+    {
+        $consultant = $this->createConsultant();
+        $consultant->givePermissionTo('view-clients');
+        $this->actingAsConsultant($consultant);
+        $client = $this->createClient();
+
+        $this->assertApiError(
+            $this->getJson("/api/v1/admin/clients/{$client->id}/subscriptions"),
+            403,
+            'FORBIDDEN',
+        );
     }
 }
