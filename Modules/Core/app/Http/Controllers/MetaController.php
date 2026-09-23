@@ -28,7 +28,7 @@ class MetaController extends ApiController
                 'client_cancel_hours' => (int) config('bookings.client_cancel_hours'),
             ],
             'payment_gateway' => [
-                'driver' => config('payments.gateway'),
+                'driver' => config('payments.driver'),
                 'publishable_key' => config('payments.moyasar.publishable_key'),
             ],
         ]);

@@ -2,7 +2,9 @@
 
 namespace Modules\Payments\Providers;
 
-use Illuminate\Console\Scheduling\Schedule;
+use Modules\Payments\Contracts\PaymentGateway;
+use Modules\Payments\Gateways\FakeGateway;
+use Modules\Payments\Gateways\MoyasarGateway;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class PaymentsServiceProvider extends ModuleServiceProvider
@@ -18,13 +20,6 @@ class PaymentsServiceProvider extends ModuleServiceProvider
     protected string $nameLower = 'payments';
 
     /**
-     * Command classes to register.
-     *
-     * @var string[]
-     */
-    // protected array $commands = [];
-
-    /**
      * Provider classes to register.
      *
      * @var string[]
@@ -35,12 +30,26 @@ class PaymentsServiceProvider extends ModuleServiceProvider
     ];
 
     /**
-     * Define module schedules.
-     *
-     * @param  $schedule
+     * Register the service provider.
      */
-    // protected function configureSchedules(Schedule $schedule): void
-    // {
-    //     $schedule->command('inspire')->hourly();
-    // }
+    public function register(): void
+    {
+        parent::register();
+
+        // Plan §9.6: the gateway driver is chosen by config('payments.driver').
+        $this->app->bind(PaymentGateway::class, fn () => match (config('payments.driver')) {
+            'moyasar' => app(MoyasarGateway::class),
+            default => app(FakeGateway::class),
+        });
+    }
+
+    /**
+     * Boot the application events.
+     */
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->loadTranslationsFrom(module_path($this->name, 'lang'), $this->nameLower);
+    }
 }
