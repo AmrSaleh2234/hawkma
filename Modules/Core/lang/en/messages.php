@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'ok' => 'OK',
+    'created' => 'Created successfully.',
+    'updated' => 'Updated successfully.',
+    'deleted' => 'Deleted successfully.',
+    'logged_in' => 'Logged in successfully.',
+    'logged_out' => 'Logged out successfully.',
+    'registered' => 'Registered successfully.',
+    'password_reset_link_sent' => 'If this email exists, a password reset link has been sent.',
+    'password_reset' => 'Your password has been reset successfully.',
+    'password_changed' => 'Your password has been changed successfully.',
+    'profile_updated' => 'Your profile has been updated successfully.',
+    'avatar_updated' => 'Your avatar has been updated successfully.',
+    'roles_assigned' => 'Roles assigned successfully.',
+    'availability_updated' => 'Availability updated successfully.',
+    'time_off_created' => 'Time off added successfully.',
+    'booking_created' => 'Booking created successfully.',
+    'booking_completed' => 'Booking marked as completed.',
+    'booking_cancelled' => 'Booking cancelled successfully.',
+    'report_uploaded' => 'Report uploaded successfully.',
+    'payment_method_added' => 'Payment method added successfully.',
+    'payment_method_deleted' => 'Payment method deleted successfully.',
+    'default_payment_method_set' => 'Default payment method updated successfully.',
+];

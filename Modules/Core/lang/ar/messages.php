@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'ok' => 'حسناً',
+    'created' => 'تم الإنشاء بنجاح.',
+    'updated' => 'تم التحديث بنجاح.',
+    'deleted' => 'تم الحذف بنجاح.',
+    'logged_in' => 'تم تسجيل الدخول بنجاح.',
+    'logged_out' => 'تم تسجيل الخروج بنجاح.',
+    'registered' => 'تم التسجيل بنجاح.',
+    'password_reset_link_sent' => 'إذا كان هذا البريد مسجلاً، فقد تم إرسال رابط إعادة تعيين كلمة المرور.',
+    'password_reset' => 'تمت إعادة تعيين كلمة المرور بنجاح.',
+    'password_changed' => 'تم تغيير كلمة المرور بنجاح.',
+    'profile_updated' => 'تم تحديث الملف الشخصي بنجاح.',
+    'avatar_updated' => 'تم تحديث الصورة الشخصية بنجاح.',
+    'roles_assigned' => 'تم تعيين الأدوار بنجاح.',
+    'availability_updated' => 'تم تحديث التوفر بنجاح.',
+    'time_off_created' => 'تمت إضافة الإجازة بنجاح.',
+    'booking_created' => 'تم إنشاء الحجز بنجاح.',
+    'booking_completed' => 'تم تحديد الحجز كمكتمل.',
+    'booking_cancelled' => 'تم إلغاء الحجز بنجاح.',
+    'report_uploaded' => 'تم رفع التقرير بنجاح.',
+    'payment_method_added' => 'تمت إضافة طريقة الدفع بنجاح.',
+    'payment_method_deleted' => 'تم حذف طريقة الدفع بنجاح.',
+    'default_payment_method_set' => 'تم تحديث طريقة الدفع الافتراضية بنجاح.',
+];

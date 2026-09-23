@@ -35,6 +35,17 @@ class CoreServiceProvider extends ModuleServiceProvider
     ];
 
     /**
+     * Boot the application events.
+     */
+    public function boot(): void
+    {
+        parent::boot();
+
+        // Register the module translations under the "core::" namespace.
+        $this->loadTranslationsFrom(module_path($this->name, 'lang'), $this->nameLower);
+    }
+
+    /**
      * Define module schedules.
      *
      * @param  $schedule
