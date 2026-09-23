@@ -9,6 +9,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Modules\Clients\Http\Middleware\EnsureClientIsActive;
 use Modules\Core\Enums\ErrorCode;
 use Modules\Core\Exceptions\BusinessException;
 use Modules\Core\Http\Middleware\SetLocaleFromHeader;
@@ -36,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'active.user' => EnsureUserIsActive::class,
+            'active.client' => EnsureClientIsActive::class,
         ]);
 
         $middleware->api(prepend: [

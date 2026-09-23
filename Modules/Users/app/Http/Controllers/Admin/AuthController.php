@@ -4,41 +4,28 @@ namespace Modules\Users\Http\Controllers\Admin;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
-use Modules\Core\Enums\ErrorCode;
-use Modules\Core\Exceptions\BusinessException;
 use Modules\Core\Http\Controllers\ApiController;
 use Modules\Users\Http\Requests\Admin\ForgotPasswordRequest;
 use Modules\Users\Http\Requests\Admin\LoginRequest;
 use Modules\Users\Http\Requests\Admin\ResetPasswordRequest;
 use Modules\Users\Http\Resources\UserResource;
 use Modules\Users\Models\User;
+use Modules\Users\Services\AdminAuthService;
 
 class AuthController extends ApiController
 {
     /**
      * ADM-AUTH-01 POST /api/v1/admin/auth/login
      */
-    public function login(LoginRequest $request): JsonResponse
+    public function login(LoginRequest $request, AdminAuthService $auth): JsonResponse
     {
-        $user = User::query()->where('email', $request->string('email')->lower())->first();
-
-        if (! $user || ! Hash::check($request->string('password')->value(), $user->password)) {
-            throw new BusinessException(
-                ErrorCode::InvalidCredentials,
-                errors: ['email' => [__('core::errors.INVALID_CREDENTIALS')]],
-            );
-        }
-
-        if (! $user->is_active) {
-            throw new BusinessException(ErrorCode::AccountDisabled, status: 403);
-        }
-
-        $user->forceFill(['last_login_at' => now()])->save();
-
-        $token = $user->createToken($request->input('device_name') ?: 'admin-dashboard');
+        [$user, $token] = $auth->login(
+            $request->string('email')->value(),
+            $request->string('password')->value(),
+            $request->input('device_name'),
+        );
 
         return $this->success([
             'token' => $token->plainTextToken,
@@ -50,9 +37,9 @@ class AuthController extends ApiController
     /**
      * ADM-AUTH-02 POST /api/v1/admin/auth/logout
      */
-    public function logout(Request $request): JsonResponse
+    public function logout(Request $request, AdminAuthService $auth): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $auth->logout($request->user());
 
         return $this->noContent(__('core::messages.logged_out'));
     }

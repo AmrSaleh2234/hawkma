@@ -9,6 +9,7 @@ use Modules\Users\Http\Requests\Admin\UpdatePasswordRequest;
 use Modules\Users\Http\Requests\Admin\UpdateProfileRequest;
 use Modules\Users\Http\Requests\Admin\UploadAvatarRequest;
 use Modules\Users\Http\Resources\UserResource;
+use Modules\Users\Services\AvatarService;
 
 class ProfileController extends ApiController
 {
@@ -44,11 +45,11 @@ class ProfileController extends ApiController
     /**
      * ADM-PRF-03 POST /api/v1/admin/profile/avatar
      */
-    public function storeAvatar(UploadAvatarRequest $request): JsonResponse
+    public function storeAvatar(UploadAvatarRequest $request, AvatarService $avatars): JsonResponse
     {
         $user = $request->user();
 
-        $user->addMediaFromRequest('avatar')->toMediaCollection('avatar');
+        $avatars->update($user, $request->file('avatar'));
 
         return $this->success(
             UserResource::make($user->fresh())->withPermissions(),
@@ -59,9 +60,9 @@ class ProfileController extends ApiController
     /**
      * ADM-PRF-04 DELETE /api/v1/admin/profile/avatar
      */
-    public function destroyAvatar(Request $request): JsonResponse
+    public function destroyAvatar(Request $request, AvatarService $avatars): JsonResponse
     {
-        $request->user()->clearMediaCollection('avatar');
+        $avatars->delete($request->user());
 
         return $this->noContent(__('core::messages.deleted'));
     }

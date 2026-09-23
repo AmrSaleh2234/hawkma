@@ -1,41 +1,35 @@
 <?php
 
-namespace Modules\Users\Models;
+namespace Modules\Clients\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Modules\Bookings\Models\Booking;
-use Modules\Consultants\Models\ConsultantAvailability;
-use Modules\Consultants\Models\ConsultantTimeOff;
-use Modules\Reports\Models\Report;
-use Modules\Users\Database\Factories\UserFactory;
-use Modules\Users\Enums\UserType;
-use Modules\Users\Notifications\ResetPasswordNotification;
+use Modules\Clients\Database\Factories\ClientFactory;
+use Modules\Clients\Notifications\ClientResetPasswordNotification;
+use Modules\Packages\Models\ClientSubscription;
+use Modules\Payments\Models\PaymentMethod;
+use Modules\Users\Models\User;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements HasMedia
+class Client extends Authenticatable implements HasMedia
 {
-    use HasApiTokens, HasFactory, HasRoles, InteractsWithMedia, Notifiable, SoftDeletes;
-
-    protected string $guard_name = 'admin';
+    use HasApiTokens, HasFactory, InteractsWithMedia, Notifiable, SoftDeletes;
 
     protected $fillable = [
-        'type',
         'name',
         'email',
         'phone',
-        'title',
-        'specialization',
-        'bio',
+        'company_name',
         'is_active',
         'email_verified_at',
         'password',
@@ -57,7 +51,6 @@ class User extends Authenticatable implements HasMedia
     protected function casts(): array
     {
         return [
-            'type' => UserType::class,
             'is_active' => 'boolean',
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
@@ -65,9 +58,9 @@ class User extends Authenticatable implements HasMedia
         ];
     }
 
-    protected static function newFactory(): UserFactory
+    protected static function newFactory(): ClientFactory
     {
-        return UserFactory::new();
+        return ClientFactory::new();
     }
 
     /*
@@ -97,29 +90,30 @@ class User extends Authenticatable implements HasMedia
     |--------------------------------------------------------------------------
     */
 
-    public function isAdmin(): bool
-    {
-        return $this->type === UserType::Admin;
-    }
-
-    public function isConsultant(): bool
-    {
-        return $this->type === UserType::Consultant;
-    }
-
-    public function scopeConsultants(Builder $query): Builder
-    {
-        return $query->where('type', UserType::Consultant->value);
-    }
-
-    public function scopeStaff(Builder $query): Builder
-    {
-        return $query->where('type', UserType::Admin->value);
-    }
-
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Data visibility scoping (plan §9.8): consultants only see clients who
+     * have a booking with them; admins see everyone.
+     *
+     * The bookings table arrives in Phase 9 — until then a consultant has no
+     * bookings, so the scope fails closed (returns nothing).
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isConsultant()) {
+            if (! class_exists(Booking::class)) {
+                // Phase 9 activates this scope properly.
+                return $query->whereRaw('1 = 0');
+            }
+
+            $query->whereHas('bookings', fn (Builder $b) => $b->where('consultant_id', $user->id));
+        }
+
+        return $query;
     }
 
     protected function avatarUrl(): Attribute
@@ -134,28 +128,48 @@ class User extends Authenticatable implements HasMedia
 
     /*
     |--------------------------------------------------------------------------
-    | Relations (as consultant)
+    | Relations
     |--------------------------------------------------------------------------
     */
 
-    public function availabilities(): HasMany
+    public function locations(): HasMany
     {
-        return $this->hasMany(ConsultantAvailability::class, 'consultant_id');
+        return $this->hasMany(ClientLocation::class);
     }
 
-    public function timeOffs(): HasMany
+    public function defaultLocation(): HasOne
     {
-        return $this->hasMany(ConsultantTimeOff::class, 'consultant_id');
+        return $this->hasOne(ClientLocation::class)->where('is_default', true);
     }
 
-    public function consultantBookings(): HasMany
+    public function bookings(): HasMany
     {
-        return $this->hasMany(Booking::class, 'consultant_id');
+        return $this->hasMany(Booking::class);
     }
 
-    public function reports(): HasMany
+    public function subscriptions(): HasMany
     {
-        return $this->hasMany(Report::class, 'consultant_id');
+        return $this->hasMany(ClientSubscription::class);
+    }
+
+    public function activeSubscriptions(): HasMany
+    {
+        return $this->hasMany(ClientSubscription::class)->where('status', 'active');
+    }
+
+    public function activeSubscription(): HasOne
+    {
+        return $this->hasOne(ClientSubscription::class)->where('status', 'active')->latest();
+    }
+
+    public function paymentMethods(): HasMany
+    {
+        return $this->hasMany(PaymentMethod::class);
+    }
+
+    public function defaultPaymentMethod(): HasOne
+    {
+        return $this->hasOne(PaymentMethod::class)->where('is_default', true);
     }
 
     /*
@@ -166,9 +180,9 @@ class User extends Authenticatable implements HasMedia
 
     public function sendPasswordResetNotification($token): void
     {
-        $url = rtrim((string) config('app.admin_frontend_url'), '/')
+        $url = rtrim((string) config('app.client_frontend_url'), '/')
             .'/reset-password?token='.$token.'&email='.urlencode($this->email);
 
-        $this->notify(new ResetPasswordNotification($url));
+        $this->notify(new ClientResetPasswordNotification($url));
     }
 }

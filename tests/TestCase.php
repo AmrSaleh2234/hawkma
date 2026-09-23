@@ -12,6 +12,7 @@ use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Modules\AccessControl\Database\Seeders\RolesAndPermissionsSeeder;
 use Modules\AccessControl\Models\Role;
+use Modules\Clients\Models\Client;
 use Modules\Users\Models\User;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -88,6 +89,33 @@ abstract class TestCase extends BaseTestCase
         Sanctum::actingAs($user, ['*'], 'admin');
 
         return $user;
+    }
+
+    protected function createClient(array $attrs = [], bool $withDefaultLocation = true): Client
+    {
+        $client = Client::factory()->create($attrs);
+
+        if ($withDefaultLocation) {
+            $client->locations()->create([
+                'name' => 'Headquarters',
+                'city' => 'Riyadh',
+                'address' => 'King Fahd Rd',
+                'latitude' => 24.7136,
+                'longitude' => 46.6753,
+                'is_default' => true,
+            ]);
+        }
+
+        return $client;
+    }
+
+    protected function actingAsClient(?Client $client = null): Client
+    {
+        $client ??= $this->createClient();
+
+        Sanctum::actingAs($client, ['*'], 'client');
+
+        return $client;
     }
 
     protected function assertApiSuccess(TestResponse $r, int $status = 200): TestResponse
