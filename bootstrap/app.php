@@ -12,7 +12,11 @@ use Illuminate\Validation\ValidationException;
 use Modules\Core\Enums\ErrorCode;
 use Modules\Core\Exceptions\BusinessException;
 use Modules\Core\Http\Middleware\SetLocaleFromHeader;
+use Modules\Users\Http\Middleware\EnsureUserIsActive;
 use Spatie\Permission\Exceptions\UnauthorizedException;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
+use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -27,6 +31,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
+            'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'active.user' => EnsureUserIsActive::class,
+        ]);
+
         $middleware->api(prepend: [
             SetLocaleFromHeader::class,
         ]);
@@ -65,7 +76,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            return $envelope($e->status, $e->errorCode, $e->getMessage());
+            return $envelope($e->status, $e->errorCode, $e->getMessage(), $e->errors);
         });
 
         $exceptions->render(function (AuthenticationException $e, Request $request) use ($envelope, $onlyApi) {

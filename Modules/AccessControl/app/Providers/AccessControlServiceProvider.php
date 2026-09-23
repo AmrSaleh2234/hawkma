@@ -3,6 +3,8 @@
 namespace Modules\AccessControl\Providers;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Gate;
+use Modules\Users\Models\User;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class AccessControlServiceProvider extends ModuleServiceProvider
@@ -33,6 +35,19 @@ class AccessControlServiceProvider extends ModuleServiceProvider
         EventServiceProvider::class,
         RouteServiceProvider::class,
     ];
+
+    /**
+     * Boot the application events.
+     */
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->loadTranslationsFrom(module_path($this->name, 'lang'), $this->nameLower);
+
+        // The admin role has every permission, always (section 7.2).
+        Gate::before(fn ($user, $ability) => ($user instanceof User && $user->hasRole('admin')) ? true : null);
+    }
 
     /**
      * Define module schedules.
