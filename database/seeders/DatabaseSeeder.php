@@ -19,5 +19,9 @@ class DatabaseSeeder extends Seeder
             SuperAdminSeeder::class,
             PackagesSeeder::class,
         ]);
+
+        if (! app()->isProduction()) {
+            $this->call(DemoDataSeeder::class);
+        }
     }
 }
