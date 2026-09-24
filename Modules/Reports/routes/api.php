@@ -8,16 +8,16 @@ use Modules\Reports\Http\Controllers\Public\SignedDownloadController;
 Route::prefix('v1')->group(function () {
     // PUB-07: no auth — the signed URL authenticates it.
     Route::get('public/reports/{report}/signed-download', SignedDownloadController::class)
-        ->middleware('signed')
+        ->middleware(['signed', 'throttle:public'])
         ->name('public.reports.signed-download');
 
-    Route::prefix('client/reports')->name('client.reports.')->middleware(['auth:client', 'active.client'])->group(function () {
+    Route::prefix('client/reports')->name('client.reports.')->middleware(['auth:client', 'active.client', 'throttle:api'])->group(function () {
         Route::get('/', [ClientReportController::class, 'index'])->name('index');
         Route::get('{report}', [ClientReportController::class, 'show'])->name('show');
         Route::get('{report}/download', [ClientReportController::class, 'download'])->name('download');
     });
 
-    Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'active.user'])->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'active.user', 'throttle:api'])->group(function () {
         // RPT-03 lives under /admin/bookings (the report belongs to a booking).
         Route::post('bookings/{booking}/report', [AdminReportController::class, 'upload'])
             ->middleware('permission:upload-reports,admin')

@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
@@ -147,5 +148,37 @@ abstract class TestCase extends BaseTestCase
             'meta' => ['current_page', 'per_page', 'total', 'last_page'],
             'links',
         ]);
+    }
+
+    /**
+     * N+1 guard for index endpoints (plan Phase 12): seed 3 records, then
+     * 7 more, and assert the query count of the listing does not change.
+     *
+     * @param  callable(int $count): void  $seed  creates $count NEW records
+     */
+    protected function assertIndexQueryCountIsStable(string $url, callable $seed): void
+    {
+        $seed(3);
+
+        // Warm-up: the first request fills the permissions cache etc.
+        $this->getJson($url)->assertOk();
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->getJson($url)->assertOk();
+        $forThree = count(DB::getQueryLog());
+
+        $seed(7);
+
+        DB::flushQueryLog();
+        $this->getJson($url)->assertOk();
+        $forTen = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertSame(
+            $forThree,
+            $forTen,
+            "N+1 on {$url}: {$forThree} queries for 3 records, {$forTen} for 10.",
+        );
     }
 }

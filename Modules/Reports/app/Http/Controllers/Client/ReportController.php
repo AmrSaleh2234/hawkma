@@ -28,7 +28,7 @@ class ReportController extends ApiController
         ]);
 
         $query = $request->user('client')->reports()
-            ->with(['booking', 'consultant', 'client'])
+            ->with(['booking', 'consultant', 'client', 'media'])
             ->when($request->query('date_from'), fn (Builder $q, $from) => $q->where('created_at', '>=', $from.' 00:00:00'))
             ->when($request->query('date_to'), fn (Builder $q, $to) => $q->where('created_at', '<=', $to.' 23:59:59'))
             ->latest();

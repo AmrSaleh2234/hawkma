@@ -5,7 +5,7 @@ use Modules\AccessControl\Http\Controllers\Admin\PermissionController;
 use Modules\AccessControl\Http\Controllers\Admin\RoleController;
 
 Route::prefix('v1')->group(function () {
-    Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'active.user'])->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'active.user', 'throttle:api'])->group(function () {
         Route::get('permissions', [PermissionController::class, 'index'])
             ->middleware('permission:view-roles|view-permissions,admin')
             ->name('permissions.index');

@@ -24,7 +24,7 @@ class ConsultantController extends ApiController
      */
     public function index(Request $request): JsonResponse
     {
-        $query = User::query()->consultants()->with(['roles', 'availabilities']);
+        $query = User::query()->consultants()->with(['roles', 'availabilities', 'media']);
 
         if ($request->user()->isConsultant()) {
             $query->whereKey($request->user()->id);

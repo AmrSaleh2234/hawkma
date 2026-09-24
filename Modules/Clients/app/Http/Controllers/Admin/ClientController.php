@@ -32,7 +32,7 @@ class ClientController extends ApiController
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Client::query()->visibleTo($request->user());
+        $query = Client::query()->visibleTo($request->user())->with('media');
 
         // Counts and eager loads that depend on later phases activate
         // automatically once those models exist.

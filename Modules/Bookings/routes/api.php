@@ -5,7 +5,7 @@ use Modules\Bookings\Http\Controllers\Admin\BookingController as AdminBookingCon
 use Modules\Bookings\Http\Controllers\Client\BookingController;
 
 Route::prefix('v1')->group(function () {
-    Route::prefix('client/bookings')->name('client.bookings.')->middleware(['auth:client', 'active.client'])->group(function () {
+    Route::prefix('client/bookings')->name('client.bookings.')->middleware(['auth:client', 'active.client', 'throttle:api'])->group(function () {
         Route::post('quote', [BookingController::class, 'quote'])->name('quote');
         Route::post('/', [BookingController::class, 'store'])->name('store');
         Route::get('/', [BookingController::class, 'index'])->name('index');
@@ -13,7 +13,7 @@ Route::prefix('v1')->group(function () {
         Route::post('{booking}/cancel', [BookingController::class, 'cancel'])->name('cancel');
     });
 
-    Route::prefix('admin/bookings')->name('admin.bookings.')->middleware(['auth:admin', 'active.user'])->group(function () {
+    Route::prefix('admin/bookings')->name('admin.bookings.')->middleware(['auth:admin', 'active.user', 'throttle:api'])->group(function () {
         // Static segments before {booking} so they are not captured as an id.
         Route::get('calendar', [AdminBookingController::class, 'calendar'])
             ->middleware('permission:view-bookings,admin')

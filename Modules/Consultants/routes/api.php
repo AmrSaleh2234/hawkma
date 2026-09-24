@@ -10,14 +10,14 @@ use Modules\Consultants\Http\Controllers\Public\PublicConsultantController;
 
 Route::prefix('v1')->group(function () {
     // Public wizard endpoints (no auth).
-    Route::prefix('public')->name('public.')->middleware('throttle:60,1')->group(function () {
+    Route::prefix('public')->name('public.')->middleware('throttle:public')->group(function () {
         Route::get('consultants', [PublicConsultantController::class, 'index'])->name('consultants.index');
         Route::get('consultants/{consultant}', [PublicConsultantController::class, 'show'])->name('consultants.show');
         Route::get('consultants/{consultant}/available-dates', [PublicConsultantController::class, 'availableDates'])->name('consultants.available-dates');
         Route::get('consultants/{consultant}/slots', [PublicConsultantController::class, 'slots'])->name('consultants.slots');
     });
 
-    Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'active.user'])->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'active.user', 'throttle:api'])->group(function () {
         Route::get('consultants', [ConsultantController::class, 'index'])
             ->middleware('permission:view-consultants,admin')
             ->name('consultants.index');

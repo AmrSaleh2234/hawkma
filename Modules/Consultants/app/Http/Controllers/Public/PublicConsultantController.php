@@ -31,7 +31,7 @@ class PublicConsultantController extends ApiController
             ->consultants()
             ->active()
             ->whereHas('availabilities')
-            ->with('availabilities');
+            ->with(['availabilities', 'media']);
 
         QueryFilters::apply($query, $request, ['name', 'title', 'specialization'], ['name', 'created_at']);
 

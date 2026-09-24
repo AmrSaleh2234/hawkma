@@ -101,7 +101,7 @@ class BookingController extends ApiController
         ]);
 
         $query = $request->user('client')->bookings()
-            ->with(['package', 'consultant.media', 'latestPayment'])
+            ->with(['client', 'package', 'consultant.media', 'latestPayment'])
             ->filter($request->only(['status', 'date_from', 'date_to', 'upcoming']));
 
         $sort = (string) $request->query('sort', '-starts_at');

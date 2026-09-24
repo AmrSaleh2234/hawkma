@@ -35,7 +35,7 @@ class ReportController extends ApiController
         }
 
         $query = Report::query()
-            ->with(['booking', 'consultant', 'client'])
+            ->with(['booking', 'consultant', 'client', 'media'])
             ->visibleTo($user)
             ->when($filters['consultant_id'] ?? null, fn (Builder $q, $id) => $q->where('consultant_id', $id))
             ->when($filters['client_id'] ?? null, fn (Builder $q, $id) => $q->where('client_id', $id))

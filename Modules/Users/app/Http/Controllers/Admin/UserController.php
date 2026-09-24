@@ -24,7 +24,7 @@ class UserController extends ApiController
      */
     public function index(Request $request): JsonResponse
     {
-        $query = User::query()->with('roles');
+        $query = User::query()->with(['roles', 'media']);
 
         QueryFilters::apply($query, $request, ['name', 'email', 'phone'], ['name', 'created_at', 'last_login_at']);
 
