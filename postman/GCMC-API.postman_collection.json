@@ -1559,7 +1559,7 @@
                                 "reset-password"
                             ]
                         },
-                        "description": "Resets the password with the token from the email. All old tokens are revoked.\n\n| Field | Rules |\n|---|---|\n| token | required |\n| email | required email |\n| password | required, confirmed, min 8 |\n\n**Errors:** 422 `INVALID_TOKEN`",
+                        "description": "Resets the password with the token from the email. All old tokens are revoked.\n\n| Field | Rules |\n|---|---|\n| token | required |\n| email | required email |\n| password | required, confirmed, min 8 |\n\n**Errors:** 422 `VALIDATION_ERROR` (bad/expired token, reason under `errors.email`)",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"token\": \"PASTE-TOKEN-FROM-EMAIL\",\n    \"email\": \"{{admin_email}}\",\n    \"password\": \"Password@123\",\n    \"password_confirmation\": \"Password@123\"\n}",
@@ -3020,7 +3020,7 @@
                                 "{{role_id}}"
                             ]
                         },
-                        "description": "Deletes a role. The protected `admin` role and roles still assigned to users cannot be deleted.\n\n**Permission:** `delete-roles`\n\n**Errors:** 422 `ROLE_PROTECTED`, 422 `ROLE_IN_USE`"
+                        "description": "Deletes a role. The protected `admin` role and roles still assigned to users cannot be deleted.\n\n**Permission:** `delete-roles`\n\n**Errors:** 422 `ROLE_PROTECTED`, 422 `ROLE_HAS_USERS`"
                     },
                     "event": [
                         {
@@ -3064,7 +3064,7 @@
                                         "{{role_id}}"
                                     ]
                                 },
-                                "description": "Deletes a role. The protected `admin` role and roles still assigned to users cannot be deleted.\n\n**Permission:** `delete-roles`\n\n**Errors:** 422 `ROLE_PROTECTED`, 422 `ROLE_IN_USE`"
+                                "description": "Deletes a role. The protected `admin` role and roles still assigned to users cannot be deleted.\n\n**Permission:** `delete-roles`\n\n**Errors:** 422 `ROLE_PROTECTED`, 422 `ROLE_HAS_USERS`"
                             },
                             "status": "OK",
                             "code": 200,
@@ -8840,7 +8840,7 @@
                                 "reset-password"
                             ]
                         },
-                        "description": "Resets the password with the token from the email.\n\n| Field | Rules |\n|---|---|\n| token | required |\n| email | required email |\n| password | required, confirmed, min 8 |\n\n**Errors:** 422 `INVALID_TOKEN`",
+                        "description": "Resets the password with the token from the email.\n\n| Field | Rules |\n|---|---|\n| token | required |\n| email | required email |\n| password | required, confirmed, min 8 |\n\n**Errors:** 422 `VALIDATION_ERROR` (bad/expired token, reason under `errors.email`)",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"token\": \"PASTE-TOKEN-FROM-EMAIL\",\n    \"email\": \"{{client_email}}\",\n    \"password\": \"Password@123\",\n    \"password_confirmation\": \"Password@123\"\n}",
@@ -14200,7 +14200,7 @@
                                 "mark-refunded"
                             ]
                         },
-                        "description": "After refunding in the gateway dashboard: marks the booking refunded. Only possible while `refund_status = requested` (the client cancelled this paid booking in folder 13).\n\n**Permission:** `refund-payments`\n\n**Errors:** 422 `REFUND_NOT_REQUESTED`"
+                        "description": "After refunding in the gateway dashboard: marks the booking refunded. Only possible while `refund_status = requested` (the client cancelled this paid booking in folder 13).\n\n**Permission:** `refund-payments`\n\n**Errors:** 422 `BOOKING_INVALID_STATUS`"
                     },
                     "event": [
                         {
@@ -14246,7 +14246,7 @@
                                         "mark-refunded"
                                     ]
                                 },
-                                "description": "After refunding in the gateway dashboard: marks the booking refunded. Only possible while `refund_status = requested` (the client cancelled this paid booking in folder 13).\n\n**Permission:** `refund-payments`\n\n**Errors:** 422 `REFUND_NOT_REQUESTED`"
+                                "description": "After refunding in the gateway dashboard: marks the booking refunded. Only possible while `refund_status = requested` (the client cancelled this paid booking in folder 13).\n\n**Permission:** `refund-payments`\n\n**Errors:** 422 `BOOKING_INVALID_STATUS`"
                             },
                             "status": "OK",
                             "code": 200,

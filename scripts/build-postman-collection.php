@@ -262,7 +262,7 @@ $adminAuth = folder('01 Admin › Auth', [
         'body' => ['email' => '{{admin_email}}'],
     ]),
     req('Reset password (ADM-AUTH-05)', 'POST', 'admin/auth/reset-password', [
-        'description' => desc('Resets the password with the token from the email. All old tokens are revoked.', fields: ['token' => 'required', 'email' => 'required email', 'password' => 'required, confirmed, min 8'], errors: ['422 `INVALID_TOKEN`']),
+        'description' => desc('Resets the password with the token from the email. All old tokens are revoked.', fields: ['token' => 'required', 'email' => 'required email', 'password' => 'required, confirmed, min 8'], errors: ['422 `VALIDATION_ERROR` (bad/expired token, reason under `errors.email`)']),
         'body' => ['token' => 'PASTE-TOKEN-FROM-EMAIL', 'email' => '{{admin_email}}', 'password' => 'Password@123', 'password_confirmation' => 'Password@123'],
         'manual' => true,
     ]),
@@ -324,7 +324,7 @@ $roles = folder('03 Admin › Roles & Permissions', [
         'description' => desc('The users who have this role.', 'view-roles'),
     ]),
     req('Delete role (ACL-06)', 'DELETE', 'admin/roles/{{role_id}}', [
-        'description' => desc('Deletes a role. The protected `admin` role and roles still assigned to users cannot be deleted.', 'delete-roles', errors: ['422 `ROLE_PROTECTED`', '422 `ROLE_IN_USE`']),
+        'description' => desc('Deletes a role. The protected `admin` role and roles still assigned to users cannot be deleted.', 'delete-roles', errors: ['422 `ROLE_PROTECTED`', '422 `ROLE_HAS_USERS`']),
     ]),
 ], 'admin_token');
 
@@ -567,7 +567,7 @@ $clientAuth = folder('08 Client › Auth', [
         'body' => ['email' => '{{client_email}}'],
     ]),
     req('Reset password (CLI-AUTH-06)', 'POST', 'client/auth/reset-password', [
-        'description' => desc('Resets the password with the token from the email.', fields: ['token' => 'required', 'email' => 'required email', 'password' => 'required, confirmed, min 8'], errors: ['422 `INVALID_TOKEN`']),
+        'description' => desc('Resets the password with the token from the email.', fields: ['token' => 'required', 'email' => 'required email', 'password' => 'required, confirmed, min 8'], errors: ['422 `VALIDATION_ERROR` (bad/expired token, reason under `errors.email`)']),
         'body' => ['token' => 'PASTE-TOKEN-FROM-EMAIL', 'email' => '{{client_email}}', 'password' => 'Password@123', 'password_confirmation' => 'Password@123'],
         'manual' => true,
     ]),
@@ -832,7 +832,7 @@ $adminBookings = folder('14 Admin › Bookings', [
         ],
     ]),
     req('Mark refunded (BKG-07)', 'POST', 'admin/bookings/{{booking_id_3ds}}/mark-refunded', [
-        'description' => desc('After refunding in the gateway dashboard: marks the booking refunded. Only possible while `refund_status = requested` (the client cancelled this paid booking in folder 13).', 'refund-payments', errors: ['422 `REFUND_NOT_REQUESTED`']),
+        'description' => desc('After refunding in the gateway dashboard: marks the booking refunded. Only possible while `refund_status = requested` (the client cancelled this paid booking in folder 13).', 'refund-payments', errors: ['422 `BOOKING_INVALID_STATUS`']),
         'tests' => [
             'pm.test("refunded", () => pm.expect(j.data.refund_status).to.eql("refunded"));',
         ],
