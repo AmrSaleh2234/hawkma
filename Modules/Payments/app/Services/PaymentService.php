@@ -154,7 +154,8 @@ class PaymentService
     }
 
     /**
-     * Store a gateway result on the payment row (§9.6 step 4-5).
+     * Store a gateway result on the payment row (§9.6 step 4-5). A later
+     * non-paid result (e.g. refunded) keeps the original paid_at.
      */
     protected function storeResult(Payment $payment, ChargeResult $result): void
     {
@@ -166,7 +167,7 @@ class PaymentService
             'card_brand' => $result->cardBrand ?? $payment->card_brand,
             'card_last_four' => $result->cardLastFour ?? $payment->card_last_four,
             'gateway_response' => $result->raw,
-            'paid_at' => $result->isPaid() ? now() : null,
+            'paid_at' => $result->isPaid() ? ($payment->paid_at ?? now()) : $payment->paid_at,
         ])->save();
     }
 }

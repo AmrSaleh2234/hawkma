@@ -26,6 +26,7 @@ use Modules\Core\Enums\ErrorCode;
 use Modules\Core\Exceptions\BusinessException;
 use Modules\Core\Http\Controllers\ApiController;
 use Modules\Core\Support\QueryFilters;
+use Modules\Packages\Services\SubscriptionService;
 use Modules\Payments\Enums\PaymentRecordStatus;
 use Throwable;
 
@@ -198,8 +199,13 @@ class BookingController extends ApiController
     /**
      * BKG-07 POST /api/v1/admin/bookings/{booking}/mark-refunded
      * Perm: refund-payments — only when refund_status = requested.
+     *
+     * The client got the money back, so the subscription the booking paid
+     * for is cancelled too — otherwise the client would keep the package on
+     * top of the refund (the consultation was already returned to the quota
+     * when the booking was cancelled).
      */
-    public function markRefunded(Request $request, string $booking): JsonResponse
+    public function markRefunded(Request $request, string $booking, SubscriptionService $subscriptions): JsonResponse
     {
         $request->validate(['note' => ['nullable', 'string', 'max:500']]);
 
@@ -209,7 +215,7 @@ class BookingController extends ApiController
             throw new BusinessException(ErrorCode::BookingInvalidStatus);
         }
 
-        DB::transaction(function () use ($booking): void {
+        DB::transaction(function () use ($booking, $subscriptions): void {
             $booking->forceFill([
                 'refund_status' => RefundStatus::Refunded,
                 'payment_status' => PaymentStatus::Refunded,
@@ -221,6 +227,10 @@ class BookingController extends ApiController
                 ->first()
                 ?->forceFill(['status' => PaymentRecordStatus::Refunded])
                 ->save();
+
+            if ($booking->client_subscription_id !== null) {
+                $subscriptions->cancel($booking->subscription);
+            }
         });
 
         return $this->success(

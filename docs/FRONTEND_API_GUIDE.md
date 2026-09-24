@@ -93,6 +93,7 @@ Branch on `error_code` (stable), never on `message` (translated).
 | 409 | `SLOT_NOT_AVAILABLE` | Slot taken between quote and submit | Reload slots, ask user to re-pick (see §5.7) |
 | 422 | `PACKAGE_INACTIVE` | Booking an inactive package | Toast |
 | 422 | `PACKAGE_HAS_SUBSCRIPTIONS` | Deleting a package with subscriptions | Toast |
+| 422 | `SUBSCRIPTION_EXHAUSTED` | Quota ran out between quote and submit (concurrent bookings) | Re-quote; offer payment |
 | 422 | `LOCATION_NOT_OWNED` | Location belongs to another client | Dev error |
 | 422 | `PAYMENT_METHOD_REQUIRED` | No card given while payment is required | Highlight the payment step |
 | 422 | `PAYMENT_METHOD_NOT_OWNED` | Card belongs to another client | Dev error |
@@ -364,6 +365,8 @@ Same payloads as above against `GET|PUT /admin/my/availability` (MY-01/02),
   spinner; `502 MEETING_CREATION_FAILED` means Google is down, offer retry.
 - Mark refunded: `POST /admin/bookings/{id}/mark-refunded` (BKG-07) — only
   while `refund_status=requested`, after refunding in the Moyasar dashboard.
+  Also **cancels the subscription the booking paid for** (the client got the
+  money back), so the client's "My packages" page may change afterwards.
 - Upload report from the booking: see Reports below.
 
 #### Reports

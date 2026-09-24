@@ -25,6 +25,7 @@ return [
 
     'PACKAGE_INACTIVE' => 'This package is not active.',
     'PACKAGE_HAS_SUBSCRIPTIONS' => 'This package has subscriptions and cannot be deleted.',
+    'SUBSCRIPTION_EXHAUSTED' => 'This subscription has no remaining consultations.',
 
     'LOCATION_NOT_OWNED' => 'This location does not belong to you.',
 

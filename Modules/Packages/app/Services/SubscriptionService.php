@@ -2,9 +2,10 @@
 
 namespace Modules\Packages\Services;
 
-use DomainException;
 use Illuminate\Support\Facades\DB;
 use Modules\Clients\Models\Client;
+use Modules\Core\Enums\ErrorCode;
+use Modules\Core\Exceptions\BusinessException;
 use Modules\Packages\Enums\SubscriptionStatus;
 use Modules\Packages\Models\ClientSubscription;
 use Modules\Packages\Models\Package;
@@ -68,7 +69,8 @@ class SubscriptionService
     /**
      * consultations_used++ with a row lock; throws when nothing is left
      * (plan §9.4). The quote flow checks hasRemaining() upstream, so this is
-     * a last-resort guard against concurrent consumption.
+     * a last-resort guard against concurrent consumption — it surfaces as a
+     * 422 SUBSCRIPTION_EXHAUSTED business error, never a raw 500.
      */
     public function consume(ClientSubscription $subscription): void
     {
@@ -78,13 +80,25 @@ class SubscriptionService
                 ->findOrFail($subscription->id);
 
             if (! $locked->hasRemaining()) {
-                throw new DomainException("Subscription #{$locked->id} has no remaining consultations.");
+                throw new BusinessException(ErrorCode::SubscriptionExhausted);
             }
 
             $locked->increment('consultations_used');
         });
 
         $subscription->refresh();
+    }
+
+    /**
+     * Cancel a subscription whose payment was refunded: the client got the
+     * money back, so the package cannot stay active. Already finished
+     * (expired/cancelled) subscriptions are left untouched.
+     */
+    public function cancel(ClientSubscription $subscription): void
+    {
+        if ($subscription->status === SubscriptionStatus::Active) {
+            $subscription->forceFill(['status' => SubscriptionStatus::Cancelled])->save();
+        }
     }
 
     /**

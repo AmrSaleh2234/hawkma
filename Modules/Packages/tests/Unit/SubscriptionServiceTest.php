@@ -2,7 +2,8 @@
 
 namespace Modules\Packages\Tests\Unit;
 
-use DomainException;
+use Modules\Core\Enums\ErrorCode;
+use Modules\Core\Exceptions\BusinessException;
 use Modules\Packages\Enums\SubscriptionStatus;
 use Modules\Packages\Models\ClientSubscription;
 use Modules\Packages\Models\Package;
@@ -146,13 +147,29 @@ class SubscriptionServiceTest extends TestCase
         $this->assertTrue($subscription->hasRemaining());
     }
 
-    public function test_consume_throws_when_nothing_is_left(): void
+    public function test_consume_throws_a_business_exception_when_nothing_is_left(): void
     {
         $subscription = ClientSubscription::factory()->usedUp()->create();
 
-        $this->expectException(DomainException::class);
+        try {
+            $this->service->consume($subscription);
+            $this->fail('BusinessException was not thrown');
+        } catch (BusinessException $e) {
+            $this->assertSame(ErrorCode::SubscriptionExhausted, $e->errorCode);
+            $this->assertSame(422, $e->status);
+        }
+    }
 
-        $this->service->consume($subscription);
+    public function test_cancel_marks_an_active_subscription_cancelled_and_leaves_finished_ones(): void
+    {
+        $active = ClientSubscription::factory()->create(['status' => SubscriptionStatus::Active]);
+        $expired = ClientSubscription::factory()->create(['status' => SubscriptionStatus::Expired]);
+
+        $this->service->cancel($active);
+        $this->service->cancel($expired);
+
+        $this->assertSame(SubscriptionStatus::Cancelled, $active->refresh()->status);
+        $this->assertSame(SubscriptionStatus::Expired, $expired->refresh()->status);
     }
 
     /*

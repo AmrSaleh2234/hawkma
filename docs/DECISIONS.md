@@ -82,3 +82,46 @@ Not plan deviations, but worth recording:
 - The N+1 test suite (`tests/Feature/NPlusOneTest.php`, one test per index
   endpoint) caught 7 missing eager loads (`media` on user/client/consultant/
   report indexes, `client` on the client bookings index); all fixed.
+
+## 5. Gateway errors never fail a payment (§9.6 clarification)
+
+The plan's Moyasar mapping treated any non-paid answer — including HTTP
+errors — as `failed`. That loses real money: an outage during the 3-D Secure
+verify would cancel the booking, and the later "paid" webhook was ignored
+because failed payments are final.
+
+`MoyasarGateway` now only marks a payment failed when Moyasar's payload
+explicitly says `failed` (or `voided` — no money taken). Transport errors
+(timeout, connection error, 5xx) throw `GatewayException`: the payment stays
+`initiated`, the caller gets a 500, and Moyasar retries the webhook until the
+reconciliation succeeds. Moyasar's other statuses are mapped explicitly:
+`authorized` → initiated (captured later), `captured` → paid, `refunded` →
+refunded; an unknown status is logged and treated as initiated, never failed.
+On `charge()`, a 4xx still maps to failed (the request was rejected before
+processing), while 5xx/connection errors throw.
+
+Covered by `Modules/Payments/tests/Feature/GatewayOutageTest.php`.
+
+## 6. Marking a refund cancels the subscription (plan gap)
+
+Per the plan, cancelling a paid booking returns the consultation to the
+subscription quota AND flags a refund — so a refunded client kept the
+package. Now `BKG-07 mark-refunded` also cancels the subscription the booking
+paid for (`SubscriptionService::cancel()`, only when still active): the
+client got the money back, so the package cannot stay active.
+
+## 7. Quota race surfaces as SUBSCRIPTION_EXHAUSTED
+
+`SubscriptionService::consume()` (the last-resort row-lock guard against two
+concurrent bookings spending the same last consultation) threw a plain
+`DomainException` → raw 500. It now throws
+`BusinessException(ErrorCode::SubscriptionExhausted)` → 422 with the
+envelope. New error code: `SUBSCRIPTION_EXHAUSTED`.
+
+## 8. PHP platform pinned to 8.3
+
+`composer.json` advertised `php: ^8.3` but the lock file contained Symfony
+8.x (`>=8.4.1`), so a fresh clone could not install on PHP 8.3.
+`config.platform.php` is now pinned to `8.3` and the lock file was
+re-resolved (Symfony 8.1 → 7.4, which Laravel 13 fully supports), keeping the
+plan's "PHP 8.3+" promise true.
