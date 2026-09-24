@@ -1080,11 +1080,11 @@ $envFile = function (string $name, bool $emptySecrets) use ($envValues): array {
 
 file_put_contents(
     'postman/GCMC-Local.postman_environment.json',
-    json_encode($envFile('GCMC Local', false), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n",
+    json_encode($envFile('GCMC-Local', false), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n",
 );
 file_put_contents(
     'postman/GCMC-Staging.postman_environment.json',
-    json_encode($envFile('GCMC Staging', true), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n",
+    json_encode($envFile('GCMC-Staging', true), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n",
 );
 
 $count = 0;
