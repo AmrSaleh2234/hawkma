@@ -13,6 +13,7 @@ use Modules\Clients\Http\Middleware\EnsureClientIsActive;
 use Modules\Core\Enums\ErrorCode;
 use Modules\Core\Exceptions\BusinessException;
 use Modules\Core\Http\Middleware\SetLocaleFromHeader;
+use Modules\Payments\Exceptions\GatewayException;
 use Modules\Users\Http\Middleware\EnsureUserIsActive;
 use Spatie\Permission\Exceptions\UnauthorizedException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
@@ -79,6 +80,18 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return $envelope($e->status, $e->errorCode, $e->getMessage(), $e->errors);
+        });
+
+        // The payment gateway could not be reached: the payment state is
+        // unknown (the charge may have gone through), so the client gets a
+        // specific 503 instead of a generic 500. On the webhook route the
+        // non-2xx response makes Moyasar retry the delivery.
+        $exceptions->render(function (GatewayException $e, Request $request) use ($envelope, $onlyApi) {
+            if (! $onlyApi($request)) {
+                return null;
+            }
+
+            return $envelope(503, ErrorCode::PaymentPendingConfirmation, __('core::errors.PAYMENT_PENDING_CONFIRMATION'));
         });
 
         $exceptions->render(function (AuthenticationException $e, Request $request) use ($envelope, $onlyApi) {
