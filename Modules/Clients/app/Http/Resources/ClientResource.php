@@ -2,6 +2,7 @@
 
 namespace Modules\Clients\Http\Resources;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\Clients\Models\Client;
@@ -62,6 +63,11 @@ class ClientResource extends JsonResource
             'last_login_at' => $this->last_login_at?->toIso8601String(),
             'bookings_count' => $this->whenCounted('bookings'),
             'reports_count' => $this->whenCounted('reports'),
+            // CON-14: present when the query used withMax('bookings as last_booking_at').
+            'last_booking_at' => $this->when(
+                array_key_exists('last_booking_at', $this->resource->getAttributes()),
+                fn () => $this->last_booking_at === null ? null : Carbon::parse($this->last_booking_at)->toIso8601String(),
+            ),
             'locations' => LocationResource::collection($this->whenLoaded('locations')),
             'active_subscription' => $this->whenLoaded(
                 'activeSubscription',

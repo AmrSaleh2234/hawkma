@@ -2,7 +2,11 @@
 
 namespace Modules\Core\Http\Controllers;
 
+use BackedEnum;
 use Illuminate\Http\JsonResponse;
+use Modules\Bookings\Enums\BookingStatus;
+use Modules\Bookings\Enums\PaymentStatus;
+use Modules\Bookings\Enums\ReportStatus;
 
 class MetaController extends ApiController
 {
@@ -15,10 +19,9 @@ class MetaController extends ApiController
     public function __invoke(): JsonResponse
     {
         return $this->success([
-            // Placeholders until Phase 9 introduces the booking enums.
-            'booking_statuses' => [],
-            'report_statuses' => [],
-            'payment_statuses' => [],
+            'booking_statuses' => $this->enumOptions(BookingStatus::cases(), 'bookings::labels.status'),
+            'report_statuses' => $this->enumOptions(ReportStatus::cases(), 'bookings::labels.report_status'),
+            'payment_statuses' => $this->enumOptions(PaymentStatus::cases(), 'bookings::labels.payment_status'),
             'days_of_week' => $this->daysOfWeek(),
             'booking' => [
                 'slot_minutes' => (int) config('bookings.slot_minutes'),
@@ -32,6 +35,20 @@ class MetaController extends ApiController
                 'publishable_key' => config('payments.moyasar.publishable_key'),
             ],
         ]);
+    }
+
+    /**
+     * @param  array<int, BackedEnum>  $cases
+     * @return array<int, array{value: string, label: string}>
+     */
+    protected function enumOptions(array $cases, string $langKey): array
+    {
+        return collect($cases)
+            ->map(fn (BackedEnum $case) => [
+                'value' => $case->value,
+                'label' => __("{$langKey}.{$case->value}"),
+            ])
+            ->all();
     }
 
     /**

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Consultants\Http\Controllers\Admin\ConsultantAvailabilityController;
 use Modules\Consultants\Http\Controllers\Admin\ConsultantController;
+use Modules\Consultants\Http\Controllers\Admin\ConsultantRelationsController;
 use Modules\Consultants\Http\Controllers\Admin\ConsultantTimeOffController;
 use Modules\Consultants\Http\Controllers\Admin\MyAvailabilityController;
 use Modules\Consultants\Http\Controllers\Public\PublicConsultantController;
@@ -60,8 +61,17 @@ Route::prefix('v1')->group(function () {
             ->name('consultants.time-offs.destroy')
             ->scopeBindings();
 
-        // TODO Phase 9/10: CON-14..18 (clients, bookings, pending-reports,
-        // reports, stats) via Admin/ConsultantRelationsController.
+        Route::get('consultants/{consultant}/clients', [ConsultantRelationsController::class, 'clients'])
+            ->middleware('permission:view-clients,admin')
+            ->name('consultants.clients');
+        Route::get('consultants/{consultant}/bookings', [ConsultantRelationsController::class, 'bookings'])
+            ->middleware('permission:view-bookings,admin')
+            ->name('consultants.bookings');
+        Route::get('consultants/{consultant}/stats', [ConsultantRelationsController::class, 'stats'])
+            ->middleware('permission:view-consultants,admin')
+            ->name('consultants.stats');
+
+        // TODO Phase 10: CON-16 (pending-reports), CON-17 (reports).
 
         // Consultant self-service (only type=consultant, else 403).
         Route::prefix('my')->name('my.')->group(function () {

@@ -4,9 +4,9 @@ namespace Modules\Consultants\Providers;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Gate;
+use Modules\Bookings\Support\BookingsBusyTimeProvider;
 use Modules\Consultants\Contracts\BusyTimeProvider;
 use Modules\Consultants\Policies\ConsultantPolicy;
-use Modules\Consultants\Support\NullBusyTimeProvider;
 use Modules\Users\Models\User;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
@@ -46,8 +46,8 @@ class ConsultantsServiceProvider extends ModuleServiceProvider
     {
         parent::register();
 
-        // Phase 9 replaces this binding with the Bookings implementation.
-        $this->app->bind(BusyTimeProvider::class, NullBusyTimeProvider::class);
+        // The Bookings implementation (replaced the Phase 6 null provider).
+        $this->app->bind(BusyTimeProvider::class, BookingsBusyTimeProvider::class);
     }
 
     /**

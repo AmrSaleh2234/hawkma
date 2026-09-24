@@ -7,4 +7,10 @@ return [
     'max_advance_days' => (int) env('BOOKING_MAX_ADVANCE_DAYS', 60),
     'payment_hold_minutes' => (int) env('BOOKING_PAYMENT_HOLD_MINUTES', 15),
     'client_cancel_hours' => (int) env('BOOKING_CLIENT_CANCEL_HOURS', 24),
+    'meeting_driver' => env('MEETING_DRIVER', 'fake'),   // fake | google
+    'google' => [
+        'credentials_path' => env('GOOGLE_SERVICE_ACCOUNT_JSON', storage_path('app/private/google-service-account.json')),
+        'impersonate' => env('GOOGLE_CALENDAR_IMPERSONATE'),
+        'calendar_id' => env('GOOGLE_CALENDAR_ID', 'primary'),
+    ],
 ];

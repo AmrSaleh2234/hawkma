@@ -4,6 +4,8 @@ namespace Modules\Consultants\Tests\Unit;
 
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use Modules\Bookings\Models\Booking;
+use Modules\Bookings\Support\BookingsBusyTimeProvider;
 use Modules\Consultants\Models\ConsultantAvailability;
 use Modules\Consultants\Services\SlotService;
 use Modules\Consultants\Support\NullBusyTimeProvider;
@@ -11,8 +13,7 @@ use Modules\Users\Models\User;
 use Tests\TestCase;
 
 /**
- * Plan §9.3 slot cases. Cases 3–5 (busy bookings) are tested in Phase 9,
- * when the bookings table exists.
+ * Plan §9.3 slot cases. Cases 3–5 use the real Bookings busy-time provider.
  */
 class SlotServiceTest extends TestCase
 {
@@ -44,6 +45,64 @@ class SlotServiceTest extends TestCase
         $times = $this->times($consultant, $this->sunday());
 
         $this->assertSame(['10:00', '10:30', '14:00', '14:30'], $times);
+    }
+
+    /** Case 3: a booked 10:30 slot (status pending) is removed. */
+    public function test_case_3_a_pending_booking_blocks_its_slot(): void
+    {
+        $consultant = $this->consultantWithSunday('10:00', '12:00');
+        Booking::factory()->create([
+            'consultant_id' => $consultant->id,
+            'starts_at' => $this->sunday()->setTime(10, 30),
+            'ends_at' => $this->sunday()->setTime(11, 0),
+        ]);
+
+        $slots = new SlotService(new BookingsBusyTimeProvider);
+
+        $this->assertSame(['10:00', '11:00', '11:30'], array_column($slots->getSlots($consultant, $this->sunday()), 'time'));
+    }
+
+    /** Case 4: pending_payment blocks only while its payment window is open. */
+    public function test_case_4_pending_payment_blocks_until_it_expires(): void
+    {
+        $consultant = $this->consultantWithSunday('10:00', '12:00');
+        $slots = new SlotService(new BookingsBusyTimeProvider);
+
+        // expires_at in the future → the slot is blocked.
+        Booking::factory()->pendingPayment()->create([
+            'consultant_id' => $consultant->id,
+            'starts_at' => $this->sunday()->setTime(10, 30),
+            'ends_at' => $this->sunday()->setTime(11, 0),
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $this->assertSame(['10:00', '11:00', '11:30'], array_column($slots->getSlots($consultant, $this->sunday()), 'time'));
+
+        // expires_at in the past → the slot is NOT blocked.
+        Booking::query()->delete();
+        Booking::factory()->pendingPayment()->create([
+            'consultant_id' => $consultant->id,
+            'starts_at' => $this->sunday()->setTime(10, 30),
+            'ends_at' => $this->sunday()->setTime(11, 0),
+            'expires_at' => now()->subMinute(),
+        ]);
+
+        $this->assertSame(['10:00', '10:30', '11:00', '11:30'], array_column($slots->getSlots($consultant, $this->sunday()), 'time'));
+    }
+
+    /** Case 5: a cancelled booking does not block. */
+    public function test_case_5_a_cancelled_booking_does_not_block(): void
+    {
+        $consultant = $this->consultantWithSunday('10:00', '12:00');
+        Booking::factory()->cancelled()->create([
+            'consultant_id' => $consultant->id,
+            'starts_at' => $this->sunday()->setTime(10, 30),
+            'ends_at' => $this->sunday()->setTime(11, 0),
+        ]);
+
+        $slots = new SlotService(new BookingsBusyTimeProvider);
+
+        $this->assertSame(['10:00', '10:30', '11:00', '11:30'], array_column($slots->getSlots($consultant, $this->sunday()), 'time'));
     }
 
     /** Case 6: a whole-day time off → empty. */

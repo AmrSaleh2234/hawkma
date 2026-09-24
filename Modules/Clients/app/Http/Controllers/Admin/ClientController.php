@@ -4,6 +4,8 @@ namespace Modules\Clients\Http\Controllers\Admin;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Bookings\Http\Requests\BookingIndexRequest;
+use Modules\Bookings\Http\Resources\BookingResource;
 use Modules\Bookings\Models\Booking;
 use Modules\Clients\Http\Requests\Admin\UpdateClientRequest;
 use Modules\Clients\Http\Requests\Admin\UpdateClientStatusRequest;
@@ -168,5 +170,40 @@ class ClientController extends ApiController
             ->paginate(QueryFilters::perPage(request()));
 
         return $this->paginated(SubscriptionResource::collection($subscriptions));
+    }
+
+    /**
+     * ADM-CL-06 GET /api/v1/admin/clients/{client}/bookings
+     *
+     * Perm: view-bookings. Scoped: a consultant sees only his bookings with
+     * this client.
+     */
+    public function bookings(BookingIndexRequest $request, Client $client): JsonResponse
+    {
+        $user = $request->user('admin');
+
+        $filters = $request->validated();
+        unset($filters['client_id']); // fixed to this client
+        if ($user->isConsultant()) {
+            unset($filters['consultant_id']);
+        }
+
+        $query = $client->bookings()
+            ->with(['client', 'consultant.media', 'package', 'latestPayment'])
+            ->visibleTo($user)
+            ->filter($filters);
+
+        $sort = (string) ($filters['sort'] ?? '-starts_at');
+        $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
+        $column = ltrim($sort, '-');
+        if (! in_array($column, ['starts_at', 'created_at', 'amount'], true)) {
+            $column = 'starts_at';
+            $direction = 'desc';
+        }
+        $query->orderBy($column, $direction);
+
+        $bookings = $query->paginate(QueryFilters::perPage($request));
+
+        return $this->paginated(BookingResource::collection($bookings));
     }
 }
