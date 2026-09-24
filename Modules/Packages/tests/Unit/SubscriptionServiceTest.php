@@ -160,6 +160,42 @@ class SubscriptionServiceTest extends TestCase
         }
     }
 
+    public function test_consume_refuses_a_subscription_cancelled_after_the_quote(): void
+    {
+        $subscription = ClientSubscription::factory()->create([
+            'consultations_limit' => 5,
+            'consultations_used' => 1,
+        ]);
+
+        // The booking was quoted while active, then an admin refunded it.
+        $this->service->cancel($subscription);
+
+        try {
+            $this->service->consume($subscription);
+            $this->fail('BusinessException was not thrown');
+        } catch (BusinessException $e) {
+            $this->assertSame(ErrorCode::SubscriptionInactive, $e->errorCode);
+            $this->assertSame(422, $e->status);
+        }
+
+        $this->assertSame(1, $subscription->refresh()->consultations_used);
+    }
+
+    public function test_consume_refuses_a_subscription_past_its_end_even_if_still_marked_active(): void
+    {
+        $subscription = ClientSubscription::factory()->create([
+            'status' => SubscriptionStatus::Active,
+            'starts_at' => now()->subDays(31),
+            'ends_at' => now()->subDay(),
+            'consultations_limit' => 5,
+            'consultations_used' => 1,
+        ]);
+
+        $this->expectException(BusinessException::class);
+
+        $this->service->consume($subscription);
+    }
+
     public function test_cancel_marks_an_active_subscription_cancelled_and_leaves_finished_ones(): void
     {
         $active = ClientSubscription::factory()->create(['status' => SubscriptionStatus::Active]);

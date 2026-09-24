@@ -26,6 +26,7 @@ return [
     'PACKAGE_INACTIVE' => 'هذه الباقة غير نشطة.',
     'PACKAGE_HAS_SUBSCRIPTIONS' => 'هذه الباقة مرتبطة باشتراكات ولا يمكن حذفها.',
     'SUBSCRIPTION_EXHAUSTED' => 'انتهى رصيد الاستشارات في هذا الاشتراك.',
+    'SUBSCRIPTION_INACTIVE' => 'هذا الاشتراك لم يعد نشطاً.',
 
     'LOCATION_NOT_OWNED' => 'هذا الموقع لا يتبع لك.',
 

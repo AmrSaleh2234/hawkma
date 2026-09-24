@@ -29,6 +29,7 @@ enum ErrorCode: string
     case PackageInactive = 'PACKAGE_INACTIVE';
     case PackageHasSubscriptions = 'PACKAGE_HAS_SUBSCRIPTIONS';
     case SubscriptionExhausted = 'SUBSCRIPTION_EXHAUSTED';
+    case SubscriptionInactive = 'SUBSCRIPTION_INACTIVE';
 
     case LocationNotOwned = 'LOCATION_NOT_OWNED';
 

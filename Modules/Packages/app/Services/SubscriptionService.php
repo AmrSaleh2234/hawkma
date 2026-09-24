@@ -79,6 +79,12 @@ class SubscriptionService
                 ->lockForUpdate()
                 ->findOrFail($subscription->id);
 
+            // Re-checked under the lock: the subscription may have been
+            // cancelled (refund) or expired after the booking was quoted.
+            if (! $locked->isActive()) {
+                throw new BusinessException(ErrorCode::SubscriptionInactive);
+            }
+
             if (! $locked->hasRemaining()) {
                 throw new BusinessException(ErrorCode::SubscriptionExhausted);
             }
@@ -92,13 +98,22 @@ class SubscriptionService
     /**
      * Cancel a subscription whose payment was refunded: the client got the
      * money back, so the package cannot stay active. Already finished
-     * (expired/cancelled) subscriptions are left untouched.
+     * (expired/cancelled) subscriptions are left untouched. Takes the same
+     * row lock as consume() so the two cannot interleave.
      */
     public function cancel(ClientSubscription $subscription): void
     {
-        if ($subscription->status === SubscriptionStatus::Active) {
-            $subscription->forceFill(['status' => SubscriptionStatus::Cancelled])->save();
-        }
+        DB::transaction(function () use ($subscription): void {
+            $locked = ClientSubscription::query()
+                ->lockForUpdate()
+                ->findOrFail($subscription->id);
+
+            if ($locked->status === SubscriptionStatus::Active) {
+                $locked->forceFill(['status' => SubscriptionStatus::Cancelled])->save();
+            }
+        });
+
+        $subscription->refresh();
     }
 
     /**
