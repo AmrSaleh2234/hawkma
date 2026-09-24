@@ -64,6 +64,18 @@ class AdminPaymentsTest extends TestCase
         $this->getJson($this->url)->assertForbidden();
     }
 
+    public function test_pay_01_a_payment_of_a_deleted_client_still_lists(): void
+    {
+        $this->actingAsAdmin();
+        $payment = Payment::factory()->paid()->create();
+        $payment->client->delete();
+
+        $response = $this->getJson($this->url);
+
+        $this->assertApiSuccess($response);
+        $this->assertSame($payment->client_id, $response->json('data.0.client.id'));
+    }
+
     /*
     |----------------------------------------------------------------------
     | PAY-02 GET /api/v1/admin/payments/{payment}

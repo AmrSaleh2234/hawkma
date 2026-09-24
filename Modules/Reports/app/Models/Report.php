@@ -90,16 +90,18 @@ class Report extends Model implements HasMedia
 
     public function consultant(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'consultant_id');
+        // withTrashed: a report must still resolve its people after they
+        // are soft-deleted (admin/client report lists).
+        return $this->belongsTo(User::class, 'consultant_id')->withTrashed();
     }
 
     public function client(): BelongsTo
     {
-        return $this->belongsTo(Client::class);
+        return $this->belongsTo(Client::class)->withTrashed();
     }
 
     public function uploader(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'uploaded_by');
+        return $this->belongsTo(User::class, 'uploaded_by')->withTrashed();
     }
 }

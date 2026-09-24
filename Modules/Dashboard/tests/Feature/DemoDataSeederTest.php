@@ -4,6 +4,7 @@ namespace Modules\Dashboard\Tests\Feature;
 
 use Database\Seeders\DatabaseSeeder;
 use Modules\Bookings\Enums\BookingStatus;
+use Modules\Bookings\Enums\ReportStatus;
 use Modules\Bookings\Models\Booking;
 use Modules\Clients\Models\Client;
 use Modules\Reports\Models\Report;
@@ -32,16 +33,22 @@ class DemoDataSeederTest extends TestCase
         $this->assertSame(1, $client->paymentMethods()->count());
         $this->assertSame('4242', $client->defaultPaymentMethod->last_four);
 
-        // An active subscription, a completed booking with a report and a
-        // paid payment, and one upcoming pending booking.
+        // An active subscription, two completed bookings (one with a
+        // report and a paid payment, one awaiting its report), and one
+        // upcoming pending booking.
         $this->assertSame(1, $client->subscriptions()->active()->count());
 
-        $completed = $client->bookings()->where('status', BookingStatus::Completed)->sole();
-        $this->assertSame('uploaded', $completed->report_status->value);
-        $this->assertSame('paid', $completed->payment_status->value);
-        $this->assertTrue($completed->payments()->where('status', 'paid')->exists());
+        $completed = $client->bookings()->where('status', BookingStatus::Completed)->get();
+        $this->assertCount(2, $completed);
 
-        $report = Report::query()->where('booking_id', $completed->id)->sole();
+        $withReport = $completed->firstWhere('report_status', ReportStatus::Uploaded);
+        $this->assertSame('paid', $withReport->payment_status->value);
+        $this->assertTrue($withReport->payments()->where('status', 'paid')->exists());
+
+        $awaiting = $completed->firstWhere('report_status', ReportStatus::Pending);
+        $this->assertNotNull($awaiting);
+
+        $report = Report::query()->where('booking_id', $withReport->id)->sole();
         $this->assertNotNull($report->getFirstMedia('report_file'));
         $this->assertNotNull($report->client_notified_at);
 
@@ -70,7 +77,7 @@ class DemoDataSeederTest extends TestCase
 
         $this->assertSame(6, User::query()->where('type', UserType::Consultant)->count());
         $this->assertSame(1, Client::query()->where('email', 'client@gcmc.sa')->count());
-        $this->assertSame(2, Booking::count());
+        $this->assertSame(3, Booking::count());
         $this->assertSame(1, Report::count());
     }
 }

@@ -178,12 +178,14 @@ class Booking extends Model
 
     public function client(): BelongsTo
     {
-        return $this->belongsTo(Client::class);
+        // withTrashed: a booking must still resolve its client/consultant
+        // after they are soft-deleted (admin lists, reports, calendar).
+        return $this->belongsTo(Client::class)->withTrashed();
     }
 
     public function consultant(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'consultant_id');
+        return $this->belongsTo(User::class, 'consultant_id')->withTrashed();
     }
 
     public function package(): BelongsTo

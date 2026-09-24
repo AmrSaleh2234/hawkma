@@ -59,6 +59,7 @@ class DemoClientSeeder extends Seeder
         $subscription = $this->seedSubscription($client, $package);
 
         $this->seedCompletedBookingWithReport($client, $consultant, $package, $subscription);
+        $this->seedCompletedBookingAwaitingReport($client, $package);
         $this->seedUpcomingBooking($client, $consultant, $package);
     }
 
@@ -159,6 +160,48 @@ class DemoClientSeeder extends Seeder
                 ->usingFileName('governance-report.pdf')
                 ->toMediaCollection('report_file');
         }
+    }
+
+    /**
+     * A second completed booking — with another consultant and still
+     * awaiting its report, so the "pending reports" pages have data and the
+     * Postman run can upload a fresh report (RPT-03 → 201).
+     */
+    protected function seedCompletedBookingAwaitingReport(Client $client, Package $package): void
+    {
+        $consultant = User::query()
+            ->where('type', UserType::Consultant)
+            ->where('email', 'sara.aldosari@gcmc.sa')
+            ->first() ?? User::query()->where('type', UserType::Consultant)->first();
+
+        if ($consultant === null) {
+            return;
+        }
+
+        $location = $client->defaultLocation;
+        $startsAt = now()->subDays(2)->setTime(12, 0);
+
+        Booking::firstOrCreate(
+            ['client_id' => $client->id, 'consultant_id' => $consultant->id, 'starts_at' => $startsAt],
+            [
+                'package_id' => $package->id,
+                'client_location_id' => $location?->id,
+                'location_snapshot' => $location ? [
+                    'name' => $location->name,
+                    'city' => $location->city,
+                    'address' => $location->address,
+                ] : null,
+                'ends_at' => $startsAt->copy()->addMinutes((int) config('bookings.duration_minutes', 30)),
+                'status' => BookingStatus::Completed,
+                'report_status' => ReportStatus::Pending,
+                'amount' => 0,
+                'payment_status' => PaymentStatus::NotRequired,
+                'meeting_provider' => config('bookings.meeting_driver', 'fake'),
+                'meeting_status' => MeetingStatus::Created,
+                'meeting_url' => 'https://meet.google.com/fak-dem-o456',
+                'completed_at' => $startsAt->copy()->addMinutes(30),
+            ],
+        );
     }
 
     protected function seedUpcomingBooking(Client $client, User $consultant, Package $package): void

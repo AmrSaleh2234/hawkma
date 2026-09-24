@@ -98,7 +98,9 @@ class Payment extends Model
 
     public function client(): BelongsTo
     {
-        return $this->belongsTo(Client::class);
+        // withTrashed: a payment must still resolve its client after the
+        // client is soft-deleted (admin payment list).
+        return $this->belongsTo(Client::class)->withTrashed();
     }
 
     public function paymentMethod(): BelongsTo
