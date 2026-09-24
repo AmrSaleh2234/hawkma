@@ -122,7 +122,14 @@ class GatewayOutageTest extends TestCase
             'card_token' => 'tok_moyasar_123',
         ])
             ->assertStatus(503)
-            ->assertJsonPath('error_code', 'PAYMENT_PENDING_CONFIRMATION');
+            ->assertJsonPath('error_code', 'PAYMENT_PENDING_CONFIRMATION')
+            // The client gets the ids to poll: the booking and its unconfirmed payment.
+            ->assertJsonPath('data.booking.id', Booking::sole()->id)
+            ->assertJsonPath('data.booking.status', 'pending_payment')
+            ->assertJsonPath('data.payment.id', Payment::sole()->id)
+            ->assertJsonPath('data.payment.status', 'initiated')
+            ->assertJsonPath('data.payment.requires_action', false)
+            ->assertJsonPath('data.payment.transaction_url', null);
 
         // 2. The booking row persisted as pending_payment and the payment has
         //    no gateway id — we never learned it.

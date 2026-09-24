@@ -94,12 +94,13 @@ Branch on `error_code` (stable), never on `message` (translated).
 | 422 | `PACKAGE_INACTIVE` | Booking an inactive package | Toast |
 | 422 | `PACKAGE_HAS_SUBSCRIPTIONS` | Deleting a package with subscriptions | Toast |
 | 422 | `SUBSCRIPTION_EXHAUSTED` | Quota ran out between quote and submit (concurrent bookings) | Re-quote; offer payment |
+| 422 | `SUBSCRIPTION_INACTIVE` | The subscription was cancelled (refund) or ended between quote and submit | Re-quote; offer payment |
 | 422 | `LOCATION_NOT_OWNED` | Location belongs to another client | Dev error |
 | 422 | `PAYMENT_METHOD_REQUIRED` | No card given while payment is required | Highlight the payment step |
 | 422 | `PAYMENT_METHOD_NOT_OWNED` | Card belongs to another client | Dev error |
 | 402 | `PAYMENT_FAILED` | Card declined | Show `message`, offer another card |
 | 422 | `PAYMENT_ALREADY_PROCESSED` | Verifying an already-final payment | Safe to ignore; refresh the booking |
-| 503 | `PAYMENT_PENDING_CONFIRMATION` | Gateway unreachable during charge/verify — the payment state is unknown and is being reconciled via webhook | "Your payment is being confirmed"; poll the booking after ~30 s. **Do not** resubmit the charge blindly (a retry is safe — Moyasar dedupes via `given_id` — but the user may already be paid) |
+| 503 | `PAYMENT_PENDING_CONFIRMATION` | Gateway unreachable during charge/verify — the payment state is unknown and is being reconciled via webhook | "Your payment is being confirmed"; poll `data.booking.id` after ~30 s. **Do not** resubmit the booking: a new submit is a new charge (the held slot answers 409, a different slot would charge again) |
 | 422 | `BOOKING_INVALID_STATUS` | e.g. completing a cancelled booking | Refresh the booking |
 | 422 | `BOOKING_NOT_STARTED` | Completing before `starts_at` | Toast |
 | 422 | `BOOKING_CANCEL_WINDOW_PASSED` | Client cancelling < 24 h before start | "انتهت مهلة الإلغاء" |
@@ -559,9 +560,12 @@ POST /client/bookings
 - `503 PAYMENT_PENDING_CONFIRMATION` → the gateway could not be reached, so
   the payment state is unknown (the charge may have gone through). Tell the
   user the payment is being confirmed and poll `GET /client/bookings/{id}`
-  after ~30 s: the Moyasar webhook reconciles it in the background. The
-  charge is idempotent (Moyasar `given_id`), so even an accidental retry can
-  never charge the card twice.
+  after ~30 s: the Moyasar webhook reconciles it in the background. The 503
+  body carries `data.booking` (status `pending_payment`) and `data.payment`
+  (status `initiated`, `requires_action: false`, no `transaction_url`), so
+  you have the id to poll. **Do not** resubmit the wizard: that creates a new
+  booking and a new charge (the held slot answers 409 `SLOT_NOT_AVAILABLE`,
+  but a different slot would charge the card again).
 
 ### 5.7 `SLOT_NOT_AVAILABLE` (409)
 

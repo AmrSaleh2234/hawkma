@@ -115,8 +115,11 @@ id), answered 200, and the booking expired unpaid — money gone.
 Two defences, both on the charge request:
 
 - `given_id` = the payment's new `uuid` column. Moyasar rejects a second
-  charge with the same `given_id`, so a client retry after a timeout can
-  never charge the card twice.
+  charge with the same `given_id`, so re-sending the SAME payment's charge can
+  never charge twice. A client resubmitting the wizard is a new booking and a
+  new payment (new uuid), so it is not covered by this; the held slot (409)
+  and the 503 body's booking id (poll it instead of resubmitting) are what
+  protect that case.
 - `metadata.payment_id` = our payment id, next to the existing `booking_id`.
   When a webhook's Moyasar id matches no payment, `PaymentService` falls back
   to this id, adopts the gateway id, and reconciles as usual. A payment that
@@ -154,3 +157,21 @@ envelope. New error code: `SUBSCRIPTION_EXHAUSTED`.
 `config.platform.php` is now pinned to `8.3` and the lock file was
 re-resolved (Symfony 8.1 → 7.4, which Laravel 13 fully supports), keeping the
 plan's "PHP 8.3+" promise true.
+
+## 10. Refund vs. consume race, and the 503 booking body
+
+- `SubscriptionService::consume()` re-checks `isActive()` (status active and
+  inside `starts_at`..`ends_at`) under the row lock, not only the remaining
+  quota, and throws 422 `SUBSCRIPTION_INACTIVE`. `cancel()` takes the same
+  row lock. Before this, a booking quoted just before an admin marked the
+  refund could still consume a consultation of the cancelled subscription.
+- `POST /client/bookings` answering 503 `PAYMENT_PENDING_CONFIRMATION` now
+  includes `data: {booking, payment}` (the rest of the error envelope is
+  unchanged), so the wizard can poll the booking instead of resubmitting.
+  `payment.requires_action` is true only when there is a `transaction_url`
+  to redirect to.
+
+Regression tests: `SubscriptionServiceTest::test_consume_refuses_a_subscription_cancelled_after_the_quote`,
+`test_consume_refuses_a_subscription_past_its_end_even_if_still_marked_active`,
+and the 503 body assertions in
+`GatewayOutageTest::test_a_charge_timeout_is_reconciled_by_the_webhook_via_the_metadata_payment_id`.

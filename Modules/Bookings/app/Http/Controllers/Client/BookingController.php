@@ -12,6 +12,7 @@ use Modules\Bookings\Http\Requests\Client\StoreBookingRequest;
 use Modules\Bookings\Http\Resources\BookingResource;
 use Modules\Bookings\Models\Booking;
 use Modules\Bookings\Services\BookingStateMachine;
+use Modules\Core\Enums\ErrorCode;
 use Modules\Core\Http\Controllers\ApiController;
 use Modules\Core\Support\Money;
 use Modules\Core\Support\QueryFilters;
@@ -19,6 +20,8 @@ use Modules\Packages\Http\Resources\PackageResource;
 use Modules\Packages\Http\Resources\SubscriptionResource;
 use Modules\Packages\Models\Package;
 use Modules\Payments\Enums\PaymentRecordStatus;
+use Modules\Payments\Exceptions\GatewayException;
+use Modules\Payments\Models\Payment;
 use Modules\Users\Models\User;
 
 class BookingController extends ApiController
@@ -65,22 +68,49 @@ class BookingController extends ApiController
      */
     public function store(StoreBookingRequest $request, CreateBookingAction $action): JsonResponse
     {
-        $result = $action->execute($request->user('client'), $request->validated());
+        try {
+            $result = $action->execute($request->user('client'), $request->validated());
+        } catch (GatewayException $e) {
+            if ($e->booking === null) {
+                throw $e;
+            }
 
-        $booking = $result['booking']->loadMissing(['package', 'consultant', 'client', 'latestPayment']);
-        $payment = $result['payment'];
+            report($e);
 
-        return $this->created([
+            // The charge outcome is unknown: the booking stays pending_payment
+            // until the webhook reconciles it, so hand the client its ids to poll.
+            return response()->json([
+                'success' => false,
+                'message' => __('core::errors.PAYMENT_PENDING_CONFIRMATION'),
+                'error_code' => ErrorCode::PaymentPendingConfirmation->value,
+                'errors' => [],
+                'data' => $this->bookingPayload($e->booking, $e->payment),
+            ], 503);
+        }
+
+        return $this->created(
+            $this->bookingPayload($result['booking'], $result['payment']),
+            __('bookings::messages.booking_created'),
+        );
+    }
+
+    /**
+     * @return array{booking: BookingResource, payment: ?array<string, mixed>}
+     */
+    protected function bookingPayload(Booking $booking, ?Payment $payment): array
+    {
+        $booking->loadMissing(['package', 'consultant', 'client', 'latestPayment']);
+        $initiated = $payment?->status === PaymentRecordStatus::Initiated;
+
+        return [
             'booking' => BookingResource::make($booking),
             'payment' => $payment === null ? null : [
                 'id' => $payment->id,
                 'status' => $payment->status->value,
-                'requires_action' => $payment->status === PaymentRecordStatus::Initiated,
-                'transaction_url' => $payment->status === PaymentRecordStatus::Initiated
-                    ? $payment->transaction_url
-                    : null,
+                'requires_action' => $initiated && $payment->transaction_url !== null,
+                'transaction_url' => $initiated ? $payment->transaction_url : null,
             ],
-        ], __('bookings::messages.booking_created'));
+        ];
     }
 
     /**
