@@ -74,7 +74,6 @@ class BookingResource extends JsonResource
                 ? PaymentResource::make($this->latestPayment)
                 : null),
             'payments' => PaymentResource::collection($this->whenLoaded('payments')),
-            // TODO Phase 10: eager load `report.media` once the Reports module exists.
             'report' => $this->whenLoaded('report', fn () => $this->report === null ? null : [
                 'id' => $this->report->id,
                 'title' => $this->report->title,

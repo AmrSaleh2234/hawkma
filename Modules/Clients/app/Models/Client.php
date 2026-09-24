@@ -17,6 +17,7 @@ use Modules\Clients\Notifications\ClientResetPasswordNotification;
 use Modules\Packages\Models\ClientSubscription;
 use Modules\Payments\Models\Payment;
 use Modules\Payments\Models\PaymentMethod;
+use Modules\Reports\Models\Report;
 use Modules\Users\Models\User;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -171,6 +172,11 @@ class Client extends Authenticatable implements HasMedia
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function reports(): HasMany
+    {
+        return $this->hasMany(Report::class);
     }
 
     public function defaultPaymentMethod(): HasOne

@@ -14,6 +14,7 @@ use Modules\Clients\Http\Resources\ClientResource;
 use Modules\Clients\Models\Client;
 use Modules\Core\Http\Controllers\ApiController;
 use Modules\Core\Support\QueryFilters;
+use Modules\Reports\Http\Resources\ReportResource;
 use Modules\Reports\Models\Report;
 use Modules\Users\Models\User;
 
@@ -97,6 +98,68 @@ class ConsultantRelationsController extends ApiController
     }
 
     /**
+     * CON-16 GET /api/v1/admin/consultants/{consultant}/pending-reports
+     * Perm: view-reports
+     *
+     * The completed bookings whose report is still pending — the list the
+     * consultant has to write reports for.
+     */
+    public function pendingReports(Request $request, User $consultant): JsonResponse
+    {
+        $this->authorize('view', $consultant);
+
+        $bookings = Booking::query()
+            ->with(['client', 'consultant.media', 'package', 'latestPayment'])
+            ->where('consultant_id', $consultant->id)
+            ->where('status', BookingStatus::Completed)
+            ->where('report_status', ReportStatus::Pending)
+            ->orderByDesc('starts_at')
+            ->paginate(QueryFilters::perPage($request));
+
+        return $this->paginated(BookingResource::collection($bookings));
+    }
+
+    /**
+     * CON-17 GET /api/v1/admin/consultants/{consultant}/reports
+     * Perm: view-reports
+     *
+     * This consultant's reports. Query: search (title, client), date_from,
+     * date_to.
+     */
+    public function reports(Request $request, User $consultant): JsonResponse
+    {
+        $this->authorize('view', $consultant);
+
+        $request->validate([
+            'search' => ['nullable', 'string', 'max:191'],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $query = Report::query()
+            ->with(['booking', 'consultant', 'client'])
+            ->where('consultant_id', $consultant->id)
+            ->when($request->query('date_from'), fn (Builder $q, $from) => $q->where('created_at', '>=', $from.' 00:00:00'))
+            ->when($request->query('date_to'), fn (Builder $q, $to) => $q->where('created_at', '<=', $to.' 23:59:59'))
+            ->latest();
+
+        $search = trim((string) $request->query('search', ''));
+        if ($search !== '') {
+            $query->where(function (Builder $q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhereHas('client', fn (Builder $c) => $c
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('company_name', 'like', "%{$search}%"));
+            });
+        }
+
+        $reports = $query->paginate(QueryFilters::perPage($request));
+
+        return $this->paginated(ReportResource::collection($reports));
+    }
+
+    /**
      * CON-18 GET /api/v1/admin/consultants/{consultant}/stats
      * Perm: view-consultants
      */
@@ -113,10 +176,7 @@ class ConsultantRelationsController extends ApiController
             ->limit(5)
             ->get();
 
-        // TODO Phase 10: count the reports table once the Reports module exists.
-        $reports = class_exists(Report::class)
-            ? Report::query()->where('consultant_id', $consultant->id)->count()
-            : 0;
+        $reports = Report::query()->where('consultant_id', $consultant->id)->count();
 
         return $this->success([
             'pending_bookings' => $base()->where('status', BookingStatus::Pending)->count(),

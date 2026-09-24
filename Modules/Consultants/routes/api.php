@@ -67,11 +67,15 @@ Route::prefix('v1')->group(function () {
         Route::get('consultants/{consultant}/bookings', [ConsultantRelationsController::class, 'bookings'])
             ->middleware('permission:view-bookings,admin')
             ->name('consultants.bookings');
+        Route::get('consultants/{consultant}/pending-reports', [ConsultantRelationsController::class, 'pendingReports'])
+            ->middleware('permission:view-reports,admin')
+            ->name('consultants.pending-reports');
+        Route::get('consultants/{consultant}/reports', [ConsultantRelationsController::class, 'reports'])
+            ->middleware('permission:view-reports,admin')
+            ->name('consultants.reports');
         Route::get('consultants/{consultant}/stats', [ConsultantRelationsController::class, 'stats'])
             ->middleware('permission:view-consultants,admin')
             ->name('consultants.stats');
-
-        // TODO Phase 10: CON-16 (pending-reports), CON-17 (reports).
 
         // Consultant self-service (only type=consultant, else 403).
         Route::prefix('my')->name('my.')->group(function () {

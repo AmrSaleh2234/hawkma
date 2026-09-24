@@ -2,7 +2,9 @@
 
 namespace Modules\Reports\Providers;
 
-use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Gate;
+use Modules\Reports\Models\Report;
+use Modules\Reports\Policies\ReportPolicy;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class ReportsServiceProvider extends ModuleServiceProvider
@@ -18,13 +20,6 @@ class ReportsServiceProvider extends ModuleServiceProvider
     protected string $nameLower = 'reports';
 
     /**
-     * Command classes to register.
-     *
-     * @var string[]
-     */
-    // protected array $commands = [];
-
-    /**
      * Provider classes to register.
      *
      * @var string[]
@@ -35,12 +30,14 @@ class ReportsServiceProvider extends ModuleServiceProvider
     ];
 
     /**
-     * Define module schedules.
-     *
-     * @param  $schedule
+     * Boot the application events.
      */
-    // protected function configureSchedules(Schedule $schedule): void
-    // {
-    //     $schedule->command('inspire')->hourly();
-    // }
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->loadTranslationsFrom(module_path($this->name, 'lang'), $this->nameLower);
+
+        Gate::policy(Report::class, ReportPolicy::class);
+    }
 }

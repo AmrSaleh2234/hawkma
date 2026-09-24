@@ -62,7 +62,8 @@ Route::prefix('v1')->group(function () {
         Route::get('clients/{client}/bookings', [AdminClientController::class, 'bookings'])
             ->middleware('permission:view-bookings,admin')
             ->name('clients.bookings');
-
-        // TODO Phase 10: ADM-CL-07 GET clients/{client}/reports (view-reports)
+        Route::get('clients/{client}/reports', [AdminClientController::class, 'reports'])
+            ->middleware('permission:view-reports,admin')
+            ->name('clients.reports');
     });
 });

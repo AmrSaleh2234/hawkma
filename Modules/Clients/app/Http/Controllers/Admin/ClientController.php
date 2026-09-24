@@ -16,6 +16,7 @@ use Modules\Core\Http\Controllers\ApiController;
 use Modules\Core\Support\QueryFilters;
 use Modules\Packages\Http\Resources\SubscriptionResource;
 use Modules\Packages\Models\ClientSubscription;
+use Modules\Reports\Http\Resources\ReportResource;
 use Modules\Reports\Models\Report;
 
 class ClientController extends ApiController
@@ -205,5 +206,22 @@ class ClientController extends ApiController
         $bookings = $query->paginate(QueryFilters::perPage($request));
 
         return $this->paginated(BookingResource::collection($bookings));
+    }
+
+    /**
+     * ADM-CL-07 GET /api/v1/admin/clients/{client}/reports
+     *
+     * Perm: view-reports. Scoped: a consultant sees only his reports for
+     * this client.
+     */
+    public function reports(Request $request, Client $client): JsonResponse
+    {
+        $reports = $client->reports()
+            ->with(['booking', 'consultant', 'client'])
+            ->visibleTo($request->user('admin'))
+            ->latest()
+            ->paginate(QueryFilters::perPage($request));
+
+        return $this->paginated(ReportResource::collection($reports));
     }
 }

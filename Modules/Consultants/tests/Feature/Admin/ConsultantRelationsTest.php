@@ -4,6 +4,7 @@ namespace Modules\Consultants\Tests\Feature\Admin;
 
 use Modules\Bookings\Models\Booking;
 use Modules\Clients\Models\Client;
+use Modules\Reports\Models\Report;
 use Tests\TestCase;
 
 class ConsultantRelationsTest extends TestCase
@@ -165,6 +166,84 @@ class ConsultantRelationsTest extends TestCase
         Booking::factory()->create(['client_id' => $client->id]); // another consultant
 
         $response = $this->getJson("/api/v1/admin/clients/{$client->id}/bookings");
+
+        $this->assertSame(1, $response->json('meta.total'));
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | CON-16 GET /api/v1/admin/consultants/{consultant}/pending-reports
+    |----------------------------------------------------------------------
+    */
+
+    public function test_con_16_lists_completed_bookings_awaiting_a_report(): void
+    {
+        $this->actingAsAdmin();
+        $consultant = $this->createConsultant();
+
+        $awaiting = Booking::factory()->withReportPending()->create(['consultant_id' => $consultant->id]);
+        Booking::factory()->completed()->create(['consultant_id' => $consultant->id, 'report_status' => 'uploaded']);
+        Booking::factory()->pending()->future()->create(['consultant_id' => $consultant->id]);
+        Booking::factory()->withReportPending()->create(); // another consultant's
+
+        $response = $this->getJson("/api/v1/admin/consultants/{$consultant->id}/pending-reports");
+
+        $this->assertPaginated($response);
+        $this->assertSame(1, $response->json('meta.total'));
+        $this->assertSame($awaiting->id, $response->json('data.0.id'));
+        $this->assertSame('pending', $response->json('data.0.report_status'));
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | CON-17 GET /api/v1/admin/consultants/{consultant}/reports
+    |----------------------------------------------------------------------
+    */
+
+    public function test_con_17_lists_the_consultants_reports(): void
+    {
+        $this->actingAsAdmin();
+        $consultant = $this->createConsultant();
+
+        Report::factory()->count(2)->create(['consultant_id' => $consultant->id]);
+        Report::factory()->create(); // another consultant's
+
+        $response = $this->getJson("/api/v1/admin/consultants/{$consultant->id}/reports");
+
+        $this->assertPaginated($response);
+        $this->assertSame(2, $response->json('meta.total'));
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | ADM-CL-07 GET /api/v1/admin/clients/{client}/reports
+    |----------------------------------------------------------------------
+    */
+
+    public function test_adm_cl_07_an_admin_sees_the_clients_reports(): void
+    {
+        $this->actingAsAdmin();
+        $client = $this->createClient();
+
+        Report::factory()->count(2)->create(['client_id' => $client->id]);
+        Report::factory()->create(); // another client's
+
+        $response = $this->getJson("/api/v1/admin/clients/{$client->id}/reports");
+
+        $this->assertPaginated($response);
+        $this->assertSame(2, $response->json('meta.total'));
+    }
+
+    public function test_adm_cl_07_a_consultant_sees_only_his_reports_for_this_client(): void
+    {
+        $consultant = $this->createConsultant();
+        $this->actingAsConsultant($consultant);
+        $client = $this->createClient();
+
+        Report::factory()->create(['client_id' => $client->id, 'consultant_id' => $consultant->id]);
+        Report::factory()->create(['client_id' => $client->id]); // another consultant's
+
+        $response = $this->getJson("/api/v1/admin/clients/{$client->id}/reports");
 
         $this->assertSame(1, $response->json('meta.total'));
     }

@@ -27,7 +27,6 @@ use Modules\Core\Exceptions\BusinessException;
 use Modules\Core\Http\Controllers\ApiController;
 use Modules\Core\Support\QueryFilters;
 use Modules\Payments\Enums\PaymentRecordStatus;
-use Modules\Reports\Models\Report;
 use Throwable;
 
 class BookingController extends ApiController
@@ -231,20 +230,12 @@ class BookingController extends ApiController
     }
 
     /**
-     * The shared eager loads (no N+1). The report relation is only eager
-     * loaded once the Reports module exists (Phase 10).
+     * The shared eager loads (no N+1).
      *
      * @return array<int, string>
      */
     protected function listEagerLoads(): array
     {
-        $with = ['client', 'consultant.media', 'package', 'latestPayment'];
-
-        // TODO Phase 10: drop the guard once Report always exists.
-        if (class_exists(Report::class)) {
-            $with[] = 'report.media';
-        }
-
-        return $with;
+        return ['client', 'consultant.media', 'package', 'latestPayment', 'report.media'];
     }
 }

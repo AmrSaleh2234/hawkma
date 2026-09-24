@@ -121,7 +121,7 @@ class BookingController extends ApiController
     public function show(Request $request, string $booking): JsonResponse
     {
         $booking = $request->user('client')->bookings()
-            ->with(['package', 'consultant.media', 'latestPayment'])
+            ->with(['package', 'consultant.media', 'latestPayment', 'report.media'])
             ->findOrFail($booking);
 
         return $this->success(BookingResource::make($booking));
