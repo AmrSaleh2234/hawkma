@@ -33,6 +33,7 @@ return [
     'PAYMENT_METHOD_NOT_OWNED' => 'This payment method does not belong to you.',
     'PAYMENT_FAILED' => 'The payment failed. Please try another card.',
     'PAYMENT_ALREADY_PROCESSED' => 'This payment has already been processed.',
+    'PAYMENT_PENDING_CONFIRMATION' => 'Your payment is being confirmed. Please check its status shortly.',
 
     'BOOKING_INVALID_STATUS' => 'The booking status does not allow this action.',
     'BOOKING_NOT_STARTED' => 'The booking has not started yet.',

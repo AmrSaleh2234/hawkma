@@ -33,6 +33,7 @@ return [
     'PAYMENT_METHOD_NOT_OWNED' => 'طريقة الدفع هذه لا تتبع لك.',
     'PAYMENT_FAILED' => 'فشلت عملية الدفع. الرجاء تجربة بطاقة أخرى.',
     'PAYMENT_ALREADY_PROCESSED' => 'تمت معالجة هذه الدفعة مسبقاً.',
+    'PAYMENT_PENDING_CONFIRMATION' => 'جارٍ تأكيد عملية الدفع. الرجاء التحقق من الحالة بعد قليل.',
 
     'BOOKING_INVALID_STATUS' => 'حالة الحجز لا تسمح بهذا الإجراء.',
     'BOOKING_NOT_STARTED' => 'لم يبدأ الحجز بعد.',

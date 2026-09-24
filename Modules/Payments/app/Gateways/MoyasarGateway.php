@@ -24,19 +24,25 @@ class MoyasarGateway implements PaymentGateway
 {
     public function charge(ChargeRequest $request): ChargeResult
     {
+        $payload = [
+            'amount' => $request->amount,
+            'currency' => $request->currency,
+            'description' => $request->description,
+            'callback_url' => $request->callbackUrl,
+            'source' => [
+                'type' => 'token',
+                'token' => $request->token,
+            ],
+            'metadata' => $request->metadata,
+        ];
+
+        if ($request->givenId !== null) {
+            $payload['given_id'] = $request->givenId;
+        }
+
         try {
             $response = Http::withBasicAuth($this->secretKey(), '')
-                ->post($this->baseUrl().'/payments', [
-                    'amount' => $request->amount,
-                    'currency' => $request->currency,
-                    'description' => $request->description,
-                    'callback_url' => $request->callbackUrl,
-                    'source' => [
-                        'type' => 'token',
-                        'token' => $request->token,
-                    ],
-                    'metadata' => $request->metadata,
-                ]);
+                ->post($this->baseUrl().'/payments', $payload);
         } catch (ConnectionException $e) {
             // The charge may have gone through — do not mark it failed.
             throw GatewayException::chargeFailed($e->getMessage());

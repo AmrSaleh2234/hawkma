@@ -71,7 +71,13 @@ class PaymentService
             metadata: [
                 'booking_id' => $booking->id,
                 'reference' => $booking->reference,
+                // Lets the webhook find this payment even when the charge
+                // response never reached us (no gateway_payment_id stored).
+                'payment_id' => (string) $payment->id,
             ],
+            // Moyasar rejects a retried charge with the same given_id, so a
+            // client retry after a timeout can never charge the card twice.
+            givenId: $payment->uuid,
         ));
 
         $this->storeResult($payment, $result);
@@ -85,7 +91,13 @@ class PaymentService
      */
     public function verify(Payment $payment): Payment
     {
-        if (in_array($payment->status, [PaymentRecordStatus::Paid, PaymentRecordStatus::Failed], true)) {
+        if (in_array($payment->status, [PaymentRecordStatus::Paid, PaymentRecordStatus::Failed, PaymentRecordStatus::Refunded], true)) {
+            return $payment;
+        }
+
+        if (blank($payment->gateway_payment_id)) {
+            // The charge request timed out before we learned the gateway id;
+            // only a webhook (which carries the id) can reconcile it.
             return $payment;
         }
 
@@ -99,6 +111,11 @@ class PaymentService
      * The Moyasar webhook (§9.6): find the payment by the gateway id and run
      * the same update logic as verify. Unknown ids are ignored.
      *
+     * Charge-timeout recovery: when the charge response never reached us the
+     * payment row has no gateway id, so the lookup above misses. The webhook
+     * still carries our payment id in the charge metadata, which lets us
+     * adopt the gateway id and reconcile the payment.
+     *
      * @param  array<string, mixed>  $payload
      */
     public function handleWebhook(array $payload): ?Payment
@@ -111,13 +128,48 @@ class PaymentService
 
         $payment = Payment::query()
             ->where('gateway_payment_id', $gatewayPaymentId)
-            ->first();
+            ->first()
+            ?? $this->findByMetadataPaymentId($payload, $gatewayPaymentId);
 
         if ($payment === null) {
             return null;
         }
 
         return $this->verify($payment);
+    }
+
+    /**
+     * Fall back to the payment id we sent in the charge metadata. A payment
+     * that already has a DIFFERENT gateway id is never re-pointed — that
+     * would mean a tampered or replayed payload.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    protected function findByMetadataPaymentId(array $payload, string $gatewayPaymentId): ?Payment
+    {
+        $ourId = $payload['data']['metadata']['payment_id'] ?? $payload['metadata']['payment_id'] ?? null;
+
+        if (! is_scalar($ourId) || ! ctype_digit((string) $ourId)) {
+            return null;
+        }
+
+        $payment = Payment::query()->find((int) $ourId);
+
+        if ($payment === null) {
+            return null;
+        }
+
+        if ($payment->gateway_payment_id !== null && $payment->gateway_payment_id !== $gatewayPaymentId) {
+            Log::warning("Webhook metadata payment_id #{$payment->id} is already linked to [{$payment->gateway_payment_id}]; ignoring [{$gatewayPaymentId}].");
+
+            return null;
+        }
+
+        $payment->forceFill(['gateway_payment_id' => $gatewayPaymentId])->save();
+
+        Log::info("Payment #{$payment->id} reconciled with gateway id [{$gatewayPaymentId}] via webhook metadata.");
+
+        return $payment;
     }
 
     /**

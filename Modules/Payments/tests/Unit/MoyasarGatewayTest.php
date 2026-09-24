@@ -34,6 +34,7 @@ class MoyasarGatewayTest extends TestCase
             description: 'Booking BK-2026-000001',
             callbackUrl: 'http://localhost:3001/bookings/payment-callback',
             metadata: ['booking_id' => 1],
+            givenId: '0f3d6e2a-0000-4000-8000-000000000001',
         );
     }
 
@@ -62,8 +63,30 @@ class MoyasarGatewayTest extends TestCase
                 && $request['callback_url'] === 'http://localhost:3001/bookings/payment-callback'
                 && $request['source'] === ['type' => 'token', 'token' => 'tok_moyasar_123']
                 && $request['metadata'] === ['booking_id' => 1]
+                && $request['given_id'] === '0f3d6e2a-0000-4000-8000-000000000001'
                 && $request->hasHeader('Authorization', 'Basic '.base64_encode('sk_test_123:'));
         });
+    }
+
+    public function test_charge_omits_given_id_when_none_is_set(): void
+    {
+        Http::fake([
+            'api.moyasar.com/v1/payments' => Http::response([
+                'id' => 'pay_abc',
+                'status' => 'paid',
+                'source' => ['type' => 'token'],
+            ]),
+        ]);
+
+        $this->gateway->charge(new ChargeRequest(
+            amount: 190000,
+            currency: 'SAR',
+            token: 'tok_moyasar_123',
+            description: 'Booking BK-2026-000001',
+            callbackUrl: 'http://localhost:3001/bookings/payment-callback',
+        ));
+
+        Http::assertSent(fn ($request): bool => ! isset($request['given_id']));
     }
 
     public function test_charge_maps_initiated_with_the_transaction_url(): void

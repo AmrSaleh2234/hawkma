@@ -93,14 +93,43 @@ because failed payments are final.
 `MoyasarGateway` now only marks a payment failed when Moyasar's payload
 explicitly says `failed` (or `voided` — no money taken). Transport errors
 (timeout, connection error, 5xx) throw `GatewayException`: the payment stays
-`initiated`, the caller gets a 500, and Moyasar retries the webhook until the
-reconciliation succeeds. Moyasar's other statuses are mapped explicitly:
+`initiated`, the caller gets a 503 `PAYMENT_PENDING_CONFIRMATION` (a specific
+code, so the frontend can say "your payment is being confirmed" instead of
+"server error"), and Moyasar retries the webhook until the reconciliation
+succeeds. Moyasar's other statuses are mapped explicitly:
 `authorized` → initiated (captured later), `captured` → paid, `refunded` →
 refunded; an unknown status is logged and treated as initiated, never failed.
 On `charge()`, a 4xx still maps to failed (the request was rejected before
 processing), while 5xx/connection errors throw.
 
 Covered by `Modules/Payments/tests/Feature/GatewayOutageTest.php`.
+
+## 9. A charge timeout can never lose a payment
+
+One money-loss hole remained after §5: if the FIRST charge request itself
+times out, Moyasar may have taken the money while our payment row has no
+`gateway_payment_id` (the exception fires before the response is stored).
+The "paid" webhook then found nothing (payments were looked up only by that
+id), answered 200, and the booking expired unpaid — money gone.
+
+Two defences, both on the charge request:
+
+- `given_id` = the payment's new `uuid` column. Moyasar rejects a second
+  charge with the same `given_id`, so a client retry after a timeout can
+  never charge the card twice.
+- `metadata.payment_id` = our payment id, next to the existing `booking_id`.
+  When a webhook's Moyasar id matches no payment, `PaymentService` falls back
+  to this id, adopts the gateway id, and reconciles as usual. A payment that
+  already has a DIFFERENT gateway id is never re-pointed (tamper guard).
+
+Related hardening: `verify()` skips the gateway call entirely when the
+payment has no gateway id yet (only a webhook can reconcile it), and a
+`refunded` payment is now a final state for verify, like paid/failed.
+
+Regression tests in `GatewayOutageTest`:
+`test_a_charge_timeout_is_reconciled_by_the_webhook_via_the_metadata_payment_id`,
+`test_the_webhook_never_repoints_a_payment_that_already_has_a_different_gateway_id`,
+`test_verifying_a_payment_without_a_gateway_id_skips_the_gateway_call`.
 
 ## 6. Marking a refund cancels the subscription (plan gap)
 

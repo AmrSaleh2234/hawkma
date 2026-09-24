@@ -99,6 +99,7 @@ Branch on `error_code` (stable), never on `message` (translated).
 | 422 | `PAYMENT_METHOD_NOT_OWNED` | Card belongs to another client | Dev error |
 | 402 | `PAYMENT_FAILED` | Card declined | Show `message`, offer another card |
 | 422 | `PAYMENT_ALREADY_PROCESSED` | Verifying an already-final payment | Safe to ignore; refresh the booking |
+| 503 | `PAYMENT_PENDING_CONFIRMATION` | Gateway unreachable during charge/verify — the payment state is unknown and is being reconciled via webhook | "Your payment is being confirmed"; poll the booking after ~30 s. **Do not** resubmit the charge blindly (a retry is safe — Moyasar dedupes via `given_id` — but the user may already be paid) |
 | 422 | `BOOKING_INVALID_STATUS` | e.g. completing a cancelled booking | Refresh the booking |
 | 422 | `BOOKING_NOT_STARTED` | Completing before `starts_at` | Toast |
 | 422 | `BOOKING_CANCEL_WINDOW_PASSED` | Client cancelling < 24 h before start | "انتهت مهلة الإلغاء" |
@@ -555,6 +556,12 @@ POST /client/bookings
   result (`paid` → confirmation; `failed` → offer retry). Verify is
   idempotent — call it freely on page load.
 - `402 PAYMENT_FAILED` → show the message, let the user pick another card.
+- `503 PAYMENT_PENDING_CONFIRMATION` → the gateway could not be reached, so
+  the payment state is unknown (the charge may have gone through). Tell the
+  user the payment is being confirmed and poll `GET /client/bookings/{id}`
+  after ~30 s: the Moyasar webhook reconciles it in the background. The
+  charge is idempotent (Moyasar `given_id`), so even an accidental retry can
+  never charge the card twice.
 
 ### 5.7 `SLOT_NOT_AVAILABLE` (409)
 

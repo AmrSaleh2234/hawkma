@@ -36,6 +36,7 @@ enum ErrorCode: string
     case PaymentMethodNotOwned = 'PAYMENT_METHOD_NOT_OWNED';
     case PaymentFailed = 'PAYMENT_FAILED';
     case PaymentAlreadyProcessed = 'PAYMENT_ALREADY_PROCESSED';
+    case PaymentPendingConfirmation = 'PAYMENT_PENDING_CONFIRMATION';
 
     case BookingInvalidStatus = 'BOOKING_INVALID_STATUS';
     case BookingNotStarted = 'BOOKING_NOT_STARTED';
