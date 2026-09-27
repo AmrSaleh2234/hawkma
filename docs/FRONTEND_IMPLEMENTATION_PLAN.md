@@ -3,7 +3,7 @@
 > **Audience:** an AI coding agent (or junior developer) that will build the whole frontend **step by step**.
 > **Rule #1:** Follow this document in order. Do not skip phases. Do not rename routes, query keys, storage keys, components or field names. The backend API contract is fixed; this document matches it exactly.
 > **Rule #2:** A phase is DONE only when `npm run build` passes with no TypeScript errors **and** the phase's acceptance checklist is ticked.
-> **Rule #3:** This document is self-contained. The API contract reference is `docs/FRONTEND_API_GUIDE.md` and the Postman collection `postman/GCMC-API.postman_collection.json` (every request has a saved real response example). If anything is unclear, the Postman example is the truth.
+> **Rule #3:** This document is self-contained — **Appendix C (§19) is a complete API reference generated from the Postman collection**, with every endpoint's method, path, auth, query params, body and a real example response. You do not need to open any other file. (Background reading if available: `docs/FRONTEND_API_GUIDE.md`.)
 > **Rule #4:** The visual **theme is provided separately** (logo, colors, fonts). Map it into the CSS variables in §3. Never hard-code colors or fonts in components.
 
 ---
@@ -29,15 +29,16 @@
 16. [Error handling master table](#16-error-handling-master-table)
 17. [Appendix A — TypeScript types for every API resource](#17-appendix-a--typescript-types-for-every-api-resource)
 18. [Appendix B — Zod schemas for every form](#18-appendix-b--zod-schemas-for-every-form)
-19. [Build phases and acceptance checklists](#19-build-phases-and-acceptance-checklists)
-20. [Definition of Done](#20-definition-of-done)
+19. [Appendix C — Complete API reference (from the Postman collection)](#19-appendix-c--complete-api-reference-from-the-postman-collection)
+20. [Build phases and acceptance checklists](#20-build-phases-and-acceptance-checklists)
+21. [Definition of Done](#21-definition-of-done)
 
 ---
 
 ## 0. How to work with this plan
 
 1. Read sections 1–9 **completely** before writing any code. They are the foundation.
-2. Section 19 is the ordered to-do list. Execute phase by phase.
+2. Section 20 is the ordered to-do list. Execute phase by phase.
 3. After every phase: run `npm run build` and fix every TypeScript error, then tick the acceptance list.
 4. When this document says **MUST**, it is non-negotiable. When it says **SHOULD**, do it unless it is impossible.
 5. Never invent endpoints, field names or response shapes. Every API call in this document exists in the backend and in the Postman collection.
@@ -1479,7 +1480,6042 @@ export const reportUploadSchema = z.object({
 
 ---
 
-## 19. Build phases and acceptance checklists
+## 19. Appendix C — Complete API reference (from the Postman collection)
+
+Every endpoint of the backend, generated from `postman/GCMC-API.postman_collection.json` (run `php scripts/postman-api-reference.php` to regenerate). Conventions:
+
+- All URLs are relative to `NEXT_PUBLIC_API_URL` (e.g. `http://localhost:8000/api/v1`).
+- `{{variable}}` in a path = a route parameter (an id, a slug, …).
+- **Auth**: which Bearer token the request needs (§5.1 attaches it automatically by URL prefix).
+- Query params marked *(optional)* are sent only when used.
+- The example responses are **real responses** captured from a run against the seeded database. Long lists are truncated to the first item (`… (N more)`).
+
+<!-- API-REFERENCE:START -->
+
+### 00 Public
+
+#### `GET /public/meta` — Meta (PUB-08)
+
+**Auth:** — (public)
+
+Enum values and labels for the frontend (booking/report/payment statuses, days of week), the booking config and the payment gateway driver + publishable key.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "booking_statuses": [
+            {
+                "value": "pending_payment",
+                "label": "في انتظار الدفع"
+            },
+            "… (3 more)"
+        ],
+        "report_statuses": [
+            {
+                "value": "none",
+                "label": "لا يوجد"
+            },
+            "… (2 more)"
+        ],
+        "payment_statuses": [
+            {
+                "value": "unpaid",
+                "label": "غير مدفوع"
+            },
+            "… (4 more)"
+        ],
+        "days_of_week": [
+            {
+                "value": 0,
+                "name": "الأحد"
+            },
+            "… (6 more)"
+        ],
+        "booking": {
+            "slot_minutes": 30,
+            "duration_minutes": 30,
+            "max_advance_days": 60,
+            "min_notice_minutes": 60,
+            "client_cancel_hours": 24
+        },
+        "payment_gateway": {
+            "driver": "fake",
+            "publishable_key": ""
+        }
+    }
+}
+```
+
+#### `GET /public/packages` — List packages (PUB-01)
+
+**Auth:** — (public)
+
+The active subscription packages, ordered by sort_order. Prices are halalas; `price_formatted` is the display value.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 1,
+            "slug": "iron",
+            "name": "الباقة الحديدية",
+            "name_ar": "الباقة الحديدية",
+            "name_en": "Iron Package",
+            "description": "للمنشآت الناشئة التي تبدأ رحلتها في الحوكمة والامتثال.",
+            "description_ar": "للمنشآت الناشئة التي تبدأ رحلتها في الحوكمة والامتثال.",
+            "description_en": "For start-up establishments beginning their governance and compliance journey.",
+            "features": [
+                {
+                    "ar": "استشارتان شهرياً",
+                    "en": "Two consultations monthly"
+                },
+                "… (3 more)"
+            ],
+            "features_localized": [
+                "استشارتان شهرياً",
+                "… (3 more)"
+            ],
+            "price": 190000,
+            "price_formatted": "1,900.00 SAR",
+            "currency": "SAR",
+            "billing_period_days": 30,
+            "consultations_limit": 2,
+            "documents_limit": 2,
+            "is_unlimited": false,
+            "is_featured": false,
+            "is_active": true,
+            "sort_order": 1,
+            "created_at": "2026-09-24T03:50:39+03:00",
+            "updated_at": "2026-09-24T03:50:39+03:00"
+        },
+        "… (2 more)"
+    ]
+}
+```
+
+#### `GET /public/packages/{{package_slug}}` — Show package (PUB-02)
+
+**Auth:** — (public)
+
+One active package by slug.
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 1,
+        "slug": "iron",
+        "name": "الباقة الحديدية",
+        "name_ar": "الباقة الحديدية",
+        "name_en": "Iron Package",
+        "description": "للمنشآت الناشئة التي تبدأ رحلتها في الحوكمة والامتثال.",
+        "description_ar": "للمنشآت الناشئة التي تبدأ رحلتها في الحوكمة والامتثال.",
+        "description_en": "For start-up establishments beginning their governance and compliance journey.",
+        "features": [
+            {
+                "ar": "استشارتان شهرياً",
+                "en": "Two consultations monthly"
+            },
+            "… (3 more)"
+        ],
+        "features_localized": [
+            "استشارتان شهرياً",
+            "… (3 more)"
+        ],
+        "price": 190000,
+        "price_formatted": "1,900.00 SAR",
+        "currency": "SAR",
+        "billing_period_days": 30,
+        "consultations_limit": 2,
+        "documents_limit": 2,
+        "is_unlimited": false,
+        "is_featured": false,
+        "is_active": true,
+        "sort_order": 1,
+        "created_at": "2026-09-24T03:50:39+03:00",
+        "updated_at": "2026-09-24T03:50:39+03:00"
+    }
+}
+```
+
+#### `GET /public/consultants` — List consultants (PUB-03)
+
+**Auth:** — (public)
+
+Active consultants who have availability. 12 per page by default.
+
+| Query param | Notes |
+|---|---|
+| `search` *(optional)* | Search name/title/specialization |
+| `specialization` *(optional)* | Exact specialization filter |
+| `page` *(optional)* | Page number e.g. `1` |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 7,
+            "name": "أ. نورة السبيعي",
+            "title": "مستشار جودة",
+            "specialization": "جودة العمليات",
+            "bio": null,
+            "avatar_url": null,
+            "avatar_thumb_url": null,
+            "working_days": [
+                0,
+                "… (4 more)"
+            ]
+        },
+        "… (5 more)"
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 12,
+        "total": 6,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/public/consultants?page=1",
+        "last": "http://localhost:8000/api/v1/public/consultants?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /public/consultants/{{consultant_id}}` — Show consultant (PUB-04)
+
+**Auth:** — (public)
+
+A consultant profile with his availability.
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 7,
+        "name": "أ. نورة السبيعي",
+        "title": "مستشار جودة",
+        "specialization": "جودة العمليات",
+        "bio": null,
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "working_days": [
+            0,
+            "… (4 more)"
+        ]
+    }
+}
+```
+
+#### `GET /public/consultants/{{consultant_id}}/available-dates` — Available dates (PUB-05)
+
+**Auth:** — (public)
+
+The dates of a month on which the consultant still has free slots.
+
+**Errors:** 422 `VALIDATION_ERROR`, 404 `NOT_FOUND`
+
+| Query param | Notes |
+|---|---|
+| `month` | YYYY-MM (defaults to the current month) |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "month": "2026-10",
+        "dates": [
+            "2026-10-01",
+            "… (20 more)"
+        ]
+    }
+}
+```
+
+#### `GET /public/consultants/{{consultant_id}}/slots` — Slots (PUB-06)
+
+**Auth:** — (public)
+
+The free slots of one day. Booked slots are hidden.
+
+**Errors:** 422 `VALIDATION_ERROR`, 404 `NOT_FOUND`
+
+| Query param | Notes |
+|---|---|
+| `date` | YYYY-MM-DD, required |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "date": "2026-10-01",
+        "timezone": "Asia/Riyadh",
+        "slot_minutes": 30,
+        "duration_minutes": 30,
+        "slots": [
+            {
+                "time": "09:00",
+                "starts_at": "2026-10-01T09:00:00+03:00",
+                "ends_at": "2026-10-01T09:30:00+03:00"
+            },
+            "… (15 more)"
+        ]
+    }
+}
+```
+
+#### `GET /public/reports/{{demo_report_id}}/signed-download` — Signed report download (PUB-07)
+
+**Auth:** — (public)
+
+Downloads a report through the signed URL from the report-ready email (valid 7 days, no login). Skipped in the CI run: the signature cannot be computed in Postman — copy `signed_url` from the email.
+
+**Errors:** 403 `FORBIDDEN` (missing/tampered/expired signature), 404 `NOT_FOUND`
+
+| Query param | Notes |
+|---|---|
+| `expires` | unix timestamp e.g. `PASTE-FROM-EMAIL` |
+| `signature` | HMAC signature e.g. `PASTE-FROM-EMAIL` |
+
+### 01 Admin › Auth
+
+#### `POST /admin/auth/login` — Login as admin (ADM-AUTH-01)
+
+**Auth:** — (public)
+
+Dashboard A login. Returns a Sanctum token.
+
+| Field | Rules |
+|---|---|
+| email | required email |
+| password | required |
+| device_name | optional |
+
+**Errors:** 422 `INVALID_CREDENTIALS`, 403 `ACCOUNT_DISABLED`
+
+Body:
+
+```json
+{
+    "email": "{{admin_email}}",
+    "password": "{{admin_password}}",
+    "device_name": "postman"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تسجيل الدخول بنجاح.",
+    "data": {
+        "token": "1|sLo14eb0tWGnyj554x065EOviUMhDME9GOx7zOEk627310db",
+        "token_type": "Bearer",
+        "user": {
+            "id": 1,
+            "type": "admin",
+            "name": "Super Admin",
+            "email": "admin@gcmc.sa",
+            "phone": null,
+            "title": null,
+            "specialization": null,
+            "bio": null,
+            "avatar_url": null,
+            "avatar_thumb_url": null,
+            "is_active": true,
+            "last_login_at": "2026-09-24T03:50:44+03:00",
+            "roles": [
+                "admin"
+            ],
+            "permissions": [
+                "view-dashboard",
+                "… (33 more)"
+            ],
+            "created_at": "2026-09-24T03:50:39+03:00",
+            "updated_at": "2026-09-24T03:50:44+03:00"
+        }
+    }
+}
+```
+
+#### `POST /admin/auth/login` — Login as consultant
+
+**Auth:** — (public)
+
+A consultant logs in through the same endpoint; his `type` is `consultant` and he only sees his own data.
+
+Body:
+
+```json
+{
+    "email": "{{consultant_email}}",
+    "password": "{{consultant_password}}",
+    "device_name": "postman"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تسجيل الدخول بنجاح.",
+    "data": {
+        "token": "2|FmY4ceEMU34PZDb6yuMwHFX2lnHAqUerNE9BmI0md7f1ca8d",
+        "token_type": "Bearer",
+        "user": {
+            "id": 2,
+            "type": "consultant",
+            "name": "أ. أحمد العتيبي",
+            "email": "ahmad.alotaibi@gcmc.sa",
+            "phone": null,
+            "title": "مستشار حوكمة",
+            "specialization": "الحوكمة المؤسسية",
+            "bio": null,
+            "avatar_url": null,
+            "avatar_thumb_url": null,
+            "is_active": true,
+            "last_login_at": "2026-09-24T03:50:44+03:00",
+            "roles": [
+                "consultant"
+            ],
+            "permissions": [
+                "view-dashboard",
+                "… (9 more)"
+            ],
+            "created_at": "2026-09-24T03:50:40+03:00",
+            "updated_at": "2026-09-24T03:50:44+03:00"
+        }
+    }
+}
+```
+
+#### `GET /admin/auth/me` — Me (ADM-AUTH-03)
+
+**Auth:** Admin token
+
+The authenticated user with roles and the full permissions list — the frontend hides menu items by these.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 1,
+        "type": "admin",
+        "name": "Super Admin",
+        "email": "admin@gcmc.sa",
+        "phone": null,
+        "title": null,
+        "specialization": null,
+        "bio": null,
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": "2026-09-24T03:50:44+03:00",
+        "roles": [
+            "admin"
+        ],
+        "permissions": [
+            "view-dashboard",
+            "… (33 more)"
+        ],
+        "created_at": "2026-09-24T03:50:39+03:00",
+        "updated_at": "2026-09-24T03:50:44+03:00"
+    }
+}
+```
+
+#### `POST /admin/auth/forgot-password` — Forgot password (ADM-AUTH-04)
+
+**Auth:** — (public)
+
+Always 200 (does not leak whether the email exists). Sends the reset email.
+
+| Field | Rules |
+|---|---|
+| email | required email |
+
+Body:
+
+```json
+{
+    "email": "{{admin_email}}"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "إذا كان هذا البريد مسجلاً، فقد تم إرسال رابط إعادة تعيين كلمة المرور.",
+    "data": null
+}
+```
+
+#### `POST /admin/auth/reset-password` — Reset password (ADM-AUTH-05)
+
+**Auth:** — (public)
+
+Resets the password with the token from the email. All old tokens are revoked.
+
+| Field | Rules |
+|---|---|
+| token | required |
+| email | required email |
+| password | required, confirmed, min 8 |
+
+**Errors:** 422 `VALIDATION_ERROR` (bad/expired token, reason under `errors.email`)
+
+Body:
+
+```json
+{
+    "token": "PASTE-TOKEN-FROM-EMAIL",
+    "email": "{{admin_email}}",
+    "password": "Password@123",
+    "password_confirmation": "Password@123"
+}
+```
+
+### 02 Admin › Profile
+
+#### `GET /admin/profile` — Show profile (ADM-PRF-01)
+
+**Auth:** Admin token
+
+The authenticated user profile.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 1,
+        "type": "admin",
+        "name": "Super Admin",
+        "email": "admin@gcmc.sa",
+        "phone": null,
+        "title": null,
+        "specialization": null,
+        "bio": null,
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": "2026-09-24T03:50:44+03:00",
+        "roles": [
+            "admin"
+        ],
+        "permissions": [
+            "view-dashboard",
+            "… (33 more)"
+        ],
+        "created_at": "2026-09-24T03:50:39+03:00",
+        "updated_at": "2026-09-24T03:50:44+03:00"
+    }
+}
+```
+
+#### `PUT /admin/profile` — Update profile (ADM-PRF-02)
+
+**Auth:** Admin token
+
+Updates the profile.
+
+| Field | Rules |
+|---|---|
+| name | required, max 150 |
+| email | required, email, unique |
+| phone | optional |
+| title | optional |
+| specialization | optional |
+| bio | optional |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "name": "Super Admin",
+    "email": "{{admin_email}}",
+    "phone": "0500000000",
+    "title": "مدير النظام",
+    "specialization": null,
+    "bio": null
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تحديث الملف الشخصي بنجاح.",
+    "data": {
+        "id": 1,
+        "type": "admin",
+        "name": "Super Admin",
+        "email": "admin@gcmc.sa",
+        "phone": "0500000000",
+        "title": null,
+        "specialization": null,
+        "bio": null,
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": "2026-09-24T03:50:44+03:00",
+        "roles": [
+            "admin"
+        ],
+        "permissions": [
+            "view-dashboard",
+            "… (33 more)"
+        ],
+        "created_at": "2026-09-24T03:50:39+03:00",
+        "updated_at": "2026-09-24T03:50:44+03:00"
+    }
+}
+```
+
+#### `POST /admin/profile/avatar` — Upload avatar (ADM-PRF-03)
+
+**Auth:** Admin token
+
+Uploads the avatar (jpg/png/webp ≤ 2 MB).
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body (multipart/form-data):
+
+| Field | Type | Example |
+|---|---|---|
+| `avatar` | file | (file) |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تحديث الصورة الشخصية بنجاح.",
+    "data": {
+        "id": 1,
+        "type": "admin",
+        "name": "Super Admin",
+        "email": "admin@gcmc.sa",
+        "phone": "0500000000",
+        "title": null,
+        "specialization": null,
+        "bio": null,
+        "avatar_url": "http://localhost:8000/storage/2/avatar.jpg",
+        "avatar_thumb_url": "http://localhost:8000/storage/2/conversions/avatar-thumb.jpg",
+        "is_active": true,
+        "last_login_at": "2026-09-24T03:50:44+03:00",
+        "roles": [
+            "admin"
+        ],
+        "permissions": [
+            "view-dashboard",
+            "… (33 more)"
+        ],
+        "created_at": "2026-09-24T03:50:39+03:00",
+        "updated_at": "2026-09-24T03:50:44+03:00"
+    }
+}
+```
+
+#### `DELETE /admin/profile/avatar` — Delete avatar (ADM-PRF-04)
+
+**Auth:** Admin token
+
+Removes the avatar.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الحذف بنجاح.",
+    "data": null
+}
+```
+
+#### `PUT /admin/profile/password` — Update password (ADM-PRF-05)
+
+**Auth:** Admin token
+
+Changes the password.
+
+| Field | Rules |
+|---|---|
+| current_password | required |
+| password | required, confirmed, min 8 |
+
+**Errors:** 422 `VALIDATION_ERROR`, 422 `INVALID_CREDENTIALS`
+
+Body:
+
+```json
+{
+    "current_password": "{{admin_password}}",
+    "password": "NewPassword@123",
+    "password_confirmation": "NewPassword@123"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تغيير كلمة المرور بنجاح.",
+    "data": null
+}
+```
+
+### 03 Admin › Roles & Permissions
+
+#### `GET /admin/permissions` — List permissions (ACL-01)
+
+**Auth:** Admin token
+
+All permissions grouped by group name.
+
+**Permission:** `view-roles|view-permissions`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "group": "dashboard",
+            "label": "لوحة التحكم",
+            "permissions": [
+                {
+                    "id": 1,
+                    "name": "view-dashboard",
+                    "group": "dashboard",
+                    "label": "عرض لوحة التحكم"
+                }
+            ]
+        },
+        "… (10 more)"
+    ]
+}
+```
+
+#### `GET /admin/roles` — List roles (ACL-02)
+
+**Auth:** Admin token
+
+All roles with permissions_count and users_count.
+
+**Permission:** `view-roles`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 2,
+            "name": "consultant",
+            "guard_name": "admin",
+            "is_protected": true,
+            "permissions_count": 10,
+            "users_count": 6,
+            "created_at": "2026-09-24T03:50:39+03:00"
+        },
+        "… (1 more)"
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 2,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/roles?page=1",
+        "last": "http://localhost:8000/api/v1/admin/roles?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `POST /admin/roles` — Create role (ACL-03)
+
+**Auth:** Admin token
+
+Creates a role. `admin` is protected and cannot be created/edited/deleted.
+
+**Permission:** `create-roles`
+
+| Field | Rules |
+|---|---|
+| name | required, lowercase slug, unique |
+| permissions | required array of permission names |
+
+**Errors:** 422 `VALIDATION_ERROR`, 403 `FORBIDDEN`
+
+Body:
+
+```json
+{
+    "name": "supervisor-{{$timestamp}}",
+    "permissions": [
+        "view-bookings",
+        "view-reports"
+    ]
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الإنشاء بنجاح.",
+    "data": {
+        "id": 3,
+        "name": "supervisor-1790211046",
+        "guard_name": "admin",
+        "is_protected": false,
+        "permissions": [
+            {
+                "id": 25,
+                "name": "view-bookings",
+                "group": "bookings",
+                "label": "عرض الحجوزات"
+            },
+            "… (1 more)"
+        ],
+        "created_at": "2026-09-24T03:50:45+03:00"
+    }
+}
+```
+
+#### `GET /admin/roles/{{role_id}}` — Show role (ACL-04)
+
+**Auth:** Admin token
+
+One role with its permissions.
+
+**Permission:** `view-roles`
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 3,
+        "name": "supervisor-1790211046",
+        "guard_name": "admin",
+        "is_protected": false,
+        "permissions_count": 2,
+        "users_count": 0,
+        "permissions": [
+            {
+                "id": 25,
+                "name": "view-bookings",
+                "group": "bookings",
+                "label": "عرض الحجوزات"
+            },
+            "… (1 more)"
+        ],
+        "created_at": "2026-09-24T03:50:45+03:00"
+    }
+}
+```
+
+#### `PUT /admin/roles/{{role_id}}` — Update role (ACL-05)
+
+**Auth:** Admin token
+
+Renames a role and/or syncs its permissions.
+
+**Permission:** `update-roles`
+
+| Field | Rules |
+|---|---|
+| name | optional slug |
+| permissions | optional array |
+
+**Errors:** 422 `VALIDATION_ERROR`, 422 `ROLE_PROTECTED`
+
+Body:
+
+```json
+{
+    "permissions": [
+        "view-bookings",
+        "view-reports",
+        "view-clients"
+    ]
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التحديث بنجاح.",
+    "data": {
+        "id": 3,
+        "name": "supervisor-1790211046",
+        "guard_name": "admin",
+        "is_protected": false,
+        "permissions_count": 3,
+        "users_count": 0,
+        "permissions": [
+            {
+                "id": 18,
+                "name": "view-clients",
+                "group": "clients",
+                "label": "عرض العملاء"
+            },
+            "… (2 more)"
+        ],
+        "created_at": "2026-09-24T03:50:45+03:00"
+    }
+}
+```
+
+#### `GET /admin/roles/{{role_id}}/users` — Role users (ACL-07)
+
+**Auth:** Admin token
+
+The users who have this role.
+
+**Permission:** `view-roles`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 0,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/roles/3/users?page=1",
+        "last": "http://localhost:8000/api/v1/admin/roles/3/users?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `DELETE /admin/roles/{{role_id}}` — Delete role (ACL-06)
+
+**Auth:** Admin token
+
+Deletes a role. The protected `admin` role and roles still assigned to users cannot be deleted.
+
+**Permission:** `delete-roles`
+
+**Errors:** 422 `ROLE_PROTECTED`, 422 `ROLE_HAS_USERS`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الحذف بنجاح.",
+    "data": null
+}
+```
+
+### 04 Admin › Users
+
+#### `GET /admin/users` — List users (USR-01)
+
+**Auth:** Admin token
+
+Staff users (admins and consultants).
+
+**Permission:** `view-users`
+
+| Query param | Notes |
+|---|---|
+| `search` *(optional)* | name, email or phone |
+| `type` *(optional)* | admin | consultant |
+| `role` *(optional)* | role name |
+| `is_active` *(optional)* | 1 | 0 |
+| `sort` *(optional)* | name | created_at | last_login_at (- for desc) |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 7,
+            "type": "consultant",
+            "name": "أ. نورة السبيعي",
+            "email": "noura.alsubaie@gcmc.sa",
+            "phone": null,
+            "title": "مستشار جودة",
+            "specialization": "جودة العمليات",
+            "bio": null,
+            "avatar_url": null,
+            "avatar_thumb_url": null,
+            "is_active": true,
+            "last_login_at": null,
+            "roles": [
+                "consultant"
+            ],
+            "created_at": "2026-09-24T03:50:41+03:00",
+            "updated_at": "2026-09-24T03:50:41+03:00"
+        },
+        "… (6 more)"
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 7,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/users?page=1",
+        "last": "http://localhost:8000/api/v1/admin/users?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `POST /admin/users` — Create user (USR-02)
+
+**Auth:** Admin token
+
+Creates a staff user. `type` defaults to `admin`; sending `consultant` also adds the consultant role. Without a password, a set-password email is sent.
+
+**Permission:** `create-users`
+
+| Field | Rules |
+|---|---|
+| name | required, max 150 |
+| email | required, email, unique |
+| password | optional, confirmed, min 8 |
+| type | admin | consultant |
+| roles | required array of role names |
+| is_active | optional boolean |
+| avatar | optional image ≤ 2 MB |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "name": "موظف تجريبي",
+    "email": "staff+{{$timestamp}}@gcmc.sa",
+    "password": "Password@123",
+    "password_confirmation": "Password@123",
+    "type": "admin",
+    "roles": [
+        "admin"
+    ],
+    "is_active": true
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الإنشاء بنجاح.",
+    "data": {
+        "id": 8,
+        "type": "admin",
+        "name": "موظف تجريبي",
+        "email": "staff+1790211046@gcmc.sa",
+        "phone": null,
+        "title": null,
+        "specialization": null,
+        "bio": null,
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": null,
+        "roles": [
+            "admin"
+        ],
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "updated_at": "2026-09-24T03:50:46+03:00"
+    }
+}
+```
+
+#### `GET /admin/users/{{user_id}}` — Show user (USR-03)
+
+**Auth:** Admin token
+
+One user with roles and permissions.
+
+**Permission:** `view-users`
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 8,
+        "type": "admin",
+        "name": "موظف تجريبي",
+        "email": "staff+1790211046@gcmc.sa",
+        "phone": null,
+        "title": null,
+        "specialization": null,
+        "bio": null,
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": null,
+        "roles": [
+            "admin"
+        ],
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "updated_at": "2026-09-24T03:50:46+03:00"
+    }
+}
+```
+
+#### `PUT /admin/users/{{user_id}}` — Update user (USR-04)
+
+**Auth:** Admin token
+
+Updates a user.
+
+**Permission:** `update-users`
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "name": "موظف تجريبي (محدّث)",
+    "phone": "0551234567",
+    "title": "موظف استقبال"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التحديث بنجاح.",
+    "data": {
+        "id": 8,
+        "type": "admin",
+        "name": "موظف تجريبي (محدّث)",
+        "email": "staff+1790211046@gcmc.sa",
+        "phone": "0551234567",
+        "title": "موظف استقبال",
+        "specialization": null,
+        "bio": null,
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": null,
+        "roles": [
+            "admin"
+        ],
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "updated_at": "2026-09-24T03:50:46+03:00"
+    }
+}
+```
+
+#### `POST /admin/users/{{user_id}}/avatar` — Upload user avatar (USR-08)
+
+**Auth:** Admin token
+
+Uploads the avatar of a user.
+
+**Permission:** `update-users`
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body (multipart/form-data):
+
+| Field | Type | Example |
+|---|---|---|
+| `avatar` | file | (file) |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تحديث الصورة الشخصية بنجاح.",
+    "data": {
+        "id": 8,
+        "type": "admin",
+        "name": "موظف تجريبي (محدّث)",
+        "email": "staff+1790211046@gcmc.sa",
+        "phone": "0551234567",
+        "title": "موظف استقبال",
+        "specialization": null,
+        "bio": null,
+        "avatar_url": "http://localhost:8000/storage/3/avatar.jpg",
+        "avatar_thumb_url": "http://localhost:8000/storage/3/conversions/avatar-thumb.jpg",
+        "is_active": true,
+        "last_login_at": null,
+        "roles": [
+            "admin"
+        ],
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "updated_at": "2026-09-24T03:50:46+03:00"
+    }
+}
+```
+
+#### `PUT /admin/users/{{user_id}}/roles` — Sync user roles (USR-06)
+
+**Auth:** Admin token
+
+Replaces the roles of a user.
+
+**Permission:** `assign-roles`
+
+| Field | Rules |
+|---|---|
+| roles | required array of role names |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "roles": [
+        "admin"
+    ]
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تعيين الأدوار بنجاح.",
+    "data": {
+        "id": 8,
+        "type": "admin",
+        "name": "موظف تجريبي (محدّث)",
+        "email": "staff+1790211046@gcmc.sa",
+        "phone": "0551234567",
+        "title": "موظف استقبال",
+        "specialization": null,
+        "bio": null,
+        "avatar_url": "http://localhost:8000/storage/3/avatar.jpg",
+        "avatar_thumb_url": "http://localhost:8000/storage/3/conversions/avatar-thumb.jpg",
+        "is_active": true,
+        "last_login_at": null,
+        "roles": [
+            "admin"
+        ],
+        "permissions": [
+            "view-dashboard",
+            "… (33 more)"
+        ],
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "updated_at": "2026-09-24T03:50:46+03:00"
+    }
+}
+```
+
+#### `PATCH /admin/users/{{user_id}}/status` — Update user status (USR-07)
+
+**Auth:** Admin token
+
+Activates/deactivates a user. Deactivation revokes his tokens. The last active admin cannot be deactivated.
+
+**Permission:** `update-users`
+
+| Field | Rules |
+|---|---|
+| is_active | required boolean |
+
+**Errors:** 422 `LAST_ADMIN`
+
+Body:
+
+```json
+{
+    "is_active": true
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التحديث بنجاح.",
+    "data": {
+        "id": 8,
+        "type": "admin",
+        "name": "موظف تجريبي (محدّث)",
+        "email": "staff+1790211046@gcmc.sa",
+        "phone": "0551234567",
+        "title": "موظف استقبال",
+        "specialization": null,
+        "bio": null,
+        "avatar_url": "http://localhost:8000/storage/3/avatar.jpg",
+        "avatar_thumb_url": "http://localhost:8000/storage/3/conversions/avatar-thumb.jpg",
+        "is_active": true,
+        "last_login_at": null,
+        "roles": [
+            "admin"
+        ],
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "updated_at": "2026-09-24T03:50:46+03:00"
+    }
+}
+```
+
+#### `DELETE /admin/users/{{user_id}}` — Delete user (USR-05)
+
+**Auth:** Admin token
+
+Deletes a user. You cannot delete yourself or the last active admin.
+
+**Permission:** `delete-users`
+
+**Errors:** 422 `LAST_ADMIN`, 422 `CANNOT_DELETE_SELF`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الحذف بنجاح.",
+    "data": null
+}
+```
+
+### 05 Admin › Consultants
+
+#### `GET /admin/consultants` — List consultants (CON-01)
+
+**Auth:** Admin token
+
+All consultants. A consultant calling this only sees himself.
+
+**Permission:** `view-consultants`
+
+| Query param | Notes |
+|---|---|
+| `search` *(optional)* | name, email, phone |
+| `is_active` *(optional)* | 1 | 0 |
+| `specialization` *(optional)* | exact match |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 7,
+            "name": "أ. نورة السبيعي",
+            "email": "noura.alsubaie@gcmc.sa",
+            "phone": null,
+            "title": "مستشار جودة",
+            "specialization": "جودة العمليات",
+            "bio": null,
+            "avatar_url": null,
+            "avatar_thumb_url": null,
+            "is_active": true,
+            "roles": [
+                "consultant"
+            ],
+            "working_days": [
+                0,
+                "… (4 more)"
+            ],
+            "created_at": "2026-09-24T03:50:41+03:00",
+            "updated_at": "2026-09-24T03:50:41+03:00"
+        },
+        "… (5 more)"
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 6,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/consultants?page=1",
+        "last": "http://localhost:8000/api/v1/admin/consultants?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `POST /admin/consultants` — Create consultant (CON-02)
+
+**Auth:** Admin token
+
+Creates a consultant; the role `consultant` is assigned automatically. Without a password, a set-password email is sent.
+
+**Permission:** `create-consultants`
+
+| Field | Rules |
+|---|---|
+| name | required, max 150 |
+| email | required, email, unique |
+| phone | optional |
+| photo | optional image ≤ 2 MB |
+| title | optional |
+| specialization | optional |
+| bio | optional |
+| password | optional, confirmed |
+| availability | optional {days: [{day_of_week, ranges: [{start_time, end_time}]}]} |
+
+**Errors:** 422 `VALIDATION_ERROR`, 403 `FORBIDDEN`
+
+Body (multipart/form-data):
+
+| Field | Type | Example |
+|---|---|---|
+| `name` | text | أ. خالد المطيري |
+| `email` | text | khaled+{{$timestamp}}@gcmc.sa |
+| `phone` | text | 0551234567 |
+| `title` | text | مستشار حوكمة |
+| `specialization` | text | الحوكمة المؤسسية |
+| `bio` | text | خبرة 10 سنوات في الحوكمة |
+| `password` | text | Password@123 |
+| `password_confirmation` | text | Password@123 |
+| `is_active` | text | 1 |
+| `photo` | file | (file) |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الإنشاء بنجاح.",
+    "data": {
+        "id": 9,
+        "name": "أ. خالد المطيري",
+        "email": "khaled+1790211046@gcmc.sa",
+        "phone": "0551234567",
+        "title": "مستشار حوكمة",
+        "specialization": "الحوكمة المؤسسية",
+        "bio": "خبرة 10 سنوات في الحوكمة",
+        "avatar_url": "http://localhost:8000/storage/4/avatar.jpg",
+        "avatar_thumb_url": "http://localhost:8000/storage/4/conversions/avatar-thumb.jpg",
+        "is_active": true,
+        "roles": [
+            "consultant"
+        ],
+        "working_days": [],
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "updated_at": "2026-09-24T03:50:46+03:00"
+    }
+}
+```
+
+#### `GET /admin/consultants/{{consultant_id}}` — Show consultant (CON-03)
+
+**Auth:** Admin token
+
+A consultant with his availability. A consultant can only view himself.
+
+**Permission:** `view-consultants`
+
+**Errors:** 403 `FORBIDDEN`, 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 9,
+        "name": "أ. خالد المطيري",
+        "email": "khaled+1790211046@gcmc.sa",
+        "phone": "0551234567",
+        "title": "مستشار حوكمة",
+        "specialization": "الحوكمة المؤسسية",
+        "bio": "خبرة 10 سنوات في الحوكمة",
+        "avatar_url": "http://localhost:8000/storage/4/avatar.jpg",
+        "avatar_thumb_url": "http://localhost:8000/storage/4/conversions/avatar-thumb.jpg",
+        "is_active": true,
+        "roles": [
+            "consultant"
+        ],
+        "working_days": [],
+        "availability": {
+            "days": [
+                {
+                    "day_of_week": 0,
+                    "day_name": "Sunday",
+                    "day_name_ar": "الأحد",
+                    "is_working": false,
+                    "ranges": []
+                },
+                "… (6 more)"
+            ]
+        },
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "updated_at": "2026-09-24T03:50:46+03:00"
+    }
+}
+```
+
+#### `PUT /admin/consultants/{{consultant_id}}` — Update consultant (CON-04)
+
+**Auth:** Admin token
+
+Updates a consultant.
+
+**Permission:** `update-consultants`
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "title": "مستشار حوكمة أول",
+    "specialization": "الحوكمة المؤسسية",
+    "bio": "خبرة 12 سنة"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التحديث بنجاح.",
+    "data": {
+        "id": 9,
+        "name": "أ. خالد المطيري",
+        "email": "khaled+1790211046@gcmc.sa",
+        "phone": "0551234567",
+        "title": "مستشار حوكمة أول",
+        "specialization": "الحوكمة المؤسسية",
+        "bio": "خبرة 12 سنة",
+        "avatar_url": "http://localhost:8000/storage/4/avatar.jpg",
+        "avatar_thumb_url": "http://localhost:8000/storage/4/conversions/avatar-thumb.jpg",
+        "is_active": true,
+        "roles": [
+            "consultant"
+        ],
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "updated_at": "2026-09-24T03:50:46+03:00"
+    }
+}
+```
+
+#### `POST /admin/consultants/{{consultant_id}}/photo` — Upload consultant photo (CON-07)
+
+**Auth:** Admin token
+
+Uploads the consultant photo shown on the public pages.
+
+**Permission:** `update-consultants`
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body (multipart/form-data):
+
+| Field | Type | Example |
+|---|---|---|
+| `photo` | file | (file) |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تحديث الصورة الشخصية بنجاح.",
+    "data": {
+        "id": 9,
+        "name": "أ. خالد المطيري",
+        "email": "khaled+1790211046@gcmc.sa",
+        "phone": "0551234567",
+        "title": "مستشار حوكمة أول",
+        "specialization": "الحوكمة المؤسسية",
+        "bio": "خبرة 12 سنة",
+        "avatar_url": "http://localhost:8000/storage/5/avatar.jpg",
+        "avatar_thumb_url": "http://localhost:8000/storage/5/conversions/avatar-thumb.jpg",
+        "is_active": true,
+        "roles": [
+            "consultant"
+        ],
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "updated_at": "2026-09-24T03:50:46+03:00"
+    }
+}
+```
+
+#### `PATCH /admin/consultants/{{consultant_id}}/status` — Update consultant status (CON-06)
+
+**Auth:** Admin token
+
+Activates/deactivates a consultant. Inactive consultants disappear from the public list and cannot be booked.
+
+**Permission:** `update-consultants`
+
+| Field | Rules |
+|---|---|
+| is_active | required boolean |
+
+Body:
+
+```json
+{
+    "is_active": true
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التحديث بنجاح.",
+    "data": {
+        "id": 9,
+        "name": "أ. خالد المطيري",
+        "email": "khaled+1790211046@gcmc.sa",
+        "phone": "0551234567",
+        "title": "مستشار حوكمة أول",
+        "specialization": "الحوكمة المؤسسية",
+        "bio": "خبرة 12 سنة",
+        "avatar_url": "http://localhost:8000/storage/5/avatar.jpg",
+        "avatar_thumb_url": "http://localhost:8000/storage/5/conversions/avatar-thumb.jpg",
+        "is_active": true,
+        "roles": [
+            "consultant"
+        ],
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "updated_at": "2026-09-24T03:50:46+03:00"
+    }
+}
+```
+
+#### `GET /admin/consultants/{{consultant_id}}/availability` — Show availability (CON-08)
+
+**Auth:** Admin token
+
+The weekly availability of the consultant.
+
+**Permission:** `view-availability`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "days": [
+            {
+                "day_of_week": 0,
+                "day_name": "Sunday",
+                "day_name_ar": "الأحد",
+                "is_working": false,
+                "ranges": []
+            },
+            "… (6 more)"
+        ]
+    }
+}
+```
+
+#### `PUT /admin/consultants/{{consultant_id}}/availability` — Replace availability (CON-09)
+
+**Auth:** Admin token
+
+Replaces the whole weekly schedule. Days not sent are removed.
+
+**Permission:** `manage-availability`
+
+| Field | Rules |
+|---|---|
+| days | required array, max 7 |
+| days.*.day_of_week | 0 (Sunday) – 6 (Saturday), distinct |
+| days.*.ranges | present array |
+| days.*.ranges.*.start_time / end_time | H:i |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "days": [
+        {
+            "day_of_week": 0,
+            "ranges": [
+                {
+                    "start_time": "09:00",
+                    "end_time": "17:00"
+                }
+            ]
+        },
+        {
+            "day_of_week": 1,
+            "ranges": [
+                {
+                    "start_time": "09:00",
+                    "end_time": "17:00"
+                }
+            ]
+        },
+        {
+            "day_of_week": 2,
+            "ranges": [
+                {
+                    "start_time": "09:00",
+                    "end_time": "17:00"
+                }
+            ]
+        },
+        {
+            "day_of_week": 3,
+            "ranges": [
+                {
+                    "start_time": "09:00",
+                    "end_time": "17:00"
+                }
+            ]
+        },
+        {
+            "day_of_week": 4,
+            "ranges": [
+                {
+                    "start_time": "09:00",
+                    "end_time": "17:00"
+                }
+            ]
+        }
+    ]
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تحديث التوفر بنجاح.",
+    "data": {
+        "days": [
+            {
+                "day_of_week": 0,
+                "day_name": "Sunday",
+                "day_name_ar": "الأحد",
+                "is_working": true,
+                "ranges": [
+                    {
+                        "id": 31,
+                        "start_time": "09:00",
+                        "end_time": "17:00"
+                    }
+                ]
+            },
+            "… (6 more)"
+        ],
+        "warnings": {
+            "conflicting_bookings_count": 0
+        }
+    }
+}
+```
+
+#### `GET /admin/consultants/{{consultant_id}}/time-offs` — List time-offs (CON-10)
+
+**Auth:** Admin token
+
+The days (or parts of days) the consultant is off.
+
+**Permission:** `view-availability`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 0,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/consultants/9/time-offs?page=1",
+        "last": "http://localhost:8000/api/v1/admin/consultants/9/time-offs?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `POST /admin/consultants/{{consultant_id}}/time-offs` — Create time-off (CON-11)
+
+**Auth:** Admin token
+
+A day off; send start_time+end_time for a partial day.
+
+**Permission:** `manage-availability`
+
+| Field | Rules |
+|---|---|
+| date | required Y-m-d, today or later |
+| start_time / end_time | optional pair H:i |
+| reason | optional |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "date": "{{time_off_date}}",
+    "reason": "إجازة سنوية"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تمت إضافة الإجازة بنجاح.",
+    "data": {
+        "id": 1,
+        "date": "2027-01-22",
+        "start_time": null,
+        "end_time": null,
+        "is_full_day": true,
+        "reason": "إجازة سنوية",
+        "created_at": "2026-09-24T03:50:46+03:00",
+        "warnings": {
+            "conflicting_bookings_count": 0
+        }
+    }
+}
+```
+
+#### `DELETE /admin/consultants/{{consultant_id}}/time-offs/{{time_off_id}}` — Delete time-off (CON-12)
+
+**Auth:** Admin token
+
+Removes a time-off.
+
+**Permission:** `manage-availability`
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الحذف بنجاح.",
+    "data": null
+}
+```
+
+#### `GET /admin/consultants/{{consultant_id}}/slots` — Consultant slots (CON-13)
+
+**Auth:** Admin token
+
+The same slot engine as PUB-06, for the dashboard.
+
+**Permission:** `view-availability`
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+| Query param | Notes |
+|---|---|
+| `date` | YYYY-MM-DD, required |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "date": "2026-10-01",
+        "timezone": "Asia/Riyadh",
+        "slot_minutes": 30,
+        "duration_minutes": 30,
+        "slots": [
+            {
+                "time": "09:00",
+                "starts_at": "2026-10-01T09:00:00+03:00",
+                "ends_at": "2026-10-01T09:30:00+03:00"
+            },
+            "… (15 more)"
+        ]
+    }
+}
+```
+
+#### `GET /admin/consultants/{{consultant_id}}/clients` — Consultant clients (CON-14)
+
+**Auth:** Admin token
+
+The distinct clients who booked this consultant, with bookings_count and last_booking_at.
+
+**Permission:** `view-clients`
+
+| Query param | Notes |
+|---|---|
+| `search` *(optional)* | name/email/phone/company |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 0,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/consultants/9/clients?page=1",
+        "last": "http://localhost:8000/api/v1/admin/consultants/9/clients?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /admin/consultants/{{consultant_id}}/bookings` — Consultant bookings (CON-15)
+
+**Auth:** Admin token
+
+The bookings of this consultant. The "Pending bookings" tab is `?status=pending`.
+
+**Permission:** `view-bookings`
+
+| Query param | Notes |
+|---|---|
+| `status` *(optional)* | pending | completed | cancelled |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 0,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/consultants/9/bookings?page=1",
+        "last": "http://localhost:8000/api/v1/admin/consultants/9/bookings?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /admin/consultants/{{consultant_id}}/pending-reports` — Consultant pending reports (CON-16)
+
+**Auth:** Admin token
+
+Completed bookings still awaiting a report.
+
+**Permission:** `view-reports`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 0,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/consultants/9/pending-reports?page=1",
+        "last": "http://localhost:8000/api/v1/admin/consultants/9/pending-reports?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /admin/consultants/{{consultant_id}}/reports` — Consultant reports (CON-17)
+
+**Auth:** Admin token
+
+The reports uploaded for this consultant.
+
+**Permission:** `view-reports`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 0,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/consultants/9/reports?page=1",
+        "last": "http://localhost:8000/api/v1/admin/consultants/9/reports?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /admin/consultants/{{consultant_id}}/stats` — Consultant stats (CON-18)
+
+**Auth:** Admin token
+
+The counters of the consultant profile page.
+
+**Permission:** `view-consultants`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "pending_bookings": 0,
+        "completed_bookings": 0,
+        "cancelled_bookings": 0,
+        "pending_reports": 0,
+        "reports": 0,
+        "clients": 0,
+        "upcoming_bookings": []
+    }
+}
+```
+
+#### `DELETE /admin/consultants/{{consultant_id}}` — Delete consultant (CON-05)
+
+**Auth:** Admin token
+
+Deletes a consultant (kept last in the folder: the booking wizard re-reads the public list).
+
+**Permission:** `delete-consultants`
+
+**Errors:** 422 `CONSULTANT_HAS_FUTURE_BOOKINGS`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الحذف بنجاح.",
+    "data": null
+}
+```
+
+### 06 Admin › My (consultant)
+
+#### `GET /admin/my/availability` — My availability (MY-01)
+
+**Auth:** Consultant token (admin guard)
+
+The availability of the logged-in consultant.
+
+**Permission:** `view-availability`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "days": [
+            {
+                "day_of_week": 0,
+                "day_name": "Sunday",
+                "day_name_ar": "الأحد",
+                "is_working": true,
+                "ranges": [
+                    {
+                        "id": 1,
+                        "start_time": "09:00",
+                        "end_time": "17:00"
+                    }
+                ]
+            },
+            "… (6 more)"
+        ]
+    }
+}
+```
+
+#### `PUT /admin/my/availability` — Replace my availability (MY-02)
+
+**Auth:** Consultant token (admin guard)
+
+A consultant manages his own schedule.
+
+**Permission:** `manage-availability`
+
+Body:
+
+```json
+{
+    "days": [
+        {
+            "day_of_week": 0,
+            "ranges": [
+                {
+                    "start_time": "09:00",
+                    "end_time": "17:00"
+                }
+            ]
+        },
+        {
+            "day_of_week": 1,
+            "ranges": [
+                {
+                    "start_time": "09:00",
+                    "end_time": "17:00"
+                }
+            ]
+        },
+        {
+            "day_of_week": 2,
+            "ranges": [
+                {
+                    "start_time": "09:00",
+                    "end_time": "17:00"
+                }
+            ]
+        },
+        {
+            "day_of_week": 3,
+            "ranges": [
+                {
+                    "start_time": "09:00",
+                    "end_time": "17:00"
+                }
+            ]
+        },
+        {
+            "day_of_week": 4,
+            "ranges": [
+                {
+                    "start_time": "09:00",
+                    "end_time": "17:00"
+                }
+            ]
+        }
+    ]
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تحديث التوفر بنجاح.",
+    "data": {
+        "days": [
+            {
+                "day_of_week": 0,
+                "day_name": "Sunday",
+                "day_name_ar": "الأحد",
+                "is_working": true,
+                "ranges": [
+                    {
+                        "id": 36,
+                        "start_time": "09:00",
+                        "end_time": "17:00"
+                    }
+                ]
+            },
+            "… (6 more)"
+        ],
+        "warnings": {
+            "conflicting_bookings_count": 0
+        }
+    }
+}
+```
+
+#### `GET /admin/my/time-offs` — My time-offs (MY-03)
+
+**Auth:** Consultant token (admin guard)
+
+The time-offs of the logged-in consultant.
+
+**Permission:** `view-availability`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 0,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/my/time-offs?page=1",
+        "last": "http://localhost:8000/api/v1/admin/my/time-offs?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `POST /admin/my/time-offs` — Create my time-off (MY-04)
+
+**Auth:** Consultant token (admin guard)
+
+Adds a day off.
+
+**Permission:** `manage-availability`
+
+| Field | Rules |
+|---|---|
+| date | required Y-m-d, today or later |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "date": "{{time_off_date}}",
+    "reason": "موعد شخصي"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تمت إضافة الإجازة بنجاح.",
+    "data": {
+        "id": 2,
+        "date": "2027-01-22",
+        "start_time": null,
+        "end_time": null,
+        "is_full_day": true,
+        "reason": "موعد شخصي",
+        "created_at": "2026-09-24T03:50:47+03:00",
+        "warnings": {
+            "conflicting_bookings_count": 0
+        }
+    }
+}
+```
+
+#### `DELETE /admin/my/time-offs/{{time_off_id}}` — Delete my time-off (MY-05)
+
+**Auth:** Consultant token (admin guard)
+
+Removes one of my time-offs.
+
+**Permission:** `manage-availability`
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الحذف بنجاح.",
+    "data": null
+}
+```
+
+#### `GET /admin/my/slots` — My slots (MY-06)
+
+**Auth:** Consultant token (admin guard)
+
+My free slots for a date.
+
+**Permission:** `view-availability`
+
+| Query param | Notes |
+|---|---|
+| `date` | YYYY-MM-DD, required |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "date": "2026-10-01",
+        "timezone": "Asia/Riyadh",
+        "slot_minutes": 30,
+        "duration_minutes": 30,
+        "slots": [
+            {
+                "time": "09:00",
+                "starts_at": "2026-10-01T09:00:00+03:00",
+                "ends_at": "2026-10-01T09:30:00+03:00"
+            },
+            "… (15 more)"
+        ]
+    }
+}
+```
+
+### 07 Admin › Packages
+
+#### `GET /admin/packages` — List packages (PKG-01)
+
+**Auth:** Admin token
+
+All packages including inactive ones.
+
+**Permission:** `view-packages`
+
+| Query param | Notes |
+|---|---|
+| `search` *(optional)* | name |
+| `is_active` *(optional)* | 1 | 0 |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 1,
+            "slug": "iron",
+            "name": "الباقة الحديدية",
+            "name_ar": "الباقة الحديدية",
+            "name_en": "Iron Package",
+            "description": "للمنشآت الناشئة التي تبدأ رحلتها في الحوكمة والامتثال.",
+            "description_ar": "للمنشآت الناشئة التي تبدأ رحلتها في الحوكمة والامتثال.",
+            "description_en": "For start-up establishments beginning their governance and compliance journey.",
+            "features": [
+                {
+                    "ar": "استشارتان شهرياً",
+                    "en": "Two consultations monthly"
+                },
+                "… (3 more)"
+            ],
+            "features_localized": [
+                "استشارتان شهرياً",
+                "… (3 more)"
+            ],
+            "price": 190000,
+            "price_formatted": "1,900.00 SAR",
+            "currency": "SAR",
+            "billing_period_days": 30,
+            "consultations_limit": 2,
+            "documents_limit": 2,
+            "is_unlimited": false,
+            "is_featured": false,
+            "is_active": true,
+            "sort_order": 1,
+            "subscriptions_count": 0,
+            "created_at": "2026-09-24T03:50:39+03:00",
+            "updated_at": "2026-09-24T03:50:39+03:00"
+        },
+        "… (2 more)"
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 3,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/packages?page=1",
+        "last": "http://localhost:8000/api/v1/admin/packages?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `POST /admin/packages` — Create package (PKG-02)
+
+**Auth:** Admin token
+
+Creates a subscription package. Price in halalas.
+
+**Permission:** `create-packages`
+
+| Field | Rules |
+|---|---|
+| slug | required alpha_dash unique |
+| name_ar / name_en | required, max 100 |
+| price | required integer halalas |
+| billing_period_days | optional, default 30 |
+| consultations_limit | nullable = unlimited |
+| documents_limit | nullable = unlimited |
+| is_featured / is_active / sort_order | optional |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "slug": "test-{{$timestamp}}",
+    "name_ar": "باقة تجريبية",
+    "name_en": "Test Package",
+    "description_ar": "باقة للاختبار",
+    "description_en": "A test package",
+    "features": [
+        {
+            "ar": "استشارة",
+            "en": "One consultation"
+        }
+    ],
+    "price": 100000,
+    "billing_period_days": 30,
+    "consultations_limit": 3,
+    "documents_limit": 3,
+    "is_featured": false,
+    "is_active": true,
+    "sort_order": 9
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الإنشاء بنجاح.",
+    "data": {
+        "id": 4,
+        "slug": "test-1790211047",
+        "name": "باقة تجريبية",
+        "name_ar": "باقة تجريبية",
+        "name_en": "Test Package",
+        "description": "باقة للاختبار",
+        "description_ar": "باقة للاختبار",
+        "description_en": "A test package",
+        "features": [
+            {
+                "ar": "استشارة",
+                "en": "One consultation"
+            }
+        ],
+        "features_localized": [
+            "استشارة"
+        ],
+        "price": 100000,
+        "price_formatted": "1,000.00 SAR",
+        "currency": "SAR",
+        "billing_period_days": 30,
+        "consultations_limit": 3,
+        "documents_limit": 3,
+        "is_unlimited": false,
+        "is_featured": false,
+        "is_active": true,
+        "sort_order": 9,
+        "created_at": "2026-09-24T03:50:47+03:00",
+        "updated_at": "2026-09-24T03:50:47+03:00"
+    }
+}
+```
+
+#### `GET /admin/packages/{{package_id_new}}` — Show package (PKG-03)
+
+**Auth:** Admin token
+
+One package.
+
+**Permission:** `view-packages`
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 4,
+        "slug": "test-1790211047",
+        "name": "باقة تجريبية",
+        "name_ar": "باقة تجريبية",
+        "name_en": "Test Package",
+        "description": "باقة للاختبار",
+        "description_ar": "باقة للاختبار",
+        "description_en": "A test package",
+        "features": [
+            {
+                "ar": "استشارة",
+                "en": "One consultation"
+            }
+        ],
+        "features_localized": [
+            "استشارة"
+        ],
+        "price": 100000,
+        "price_formatted": "1,000.00 SAR",
+        "currency": "SAR",
+        "billing_period_days": 30,
+        "consultations_limit": 3,
+        "documents_limit": 3,
+        "is_unlimited": false,
+        "is_featured": false,
+        "is_active": true,
+        "sort_order": 9,
+        "subscriptions_count": 0,
+        "created_at": "2026-09-24T03:50:47+03:00",
+        "updated_at": "2026-09-24T03:50:47+03:00"
+    }
+}
+```
+
+#### `PUT /admin/packages/{{package_id_new}}` — Update package (PKG-04)
+
+**Auth:** Admin token
+
+Updates a package.
+
+**Permission:** `update-packages`
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "price": 120000,
+    "name_ar": "باقة تجريبية محدثة"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التحديث بنجاح.",
+    "data": {
+        "id": 4,
+        "slug": "test-1790211047",
+        "name": "باقة تجريبية محدثة",
+        "name_ar": "باقة تجريبية محدثة",
+        "name_en": "Test Package",
+        "description": "باقة للاختبار",
+        "description_ar": "باقة للاختبار",
+        "description_en": "A test package",
+        "features": [
+            {
+                "ar": "استشارة",
+                "en": "One consultation"
+            }
+        ],
+        "features_localized": [
+            "استشارة"
+        ],
+        "price": 120000,
+        "price_formatted": "1,200.00 SAR",
+        "currency": "SAR",
+        "billing_period_days": 30,
+        "consultations_limit": 3,
+        "documents_limit": 3,
+        "is_unlimited": false,
+        "is_featured": false,
+        "is_active": true,
+        "sort_order": 9,
+        "created_at": "2026-09-24T03:50:47+03:00",
+        "updated_at": "2026-09-24T03:50:47+03:00"
+    }
+}
+```
+
+#### `PATCH /admin/packages/{{package_id_new}}/status` — Update package status (PKG-06)
+
+**Auth:** Admin token
+
+Activates/deactivates a package. Inactive packages disappear from the public list.
+
+**Permission:** `update-packages`
+
+| Field | Rules |
+|---|---|
+| is_active | required boolean |
+
+Body:
+
+```json
+{
+    "is_active": false
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التحديث بنجاح.",
+    "data": {
+        "id": 4,
+        "slug": "test-1790211047",
+        "name": "باقة تجريبية محدثة",
+        "name_ar": "باقة تجريبية محدثة",
+        "name_en": "Test Package",
+        "description": "باقة للاختبار",
+        "description_ar": "باقة للاختبار",
+        "description_en": "A test package",
+        "features": [
+            {
+                "ar": "استشارة",
+                "en": "One consultation"
+            }
+        ],
+        "features_localized": [
+            "استشارة"
+        ],
+        "price": 120000,
+        "price_formatted": "1,200.00 SAR",
+        "currency": "SAR",
+        "billing_period_days": 30,
+        "consultations_limit": 3,
+        "documents_limit": 3,
+        "is_unlimited": false,
+        "is_featured": false,
+        "is_active": false,
+        "sort_order": 9,
+        "created_at": "2026-09-24T03:50:47+03:00",
+        "updated_at": "2026-09-24T03:50:47+03:00"
+    }
+}
+```
+
+#### `DELETE /admin/packages/{{package_id_new}}` — Delete package (PKG-05)
+
+**Auth:** Admin token
+
+Soft-deletes a package.
+
+**Permission:** `delete-packages`
+
+**Errors:** 422 `PACKAGE_IN_USE`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الحذف بنجاح.",
+    "data": null
+}
+```
+
+### 08 Client › Auth
+
+#### `POST /client/auth/register` — Register (CLI-AUTH-01)
+
+**Auth:** — (public)
+
+Dashboard B registration. Returns a token; sends the welcome email.
+
+| Field | Rules |
+|---|---|
+| name | required, max 150 |
+| email | required, email, unique among clients |
+| phone | required, 05XXXXXXXX |
+| company_name | required |
+| password | required, confirmed, min 8 |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "name": "عميل تجريبي",
+    "email": "{{new_client_email}}",
+    "phone": "0500000099",
+    "company_name": "شركة الاختبار",
+    "password": "Password@123",
+    "password_confirmation": "Password@123",
+    "device_name": "postman"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التسجيل بنجاح.",
+    "data": {
+        "token": "3|7fduzo4IZBocwWUVekhaQXcDd2ckimLuTSnXIRvCb1bb5343",
+        "token_type": "Bearer",
+        "user": {
+            "id": 2,
+            "name": "عميل تجريبي",
+            "email": "client+1790211047589@example.com",
+            "phone": "0500000099",
+            "company_name": "شركة الاختبار",
+            "avatar_url": null,
+            "avatar_thumb_url": null,
+            "is_active": true,
+            "last_login_at": null,
+            "created_at": "2026-09-24T03:50:47+03:00",
+            "updated_at": "2026-09-24T03:50:47+03:00"
+        }
+    }
+}
+```
+
+#### `POST /client/auth/login` — Login (CLI-AUTH-02)
+
+**Auth:** — (public)
+
+Client login. An admin email cannot log in here.
+
+| Field | Rules |
+|---|---|
+| email | required email |
+| password | required |
+
+**Errors:** 422 `INVALID_CREDENTIALS`, 403 `ACCOUNT_DISABLED`
+
+Body:
+
+```json
+{
+    "email": "{{new_client_email}}",
+    "password": "Password@123",
+    "device_name": "postman"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تسجيل الدخول بنجاح.",
+    "data": {
+        "token": "4|n02HzwCOcPnndcLgX6axTURiHjePL8n4HmAmvnDq27298486",
+        "token_type": "Bearer",
+        "user": {
+            "id": 2,
+            "name": "عميل تجريبي",
+            "email": "client+1790211047589@example.com",
+            "phone": "0500000099",
+            "company_name": "شركة الاختبار",
+            "avatar_url": null,
+            "avatar_thumb_url": null,
+            "is_active": true,
+            "last_login_at": "2026-09-24T03:50:48+03:00",
+            "created_at": "2026-09-24T03:50:47+03:00",
+            "updated_at": "2026-09-24T03:50:48+03:00"
+        }
+    }
+}
+```
+
+#### `GET /client/auth/me` — Me (CLI-AUTH-04)
+
+**Auth:** Client token
+
+The client with active_subscriptions, default_location and default_payment_method.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 2,
+        "name": "عميل تجريبي",
+        "email": "client+1790211047589@example.com",
+        "phone": "0500000099",
+        "company_name": "شركة الاختبار",
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": "2026-09-24T03:50:48+03:00",
+        "active_subscriptions": [],
+        "default_location": null,
+        "default_payment_method": null,
+        "created_at": "2026-09-24T03:50:47+03:00",
+        "updated_at": "2026-09-24T03:50:48+03:00"
+    }
+}
+```
+
+#### `POST /client/auth/forgot-password` — Forgot password (CLI-AUTH-05)
+
+**Auth:** — (public)
+
+Always 200; sends the reset email.
+
+| Field | Rules |
+|---|---|
+| email | required email |
+
+Body:
+
+```json
+{
+    "email": "{{client_email}}"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "إذا كان هذا البريد مسجلاً، فقد تم إرسال رابط إعادة تعيين كلمة المرور.",
+    "data": null
+}
+```
+
+#### `POST /client/auth/reset-password` — Reset password (CLI-AUTH-06)
+
+**Auth:** — (public)
+
+Resets the password with the token from the email.
+
+| Field | Rules |
+|---|---|
+| token | required |
+| email | required email |
+| password | required, confirmed, min 8 |
+
+**Errors:** 422 `VALIDATION_ERROR` (bad/expired token, reason under `errors.email`)
+
+Body:
+
+```json
+{
+    "token": "PASTE-TOKEN-FROM-EMAIL",
+    "email": "{{client_email}}",
+    "password": "Password@123",
+    "password_confirmation": "Password@123"
+}
+```
+
+### 09 Client › Profile
+
+#### `GET /client/profile` — Show profile (CLI-PRF-01)
+
+**Auth:** Client token
+
+The client profile.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 2,
+        "name": "عميل تجريبي",
+        "email": "client+1790211047589@example.com",
+        "phone": "0500000099",
+        "company_name": "شركة الاختبار",
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": "2026-09-24T03:50:48+03:00",
+        "active_subscriptions": [],
+        "default_location": null,
+        "default_payment_method": null,
+        "created_at": "2026-09-24T03:50:47+03:00",
+        "updated_at": "2026-09-24T03:50:48+03:00"
+    }
+}
+```
+
+#### `PUT /client/profile` — Update profile (CLI-PRF-02)
+
+**Auth:** Client token
+
+Updates the profile.
+
+| Field | Rules |
+|---|---|
+| name | required |
+| email | required, unique |
+| phone | required, 05XXXXXXXX |
+| company_name | required |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "name": "عميل تجريبي",
+    "email": "{{new_client_email}}",
+    "phone": "0500000099",
+    "company_name": "شركة الاختبار المحدودة"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تحديث الملف الشخصي بنجاح.",
+    "data": {
+        "id": 2,
+        "name": "عميل تجريبي",
+        "email": "client+1790211047589@example.com",
+        "phone": "0500000099",
+        "company_name": "شركة الاختبار المحدودة",
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": "2026-09-24T03:50:48+03:00",
+        "active_subscriptions": [],
+        "default_location": null,
+        "default_payment_method": null,
+        "created_at": "2026-09-24T03:50:47+03:00",
+        "updated_at": "2026-09-24T03:50:48+03:00"
+    }
+}
+```
+
+#### `POST /client/profile/avatar` — Upload avatar (CLI-PRF-03)
+
+**Auth:** Client token
+
+Uploads the avatar (jpg/png/webp ≤ 2 MB).
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body (multipart/form-data):
+
+| Field | Type | Example |
+|---|---|---|
+| `avatar` | file | (file) |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تحديث الصورة الشخصية بنجاح.",
+    "data": {
+        "id": 2,
+        "name": "عميل تجريبي",
+        "email": "client+1790211047589@example.com",
+        "phone": "0500000099",
+        "company_name": "شركة الاختبار المحدودة",
+        "avatar_url": "http://localhost:8000/storage/6/avatar.jpg",
+        "avatar_thumb_url": "http://localhost:8000/storage/6/conversions/avatar-thumb.jpg",
+        "is_active": true,
+        "last_login_at": "2026-09-24T03:50:48+03:00",
+        "created_at": "2026-09-24T03:50:47+03:00",
+        "updated_at": "2026-09-24T03:50:48+03:00"
+    }
+}
+```
+
+#### `DELETE /client/profile/avatar` — Delete avatar (CLI-PRF-04)
+
+**Auth:** Client token
+
+Removes the avatar.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الحذف بنجاح.",
+    "data": null
+}
+```
+
+#### `PUT /client/profile/password` — Update password (CLI-PRF-05)
+
+**Auth:** Client token
+
+Changes the password.
+
+| Field | Rules |
+|---|---|
+| current_password | required |
+| password | required, confirmed, min 8 |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "current_password": "Password@123",
+    "password": "NewPassword@123",
+    "password_confirmation": "NewPassword@123"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تغيير كلمة المرور بنجاح.",
+    "data": null
+}
+```
+
+### 10 Client › Locations
+
+#### `GET /client/locations` — List locations (CLI-LOC-01)
+
+**Auth:** Client token
+
+The locations of the client; one of them is the default.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": []
+}
+```
+
+#### `POST /client/locations` — Create location (CLI-LOC-02)
+
+**Auth:** Client token
+
+Adds a location (a branch).
+
+| Field | Rules |
+|---|---|
+| name | required, max 150 |
+| city | optional |
+| address | required |
+| latitude / longitude | optional |
+| is_default | optional |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "name": "المقر الرئيسي",
+    "city": "الرياض",
+    "address": "طريق الملك فهد، برج المكاتب",
+    "latitude": 24.7136,
+    "longitude": 46.6753,
+    "is_default": true
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الإنشاء بنجاح.",
+    "data": {
+        "id": 5,
+        "name": "المقر الرئيسي",
+        "city": "الرياض",
+        "address": "طريق الملك فهد، برج المكاتب",
+        "latitude": "24.7136000",
+        "longitude": "46.6753000",
+        "is_default": true,
+        "created_at": "2026-09-24T03:50:49+03:00"
+    }
+}
+```
+
+#### `GET /client/locations/{{location_id}}` — Show location (CLI-LOC-03)
+
+**Auth:** Client token
+
+One location. 404 when it belongs to another client.
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 5,
+        "name": "المقر الرئيسي",
+        "city": "الرياض",
+        "address": "طريق الملك فهد، برج المكاتب",
+        "latitude": "24.7136000",
+        "longitude": "46.6753000",
+        "is_default": true,
+        "created_at": "2026-09-24T03:50:49+03:00"
+    }
+}
+```
+
+#### `PUT /client/locations/{{location_id}}` — Update location (CLI-LOC-04)
+
+**Auth:** Client token
+
+Updates a location.
+
+**Errors:** 422 `VALIDATION_ERROR`, 404 `NOT_FOUND`
+
+Body:
+
+```json
+{
+    "name": "المقر الرئيسي (محدّث)",
+    "city": "الرياض",
+    "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التحديث بنجاح.",
+    "data": {
+        "id": 5,
+        "name": "المقر الرئيسي (محدّث)",
+        "city": "الرياض",
+        "address": "طريق الملك فهد، برج المكاتب، الدور ٥",
+        "latitude": "24.7136000",
+        "longitude": "46.6753000",
+        "is_default": true,
+        "created_at": "2026-09-24T03:50:49+03:00"
+    }
+}
+```
+
+#### `PATCH /client/locations/{{location_id}}/default` — Set default location (CLI-LOC-06)
+
+**Auth:** Client token
+
+Marks the location as the default one.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التحديث بنجاح.",
+    "data": {
+        "id": 5,
+        "name": "المقر الرئيسي (محدّث)",
+        "city": "الرياض",
+        "address": "طريق الملك فهد، برج المكاتب، الدور ٥",
+        "latitude": "24.7136000",
+        "longitude": "46.6753000",
+        "is_default": true,
+        "created_at": "2026-09-24T03:50:49+03:00"
+    }
+}
+```
+
+#### `POST /client/locations` — Create a second location (CLI-LOC-02)
+
+**Auth:** Client token
+
+A second location, deleted by the next request so the default one survives for the booking wizard.
+
+Body:
+
+```json
+{
+    "name": "فرع مؤقت",
+    "city": "جدة",
+    "address": "شارع التحلية"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الإنشاء بنجاح.",
+    "data": {
+        "id": 6,
+        "name": "فرع مؤقت",
+        "city": "جدة",
+        "address": "شارع التحلية",
+        "latitude": null,
+        "longitude": null,
+        "is_default": false,
+        "created_at": "2026-09-24T03:50:49+03:00"
+    }
+}
+```
+
+#### `DELETE /client/locations/{{delete_location_id}}` — Delete location (CLI-LOC-05)
+
+**Auth:** Client token
+
+Deletes a location.
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الحذف بنجاح.",
+    "data": null
+}
+```
+
+### 11 Client › Payment methods
+
+#### `GET /client/payment-methods` — List payment methods (CLI-PM-01)
+
+**Auth:** Client token
+
+The saved cards. `gateway_token` is never returned.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": []
+}
+```
+
+#### `POST /client/payment-methods` — Save a card (CLI-PM-02)
+
+**Auth:** Client token
+
+Saves a card from a gateway token. Fake driver tokens: `tok_fake_success` (visa 4242), `tok_fake_3ds`, `tok_fake_declined`.
+
+| Field | Rules |
+|---|---|
+| token | required |
+| is_default | optional |
+
+**Errors:** 422 `VALIDATION_ERROR`, 402 `PAYMENT_FAILED`
+
+Body:
+
+```json
+{
+    "token": "tok_fake_success",
+    "is_default": true
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تمت إضافة طريقة الدفع بنجاح.",
+    "data": {
+        "id": 2,
+        "brand": "visa",
+        "last_four": "4242",
+        "exp_month": 12,
+        "exp_year": 2028,
+        "holder_name": "Test Card",
+        "is_default": true,
+        "is_expired": false,
+        "display": "Visa •••• 4242",
+        "created_at": "2026-09-24T03:50:49+03:00"
+    }
+}
+```
+
+#### `PATCH /client/payment-methods/{{payment_method_id}}/default` — Set default card (CLI-PM-04)
+
+**Auth:** Client token
+
+Marks a card as the default.
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تحديث طريقة الدفع الافتراضية بنجاح.",
+    "data": {
+        "id": 2,
+        "brand": "visa",
+        "last_four": "4242",
+        "exp_month": 12,
+        "exp_year": 2028,
+        "holder_name": "Test Card",
+        "is_default": true,
+        "is_expired": false,
+        "display": "Visa •••• 4242",
+        "created_at": "2026-09-24T03:50:49+03:00"
+    }
+}
+```
+
+#### `POST /client/payment-methods` — Save a second card (CLI-PM-02)
+
+**Auth:** Client token
+
+A second card, deleted by the next request so the default card survives for the booking wizard.
+
+Body:
+
+```json
+{
+    "token": "tok_fake_ok2"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تمت إضافة طريقة الدفع بنجاح.",
+    "data": {
+        "id": 3,
+        "brand": "visa",
+        "last_four": "4242",
+        "exp_month": 12,
+        "exp_year": 2028,
+        "holder_name": "Test Card",
+        "is_default": false,
+        "is_expired": false,
+        "display": "Visa •••• 4242",
+        "created_at": "2026-09-24T03:50:49+03:00"
+    }
+}
+```
+
+#### `DELETE /client/payment-methods/{{delete_pm_id}}` — Delete card (CLI-PM-03)
+
+**Auth:** Client token
+
+Soft-deletes a saved card.
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم حذف طريقة الدفع بنجاح.",
+    "data": null
+}
+```
+
+### 12 Client › Booking wizard
+
+#### `GET /public/packages` — Step 1 – Packages (PUB-01)
+
+**Auth:** — (public)
+
+The client picks a package.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 1,
+            "slug": "iron",
+            "name": "الباقة الحديدية",
+            "name_ar": "الباقة الحديدية",
+            "name_en": "Iron Package",
+            "description": "للمنشآت الناشئة التي تبدأ رحلتها في الحوكمة والامتثال.",
+            "description_ar": "للمنشآت الناشئة التي تبدأ رحلتها في الحوكمة والامتثال.",
+            "description_en": "For start-up establishments beginning their governance and compliance journey.",
+            "features": [
+                {
+                    "ar": "استشارتان شهرياً",
+                    "en": "Two consultations monthly"
+                },
+                "… (3 more)"
+            ],
+            "features_localized": [
+                "استشارتان شهرياً",
+                "… (3 more)"
+            ],
+            "price": 190000,
+            "price_formatted": "1,900.00 SAR",
+            "currency": "SAR",
+            "billing_period_days": 30,
+            "consultations_limit": 2,
+            "documents_limit": 2,
+            "is_unlimited": false,
+            "is_featured": false,
+            "is_active": true,
+            "sort_order": 1,
+            "created_at": "2026-09-24T03:50:39+03:00",
+            "updated_at": "2026-09-24T03:50:39+03:00"
+        },
+        "… (2 more)"
+    ]
+}
+```
+
+#### `GET /public/consultants` — Step 3 – Consultants (PUB-03)
+
+**Auth:** — (public)
+
+The client picks a consultant.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 7,
+            "name": "أ. نورة السبيعي",
+            "title": "مستشار جودة",
+            "specialization": "جودة العمليات",
+            "bio": null,
+            "avatar_url": null,
+            "avatar_thumb_url": null,
+            "working_days": [
+                0,
+                "… (4 more)"
+            ]
+        },
+        "… (5 more)"
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 12,
+        "total": 6,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/public/consultants?page=1",
+        "last": "http://localhost:8000/api/v1/public/consultants?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /public/consultants/{{consultant_id}}/available-dates` — Step 4 – Available dates (PUB-05)
+
+**Auth:** — (public)
+
+The client picks a date.
+
+| Query param | Notes |
+|---|---|
+| `month` | YYYY-MM |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "month": "2026-10",
+        "dates": [
+            "2026-10-01",
+            "… (20 more)"
+        ]
+    }
+}
+```
+
+#### `GET /public/consultants/{{consultant_id}}/slots` — Step 4 – Slots (PUB-06)
+
+**Auth:** — (public)
+
+The client picks a time.
+
+| Query param | Notes |
+|---|---|
+| `date` | YYYY-MM-DD |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "date": "2026-10-01",
+        "timezone": "Asia/Riyadh",
+        "slot_minutes": 30,
+        "duration_minutes": 30,
+        "slots": [
+            {
+                "time": "09:00",
+                "starts_at": "2026-10-01T09:00:00+03:00",
+                "ends_at": "2026-10-01T09:30:00+03:00"
+            },
+            "… (15 more)"
+        ]
+    }
+}
+```
+
+#### `GET /client/locations` — Step 5 – Locations (CLI-LOC-01)
+
+**Auth:** Client token
+
+The client picks where the consultation happens.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 5,
+            "name": "المقر الرئيسي (محدّث)",
+            "city": "الرياض",
+            "address": "طريق الملك فهد، برج المكاتب، الدور ٥",
+            "latitude": "24.7136000",
+            "longitude": "46.6753000",
+            "is_default": true,
+            "created_at": "2026-09-24T03:50:49+03:00"
+        }
+    ]
+}
+```
+
+#### `GET /client/payment-methods` — Step 6 – Payment methods (CLI-PM-01)
+
+**Auth:** Client token
+
+The client picks a saved card or adds a new one.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 2,
+            "brand": "visa",
+            "last_four": "4242",
+            "exp_month": 12,
+            "exp_year": 2028,
+            "holder_name": "Test Card",
+            "is_default": true,
+            "is_expired": false,
+            "display": "Visa •••• 4242",
+            "created_at": "2026-09-24T03:50:49+03:00"
+        }
+    ]
+}
+```
+
+#### `POST /client/bookings/quote` — Quote (CLI-BKG-01)
+
+**Auth:** Client token
+
+The price check. With an active subscription that still has consultations, `requires_payment` is false and the amount is 0. `slot_available` is only calculated when consultant+date+time are sent.
+
+| Field | Rules |
+|---|---|
+| package_id | required |
+| consultant_id | optional |
+| date | optional Y-m-d |
+| time | optional H:i |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "package_id": "{{package_id}}",
+    "consultant_id": "{{consultant_id}}",
+    "date": "{{slot_date}}",
+    "time": "{{slot_time}}"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "package": {
+            "id": 1,
+            "slug": "iron",
+            "name": "الباقة الحديدية",
+            "name_ar": "الباقة الحديدية",
+            "name_en": "Iron Package",
+            "description": "للمنشآت الناشئة التي تبدأ رحلتها في الحوكمة والامتثال.",
+            "description_ar": "للمنشآت الناشئة التي تبدأ رحلتها في الحوكمة والامتثال.",
+            "description_en": "For start-up establishments beginning their governance and compliance journey.",
+            "features": [
+                {
+                    "ar": "استشارتان شهرياً",
+                    "en": "Two consultations monthly"
+                },
+                "… (3 more)"
+            ],
+            "features_localized": [
+                "استشارتان شهرياً",
+                "… (3 more)"
+            ],
+            "price": 190000,
+            "price_formatted": "1,900.00 SAR",
+            "currency": "SAR",
+            "billing_period_days": 30,
+            "consultations_limit": 2,
+            "documents_limit": 2,
+            "is_unlimited": false,
+            "is_featured": false,
+            "is_active": true,
+            "sort_order": 1,
+            "created_at": "2026-09-24T03:50:39+03:00",
+            "updated_at": "2026-09-24T03:50:39+03:00"
+        },
+        "requires_payment": true,
+        "amount": 190000,
+        "amount_formatted": "1,900.00 SAR",
+        "currency": "SAR",
+        "subscription": null,
+        "slot_available": true
+    }
+}
+```
+
+#### `POST /client/bookings` — Create booking – saved card (CLI-BKG-02)
+
+**Auth:** Client token
+
+Books with a saved card: the card is charged, the booking becomes `pending` (confirmed), the meeting is created and the confirmation email is sent.
+
+| Field | Rules |
+|---|---|
+| package_id | required |
+| consultant_id | required |
+| date | required Y-m-d |
+| time | required H:i |
+| client_location_id | required |
+| payment_method_id | required unless card_token |
+| card_token | a new card token |
+| save_card | optional |
+| client_notes | optional |
+
+**Errors:** 409 `SLOT_NOT_AVAILABLE`, 422 `PAYMENT_METHOD_REQUIRED`, 402 `PAYMENT_FAILED`, 422 `PACKAGE_INACTIVE`
+
+Body:
+
+```json
+{
+    "package_id": "{{package_id}}",
+    "consultant_id": "{{consultant_id}}",
+    "date": "{{slot_date}}",
+    "time": "{{slot_time}}",
+    "client_location_id": "{{location_id}}",
+    "payment_method_id": "{{payment_method_id}}",
+    "client_notes": "أرجو التركيز على الحوكمة"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم إنشاء الحجز بنجاح.",
+    "data": {
+        "booking": {
+            "id": 4,
+            "reference": "BK-2026-000004",
+            "status": "pending",
+            "status_label": "قيد الانتظار",
+            "report_status": "none",
+            "payment_status": "paid",
+            "refund_status": "none",
+            "date": "2026-10-01",
+            "time": "09:00",
+            "starts_at": "2026-10-01T09:00:00+03:00",
+            "ends_at": "2026-10-01T09:30:00+03:00",
+            "duration_minutes": 30,
+            "amount": 190000,
+            "amount_formatted": "1,900.00 SAR",
+            "currency": "SAR",
+            "package": {
+                "id": 1,
+                "slug": "iron",
+                "name": "الباقة الحديدية",
+                "name_ar": "الباقة الحديدية",
+                "name_en": "Iron Package"
+            },
+            "consultant": {
+                "id": 7,
+                "name": "أ. نورة السبيعي",
+                "title": "مستشار جودة",
+                "specialization": "جودة العمليات",
+                "avatar_thumb_url": null
+            },
+            "client": {
+                "id": 2,
+                "name": "عميل تجريبي",
+                "company_name": "شركة الاختبار المحدودة",
+                "email": "client+1790211047589@example.com",
+                "phone": "0500000099"
+            },
+            "location": {
+                "id": 5,
+                "name": "المقر الرئيسي (محدّث)",
+                "city": "الرياض",
+                "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+            },
+            "meeting": {
+                "provider": "fake",
+                "status": "created",
+                "url": "https://meet.google.com/fak-opaw-bnw"
+            },
+            "payment": {
+                "id": 2,
+                "booking_id": 4,
+  …
+```
+
+#### `POST /client/bookings` — Create booking – new card 3DS (CLI-BKG-02)
+
+**Auth:** Client token
+
+Books another package with a new card that needs 3-D Secure: the payment is `initiated` and the client must be sent to `transaction_url`, then the app calls verify.
+
+**Errors:** 409 `SLOT_NOT_AVAILABLE`, 402 `PAYMENT_FAILED`
+
+Body:
+
+```json
+{
+    "package_id": "{{package_id_silver}}",
+    "consultant_id": "{{consultant_id}}",
+    "date": "{{slot_date}}",
+    "time": "{{slot_time_2}}",
+    "client_location_id": "{{location_id}}",
+    "card_token": "tok_fake_3ds",
+    "save_card": true
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم إنشاء الحجز بنجاح.",
+    "data": {
+        "booking": {
+            "id": 5,
+            "reference": "BK-2026-000005",
+            "status": "pending_payment",
+            "status_label": "في انتظار الدفع",
+            "report_status": "none",
+            "payment_status": "unpaid",
+            "refund_status": "none",
+            "date": "2026-10-01",
+            "time": "09:30",
+            "starts_at": "2026-10-01T09:30:00+03:00",
+            "ends_at": "2026-10-01T10:00:00+03:00",
+            "duration_minutes": 30,
+            "amount": 450000,
+            "amount_formatted": "4,500.00 SAR",
+            "currency": "SAR",
+            "package": {
+                "id": 2,
+                "slug": "silver",
+                "name": "الباقة الفضية",
+                "name_ar": "الباقة الفضية",
+                "name_en": "Silver Package"
+            },
+            "consultant": {
+                "id": 7,
+                "name": "أ. نورة السبيعي",
+                "title": "مستشار جودة",
+                "specialization": "جودة العمليات",
+                "avatar_thumb_url": null
+            },
+            "client": {
+                "id": 2,
+                "name": "عميل تجريبي",
+                "company_name": "شركة الاختبار المحدودة",
+                "email": "client+1790211047589@example.com",
+                "phone": "0500000099"
+            },
+            "location": {
+                "id": 5,
+                "name": "المقر الرئيسي (محدّث)",
+                "city": "الرياض",
+                "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+            },
+            "meeting": {
+                "provider": null,
+                "status": "none",
+                "url": null
+            },
+            "payment": {
+                "id": 3,
+                "booking_id": 5,
+  …
+```
+
+#### `POST /client/payments/{{payment_id_3ds}}/verify` — Verify payment (CLI-PAY-02)
+
+**Auth:** Client token
+
+After the 3DS redirect: fetches the payment from the gateway and applies the result (idempotent).
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "booking": {
+            "id": 5,
+            "reference": "BK-2026-000005",
+            "status": "pending",
+            "status_label": "قيد الانتظار",
+            "report_status": "none",
+            "payment_status": "paid",
+            "refund_status": "none",
+            "date": "2026-10-01",
+            "time": "09:30",
+            "starts_at": "2026-10-01T09:30:00+03:00",
+            "ends_at": "2026-10-01T10:00:00+03:00",
+            "duration_minutes": 30,
+            "amount": 450000,
+            "amount_formatted": "4,500.00 SAR",
+            "currency": "SAR",
+            "package": {
+                "id": 2,
+                "slug": "silver",
+                "name": "الباقة الفضية",
+                "name_ar": "الباقة الفضية",
+                "name_en": "Silver Package"
+            },
+            "consultant": {
+                "id": 7,
+                "name": "أ. نورة السبيعي",
+                "title": "مستشار جودة",
+                "specialization": "جودة العمليات",
+                "avatar_thumb_url": null
+            },
+            "client": {
+                "id": 2,
+                "name": "عميل تجريبي",
+                "company_name": "شركة الاختبار المحدودة",
+                "email": "client+1790211047589@example.com",
+                "phone": "0500000099"
+            },
+            "location": {
+                "id": 5,
+                "name": "المقر الرئيسي (محدّث)",
+                "city": "الرياض",
+                "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+            },
+            "meeting": {
+                "provider": "fake",
+                "status": "created",
+                "url": "https://meet.google.com/fak-jhlb-9vj"
+            },
+            "payment": {
+                "id": 3,
+                "booking_id": 5,
+  …
+```
+
+### 13 Client › Bookings, Payments, Subscriptions, Dashboard
+
+#### `GET /client/bookings` — List bookings (CLI-BKG-03)
+
+**Auth:** Client token
+
+The bookings of the client.
+
+| Query param | Notes |
+|---|---|
+| `status` *(optional)* | pending | completed | cancelled |
+| `sort` *(optional)* | -starts_at (default) | starts_at |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 5,
+            "reference": "BK-2026-000005",
+            "status": "pending",
+            "status_label": "قيد الانتظار",
+            "report_status": "none",
+            "payment_status": "paid",
+            "refund_status": "none",
+            "date": "2026-10-01",
+            "time": "09:30",
+            "starts_at": "2026-10-01T09:30:00+03:00",
+            "ends_at": "2026-10-01T10:00:00+03:00",
+            "duration_minutes": 30,
+            "amount": 450000,
+            "amount_formatted": "4,500.00 SAR",
+            "currency": "SAR",
+            "package": {
+                "id": 2,
+                "slug": "silver",
+                "name": "الباقة الفضية",
+                "name_ar": "الباقة الفضية",
+                "name_en": "Silver Package"
+            },
+            "consultant": {
+                "id": 7,
+                "name": "أ. نورة السبيعي",
+                "title": "مستشار جودة",
+                "specialization": "جودة العمليات",
+                "avatar_thumb_url": null
+            },
+            "client": {
+                "id": 2,
+                "name": "عميل تجريبي",
+                "company_name": "شركة الاختبار المحدودة",
+                "email": "client+1790211047589@example.com",
+                "phone": "0500000099"
+            },
+            "location": {
+                "id": 5,
+                "name": "المقر الرئيسي (محدّث)",
+                "city": "الرياض",
+                "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+            },
+            "meeting": {
+                "provider": "fake",
+                "status": "created",
+                "url": "https://meet.google.com/fak-jhlb-9vj"
+            },
+            "payment": {
+                "id": 3,
+                "booking_id": 5,
+  …
+```
+
+#### `GET /client/bookings/{{booking_id}}` — Show booking (CLI-BKG-04)
+
+**Auth:** Client token
+
+One booking with the meeting link and the report. 404 when it belongs to another client.
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 4,
+        "reference": "BK-2026-000004",
+        "status": "pending",
+        "status_label": "قيد الانتظار",
+        "report_status": "none",
+        "payment_status": "paid",
+        "refund_status": "none",
+        "date": "2026-10-01",
+        "time": "09:00",
+        "starts_at": "2026-10-01T09:00:00+03:00",
+        "ends_at": "2026-10-01T09:30:00+03:00",
+        "duration_minutes": 30,
+        "amount": 190000,
+        "amount_formatted": "1,900.00 SAR",
+        "currency": "SAR",
+        "package": {
+            "id": 1,
+            "slug": "iron",
+            "name": "الباقة الحديدية",
+            "name_ar": "الباقة الحديدية",
+            "name_en": "Iron Package"
+        },
+        "consultant": {
+            "id": 7,
+            "name": "أ. نورة السبيعي",
+            "title": "مستشار جودة",
+            "specialization": "جودة العمليات",
+            "avatar_thumb_url": null
+        },
+        "client": {
+            "id": 2,
+            "name": "عميل تجريبي",
+            "company_name": "شركة الاختبار المحدودة",
+            "email": "client+1790211047589@example.com",
+            "phone": "0500000099"
+        },
+        "location": {
+            "id": 5,
+            "name": "المقر الرئيسي (محدّث)",
+            "city": "الرياض",
+            "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+        },
+        "meeting": {
+            "provider": "fake",
+            "status": "created",
+            "url": "https://meet.google.com/fak-opaw-bnw"
+        },
+        "payment": {
+            "id": 2,
+            "booking_id": 4,
+            "booking_reference": "BK-2026-000004",
+  …
+```
+
+#### `POST /client/bookings/{{booking_id_3ds}}/cancel` — Cancel booking (CLI-BKG-05)
+
+**Auth:** Client token
+
+The client cancels up to `client_cancel_hours` (24) before the start. A paid booking gets `refund_status = requested`.
+
+| Field | Rules |
+|---|---|
+| reason | optional, max 500 |
+
+**Errors:** 422 `BOOKING_CANCEL_WINDOW_PASSED`, 422 `BOOKING_INVALID_STATUS`, 404 `NOT_FOUND`
+
+Body:
+
+```json
+{
+    "reason": "ظرف طارئ"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم إلغاء الحجز.",
+    "data": {
+        "id": 5,
+        "reference": "BK-2026-000005",
+        "status": "cancelled",
+        "status_label": "ملغي",
+        "report_status": "none",
+        "payment_status": "paid",
+        "refund_status": "requested",
+        "date": "2026-10-01",
+        "time": "09:30",
+        "starts_at": "2026-10-01T09:30:00+03:00",
+        "ends_at": "2026-10-01T10:00:00+03:00",
+        "duration_minutes": 30,
+        "amount": 450000,
+        "amount_formatted": "4,500.00 SAR",
+        "currency": "SAR",
+        "package": {
+            "id": 2,
+            "slug": "silver",
+            "name": "الباقة الفضية",
+            "name_ar": "الباقة الفضية",
+            "name_en": "Silver Package"
+        },
+        "consultant": {
+            "id": 7,
+            "name": "أ. نورة السبيعي",
+            "title": "مستشار جودة",
+            "specialization": "جودة العمليات",
+            "avatar_thumb_url": null
+        },
+        "client": {
+            "id": 2,
+            "name": "عميل تجريبي",
+            "company_name": "شركة الاختبار المحدودة",
+            "email": "client+1790211047589@example.com",
+            "phone": "0500000099"
+        },
+        "location": {
+            "id": 5,
+            "name": "المقر الرئيسي (محدّث)",
+            "city": "الرياض",
+            "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+        },
+        "meeting": {
+            "provider": "fake",
+            "status": "created",
+            "url": null
+        },
+        "payment": {
+            "id": 3,
+            "booking_id": 5,
+            "booking_reference": "BK-2026-000005",
+  …
+```
+
+#### `GET /client/payments` — List payments (CLI-PAY-01)
+
+**Auth:** Client token
+
+The payments of the client.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 2,
+            "booking_id": 4,
+            "booking_reference": "BK-2026-000004",
+            "amount": 190000,
+            "amount_formatted": "1,900.00 SAR",
+            "currency": "SAR",
+            "status": "paid",
+            "gateway": "fake",
+            "card_brand": "visa",
+            "card_last_four": "4242",
+            "failure_reason": null,
+            "transaction_url": null,
+            "paid_at": "2026-09-24T03:50:49+03:00",
+            "created_at": "2026-09-24T03:50:49+03:00"
+        },
+        "… (1 more)"
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 2,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/client/payments?page=1",
+        "last": "http://localhost:8000/api/v1/client/payments?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /client/subscriptions` — List subscriptions (CLI-SUB-01)
+
+**Auth:** Client token
+
+All subscriptions of the client with the remaining consultations.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 2,
+            "package": {
+                "id": 1,
+                "slug": "iron",
+                "name": "الباقة الحديدية",
+                "name_ar": "الباقة الحديدية",
+                "name_en": "Iron Package"
+            },
+            "status": "active",
+            "starts_at": "2026-09-24T03:50:49+03:00",
+            "ends_at": "2026-10-24T03:50:49+03:00",
+            "consultations_limit": 2,
+            "consultations_used": 1,
+            "consultations_remaining": 1,
+            "is_unlimited": false,
+            "price_paid": 190000,
+            "price_paid_formatted": "1,900.00 SAR"
+        },
+        "… (1 more)"
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 2,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/client/subscriptions?page=1",
+        "last": "http://localhost:8000/api/v1/client/subscriptions?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /client/subscriptions/active` — Active subscriptions (CLI-SUB-02)
+
+**Auth:** Client token
+
+Only the active ones.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 2,
+            "package": {
+                "id": 1,
+                "slug": "iron",
+                "name": "الباقة الحديدية",
+                "name_ar": "الباقة الحديدية",
+                "name_en": "Iron Package"
+            },
+            "status": "active",
+            "starts_at": "2026-09-24T03:50:49+03:00",
+            "ends_at": "2026-10-24T03:50:49+03:00",
+            "consultations_limit": 2,
+            "consultations_used": 1,
+            "consultations_remaining": 1,
+            "is_unlimited": false,
+            "price_paid": 190000,
+            "price_paid_formatted": "1,900.00 SAR"
+        },
+        "… (1 more)"
+    ]
+}
+```
+
+#### `GET /client/dashboard` — Dashboard (CLI-DSH-01)
+
+**Auth:** Client token
+
+The client home: next booking, counters, unread reports, active subscriptions.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "next_booking": {
+            "id": 4,
+            "reference": "BK-2026-000004",
+            "status": "pending",
+            "status_label": "قيد الانتظار",
+            "report_status": "none",
+            "payment_status": "paid",
+            "refund_status": "none",
+            "date": "2026-10-01",
+            "time": "09:00",
+            "starts_at": "2026-10-01T09:00:00+03:00",
+            "ends_at": "2026-10-01T09:30:00+03:00",
+            "duration_minutes": 30,
+            "amount": 190000,
+            "amount_formatted": "1,900.00 SAR",
+            "currency": "SAR",
+            "package": {
+                "id": 1,
+                "slug": "iron",
+                "name": "الباقة الحديدية",
+                "name_ar": "الباقة الحديدية",
+                "name_en": "Iron Package"
+            },
+            "consultant": {
+                "id": 7,
+                "name": "أ. نورة السبيعي",
+                "title": "مستشار جودة",
+                "specialization": "جودة العمليات",
+                "avatar_thumb_url": null
+            },
+            "client": {
+                "id": 2,
+                "name": "عميل تجريبي",
+                "company_name": "شركة الاختبار المحدودة",
+                "email": "client+1790211047589@example.com",
+                "phone": "0500000099"
+            },
+            "location": {
+                "id": 5,
+                "name": "المقر الرئيسي (محدّث)",
+                "city": "الرياض",
+                "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+            },
+            "meeting": {
+                "provider": "fake",
+                "status": "created",
+                "url": "https://meet.google.com/fak-opaw-bnw"
+            },
+            "payment": {
+                "id": 2,
+                "booking_id": 4,
+  …
+```
+
+### 14 Admin › Bookings
+
+#### `GET /admin/bookings` — List bookings (BKG-01)
+
+**Auth:** Admin token
+
+All bookings (a consultant only sees his own).
+
+**Permission:** `view-bookings`
+
+| Query param | Notes |
+|---|---|
+| `status` *(optional)* | pending_payment | pending | completed | cancelled |
+| `consultant_id` *(optional)* | admin only |
+| `client_id` *(optional)* | — |
+| `date_from` *(optional)* | YYYY-MM-DD |
+| `date_to` *(optional)* | YYYY-MM-DD |
+| `search` *(optional)* | reference or client name |
+| `sort` *(optional)* | -starts_at (default) |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 5,
+            "reference": "BK-2026-000005",
+            "status": "cancelled",
+            "status_label": "ملغي",
+            "report_status": "none",
+            "payment_status": "paid",
+            "refund_status": "requested",
+            "date": "2026-10-01",
+            "time": "09:30",
+            "starts_at": "2026-10-01T09:30:00+03:00",
+            "ends_at": "2026-10-01T10:00:00+03:00",
+            "duration_minutes": 30,
+            "amount": 450000,
+            "amount_formatted": "4,500.00 SAR",
+            "currency": "SAR",
+            "package": {
+                "id": 2,
+                "slug": "silver",
+                "name": "الباقة الفضية",
+                "name_ar": "الباقة الفضية",
+                "name_en": "Silver Package"
+            },
+            "consultant": {
+                "id": 7,
+                "name": "أ. نورة السبيعي",
+                "title": "مستشار جودة",
+                "specialization": "جودة العمليات",
+                "avatar_thumb_url": null
+            },
+            "client": {
+                "id": 2,
+                "name": "عميل تجريبي",
+                "company_name": "شركة الاختبار المحدودة",
+                "email": "client+1790211047589@example.com",
+                "phone": "0500000099"
+            },
+            "location": {
+                "id": 5,
+                "name": "المقر الرئيسي (محدّث)",
+                "city": "الرياض",
+                "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+            },
+            "meeting": {
+                "provider": "fake",
+                "status": "created",
+                "url": null
+            },
+            "payment": {
+                "id": 3,
+                "booking_id": 5,
+  …
+```
+
+#### `GET /admin/bookings` — List completed bookings (BKG-01)
+
+**Auth:** Admin token
+
+Finds the demo completed booking that still awaits a report; the report upload uses it.
+
+**Permission:** `view-bookings`
+
+| Query param | Notes |
+|---|---|
+| `status` | e.g. `completed` |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 2,
+            "reference": "BK-2026-000002",
+            "status": "completed",
+            "status_label": "مكتمل",
+            "report_status": "pending",
+            "payment_status": "not_required",
+            "refund_status": "none",
+            "date": "2026-09-22",
+            "time": "12:00",
+            "starts_at": "2026-09-22T12:00:00+03:00",
+            "ends_at": "2026-09-22T12:30:00+03:00",
+            "duration_minutes": 30,
+            "amount": 0,
+            "amount_formatted": "0.00 SAR",
+            "currency": "SAR",
+            "package": {
+                "id": 3,
+                "slug": "gold",
+                "name": "الباقة الذهبية",
+                "name_ar": "الباقة الذهبية",
+                "name_en": "Gold Package"
+            },
+            "consultant": {
+                "id": 3,
+                "name": "د. سارة الدوسري",
+                "title": "مستشار امتثال",
+                "specialization": "الامتثال التنظيمي",
+                "avatar_thumb_url": null
+            },
+            "client": {
+                "id": 1,
+                "name": "عميل تجريبي",
+                "company_name": "شركة تجريبية",
+                "email": "client@gcmc.sa",
+                "phone": "0500000001"
+            },
+            "location": {
+                "id": 1,
+                "name": "الفرع الرئيسي — الرياض",
+                "city": "الرياض",
+                "address": "طريق العروبة، حي العليا، برج المملكة، الدور ١٨"
+            },
+            "meeting": {
+                "provider": "fake",
+                "status": "created",
+                "url": "https://meet.google.com/fak-dem-o456"
+            },
+            "payment": null,
+            "report": null,
+            "client_notes": null,
+  …
+```
+
+#### `GET /admin/bookings/{{booking_id}}` — Show booking (BKG-02)
+
+**Auth:** Admin token
+
+One booking with its payments.
+
+**Permission:** `view-bookings`
+
+**Errors:** 404 `NOT_FOUND`, 403 `FORBIDDEN`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 4,
+        "reference": "BK-2026-000004",
+        "status": "pending",
+        "status_label": "قيد الانتظار",
+        "report_status": "none",
+        "payment_status": "paid",
+        "refund_status": "none",
+        "date": "2026-10-01",
+        "time": "09:00",
+        "starts_at": "2026-10-01T09:00:00+03:00",
+        "ends_at": "2026-10-01T09:30:00+03:00",
+        "duration_minutes": 30,
+        "amount": 190000,
+        "amount_formatted": "1,900.00 SAR",
+        "currency": "SAR",
+        "package": {
+            "id": 1,
+            "slug": "iron",
+            "name": "الباقة الحديدية",
+            "name_ar": "الباقة الحديدية",
+            "name_en": "Iron Package"
+        },
+        "consultant": {
+            "id": 7,
+            "name": "أ. نورة السبيعي",
+            "title": "مستشار جودة",
+            "specialization": "جودة العمليات",
+            "avatar_thumb_url": null
+        },
+        "client": {
+            "id": 2,
+            "name": "عميل تجريبي",
+            "company_name": "شركة الاختبار المحدودة",
+            "email": "client+1790211047589@example.com",
+            "phone": "0500000099"
+        },
+        "location": {
+            "id": 5,
+            "name": "المقر الرئيسي (محدّث)",
+            "city": "الرياض",
+            "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+        },
+        "meeting": {
+            "provider": "fake",
+            "status": "created",
+            "url": "https://meet.google.com/fak-opaw-bnw"
+        },
+        "payment": {
+            "id": 2,
+            "booking_id": 4,
+            "booking_reference": "BK-2026-000004",
+  …
+```
+
+#### `POST /admin/bookings/{{booking_id}}/meeting` — Regenerate meeting (BKG-05)
+
+**Auth:** Admin token
+
+Re-creates the meeting link (e.g. after a Google failure).
+
+**Permission:** `manage-meetings`
+
+**Errors:** 422 `BOOKING_INVALID_STATUS`, 502 `MEETING_CREATION_FAILED`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم إنشاء رابط اجتماع جديد.",
+    "data": {
+        "id": 4,
+        "reference": "BK-2026-000004",
+        "status": "pending",
+        "status_label": "قيد الانتظار",
+        "report_status": "none",
+        "payment_status": "paid",
+        "refund_status": "none",
+        "date": "2026-10-01",
+        "time": "09:00",
+        "starts_at": "2026-10-01T09:00:00+03:00",
+        "ends_at": "2026-10-01T09:30:00+03:00",
+        "duration_minutes": 30,
+        "amount": 190000,
+        "amount_formatted": "1,900.00 SAR",
+        "currency": "SAR",
+        "package": {
+            "id": 1,
+            "slug": "iron",
+            "name": "الباقة الحديدية",
+            "name_ar": "الباقة الحديدية",
+            "name_en": "Iron Package"
+        },
+        "consultant": {
+            "id": 7,
+            "name": "أ. نورة السبيعي",
+            "title": "مستشار جودة",
+            "specialization": "جودة العمليات",
+            "avatar_thumb_url": null
+        },
+        "client": {
+            "id": 2,
+            "name": "عميل تجريبي",
+            "company_name": "شركة الاختبار المحدودة",
+            "email": "client+1790211047589@example.com",
+            "phone": "0500000099"
+        },
+        "location": {
+            "id": 5,
+            "name": "المقر الرئيسي (محدّث)",
+            "city": "الرياض",
+            "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+        },
+        "meeting": {
+            "provider": "fake",
+            "status": "created",
+            "url": "https://meet.google.com/fak-8mfz-s55"
+        },
+        "payment": {
+            "id": 2,
+            "booking_id": 4,
+            "booking_reference": "BK-2026-000004",
+  …
+```
+
+#### `POST /admin/bookings/{{booking_id}}/complete` — Complete booking (BKG-03)
+
+**Auth:** Admin token
+
+Marks the booking completed after the session. The start time must have passed; the booking then waits for the report. Skipped in the CI run: the seeded pending bookings start in the future — run it by hand on a booking whose start has passed.
+
+**Permission:** `complete-bookings`
+
+| Field | Rules |
+|---|---|
+| notes | optional, max 1000 |
+
+**Errors:** 422 `BOOKING_NOT_STARTED`, 422 `BOOKING_INVALID_STATUS`
+
+Body:
+
+```json
+{
+    "notes": "تمت الجلسة بنجاح"
+}
+```
+
+#### `POST /admin/bookings/{{booking_id}}/cancel` — Cancel booking (BKG-04)
+
+**Auth:** Admin token
+
+The admin cancels at any time; a paid booking gets `refund_status = requested`. The client and the consultant are notified.
+
+**Permission:** `cancel-bookings`
+
+| Field | Rules |
+|---|---|
+| reason | required, max 500 |
+
+**Errors:** 422 `BOOKING_INVALID_STATUS`
+
+Body:
+
+```json
+{
+    "reason": "إلغاء بناءً على طلب العميل"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم إلغاء الحجز.",
+    "data": {
+        "id": 4,
+        "reference": "BK-2026-000004",
+        "status": "cancelled",
+        "status_label": "ملغي",
+        "report_status": "none",
+        "payment_status": "paid",
+        "refund_status": "requested",
+        "date": "2026-10-01",
+        "time": "09:00",
+        "starts_at": "2026-10-01T09:00:00+03:00",
+        "ends_at": "2026-10-01T09:30:00+03:00",
+        "duration_minutes": 30,
+        "amount": 190000,
+        "amount_formatted": "1,900.00 SAR",
+        "currency": "SAR",
+        "package": {
+            "id": 1,
+            "slug": "iron",
+            "name": "الباقة الحديدية",
+            "name_ar": "الباقة الحديدية",
+            "name_en": "Iron Package"
+        },
+        "consultant": {
+            "id": 7,
+            "name": "أ. نورة السبيعي",
+            "title": "مستشار جودة",
+            "specialization": "جودة العمليات",
+            "avatar_thumb_url": null
+        },
+        "client": {
+            "id": 2,
+            "name": "عميل تجريبي",
+            "company_name": "شركة الاختبار المحدودة",
+            "email": "client+1790211047589@example.com",
+            "phone": "0500000099"
+        },
+        "location": {
+            "id": 5,
+            "name": "المقر الرئيسي (محدّث)",
+            "city": "الرياض",
+            "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+        },
+        "meeting": {
+            "provider": "fake",
+            "status": "created",
+            "url": null
+        },
+        "payment": {
+            "id": 2,
+            "booking_id": 4,
+            "booking_reference": "BK-2026-000004",
+  …
+```
+
+#### `GET /admin/bookings/calendar` — Calendar (BKG-06)
+
+**Auth:** Admin token
+
+The bookings of a period (max 62 days) for the calendar view.
+
+**Permission:** `view-bookings`
+
+| Query param | Notes |
+|---|---|
+| `from` | YYYY-MM-DD, required |
+| `to` | YYYY-MM-DD, required, from + 62 days max |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 3,
+            "reference": "BK-2026-000003",
+            "status": "pending",
+            "starts_at": "2026-09-27T10:00:00+03:00",
+            "ends_at": "2026-09-27T10:30:00+03:00",
+            "consultant": {
+                "id": 2,
+                "name": "أ. أحمد العتيبي"
+            },
+            "client": {
+                "id": 1,
+                "company_name": "شركة تجريبية"
+            }
+        },
+        "… (2 more)"
+    ]
+}
+```
+
+#### `POST /admin/bookings/{{booking_id_3ds}}/mark-refunded` — Mark refunded (BKG-07)
+
+**Auth:** Admin token
+
+After refunding in the gateway dashboard: marks the booking refunded. Only possible while `refund_status = requested` (the client cancelled this paid booking in folder 13).
+
+**Permission:** `refund-payments`
+
+**Errors:** 422 `BOOKING_INVALID_STATUS`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تعليم الحجز كمسترد.",
+    "data": {
+        "id": 5,
+        "reference": "BK-2026-000005",
+        "status": "cancelled",
+        "status_label": "ملغي",
+        "report_status": "none",
+        "payment_status": "refunded",
+        "refund_status": "refunded",
+        "date": "2026-10-01",
+        "time": "09:30",
+        "starts_at": "2026-10-01T09:30:00+03:00",
+        "ends_at": "2026-10-01T10:00:00+03:00",
+        "duration_minutes": 30,
+        "amount": 450000,
+        "amount_formatted": "4,500.00 SAR",
+        "currency": "SAR",
+        "package": {
+            "id": 2,
+            "slug": "silver",
+            "name": "الباقة الفضية",
+            "name_ar": "الباقة الفضية",
+            "name_en": "Silver Package"
+        },
+        "consultant": {
+            "id": 7,
+            "name": "أ. نورة السبيعي",
+            "title": "مستشار جودة",
+            "specialization": "جودة العمليات",
+            "avatar_thumb_url": null
+        },
+        "client": {
+            "id": 2,
+            "name": "عميل تجريبي",
+            "company_name": "شركة الاختبار المحدودة",
+            "email": "client+1790211047589@example.com",
+            "phone": "0500000099"
+        },
+        "location": {
+            "id": 5,
+            "name": "المقر الرئيسي (محدّث)",
+            "city": "الرياض",
+            "address": "طريق الملك فهد، برج المكاتب، الدور ٥"
+        },
+        "meeting": {
+            "provider": "fake",
+            "status": "created",
+            "url": null
+        },
+        "payment": {
+            "id": 3,
+            "booking_id": 5,
+            "booking_reference": "BK-2026-000005",
+  …
+```
+
+### 15 Admin › Reports
+
+#### `GET /admin/reports` — List reports (RPT-01)
+
+**Auth:** Admin token
+
+All reports (a consultant only sees his own).
+
+**Permission:** `view-reports`
+
+| Query param | Notes |
+|---|---|
+| `consultant_id` *(optional)* | admin only |
+| `client_id` *(optional)* | — |
+| `date_from` *(optional)* | YYYY-MM-DD |
+| `date_to` *(optional)* | YYYY-MM-DD |
+| `search` *(optional)* | title or booking reference |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 1,
+            "title": "تقرير الحوكمة المؤسسية",
+            "summary": "تقرير تجريبي يغطي تقييم ممارسات الحوكمة المؤسسية والتوصيات.",
+            "booking": {
+                "id": 1,
+                "reference": "BK-2026-000001",
+                "date": "2026-09-21",
+                "time": "10:00"
+            },
+            "consultant": {
+                "id": 2,
+                "name": "أ. أحمد العتيبي"
+            },
+            "client": {
+                "id": 1,
+                "name": "عميل تجريبي",
+                "company_name": "شركة تجريبية"
+            },
+            "file": {
+                "name": "governance-report.pdf",
+                "size": 192,
+                "size_human": "192 B",
+                "mime_type": "application/pdf"
+            },
+            "download_url": "http://localhost:8000/api/v1/admin/reports/1/download",
+            "client_notified_at": "2026-09-24T03:50:41+03:00",
+            "first_downloaded_at": null,
+            "created_at": "2026-09-24T03:50:41+03:00",
+            "updated_at": "2026-09-24T03:50:41+03:00"
+        }
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 1,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/reports?page=1",
+        "last": "http://localhost:8000/api/v1/admin/reports?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `POST /admin/bookings/{{completed_booking_id}}/report` — Upload report (RPT-03)
+
+**Auth:** Admin token
+
+Uploads the report of a completed booking (pdf/doc/docx ≤ 20 MB, private disk). Uploading again replaces the file. The client gets an email with a dashboard link and a 7-day signed download link unless `notify_client` is false.
+
+**Permission:** `upload-reports`
+
+| Field | Rules |
+|---|---|
+| title | required, max 191 |
+| summary | optional |
+| file | required pdf/doc/docx ≤ 20 MB |
+| notify_client | optional, default true |
+
+**Errors:** 422 `REPORT_NOT_ALLOWED` (booking not completed), 422 `VALIDATION_ERROR`, 403 `FORBIDDEN`
+
+Body (multipart/form-data):
+
+| Field | Type | Example |
+|---|---|---|
+| `title` | text | تقرير الحوكمة المؤسسية |
+| `summary` | text | تقييم شامل لممارسات الحوكمة مع التوصيات. |
+| `file` | file | (file) |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم رفع التقرير بنجاح.",
+    "data": {
+        "id": 2,
+        "title": "تقرير الحوكمة المؤسسية",
+        "summary": "تقييم شامل لممارسات الحوكمة مع التوصيات.",
+        "booking": {
+            "id": 2,
+            "reference": "BK-2026-000002",
+            "date": "2026-09-22",
+            "time": "12:00"
+        },
+        "consultant": {
+            "id": 3,
+            "name": "د. سارة الدوسري"
+        },
+        "client": {
+            "id": 1,
+            "name": "عميل تجريبي",
+            "company_name": "شركة تجريبية"
+        },
+        "file": {
+            "name": "report.pdf",
+            "size": 449,
+            "size_human": "449 B",
+            "mime_type": "application/pdf"
+        },
+        "download_url": "http://localhost:8000/api/v1/admin/reports/2/download",
+        "client_notified_at": "2026-09-24T03:50:50+03:00",
+        "first_downloaded_at": null,
+        "created_at": "2026-09-24T03:50:50+03:00",
+        "updated_at": "2026-09-24T03:50:50+03:00"
+    }
+}
+```
+
+#### `GET /admin/reports/{{report_id}}` — Show report (RPT-02)
+
+**Auth:** Admin token
+
+One report with the guard-specific download_url.
+
+**Permission:** `view-reports`
+
+**Errors:** 404 `NOT_FOUND`, 403 `FORBIDDEN`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 2,
+        "title": "تقرير الحوكمة المؤسسية",
+        "summary": "تقييم شامل لممارسات الحوكمة مع التوصيات.",
+        "booking": {
+            "id": 2,
+            "reference": "BK-2026-000002",
+            "date": "2026-09-22",
+            "time": "12:00"
+        },
+        "consultant": {
+            "id": 3,
+            "name": "د. سارة الدوسري"
+        },
+        "client": {
+            "id": 1,
+            "name": "عميل تجريبي",
+            "company_name": "شركة تجريبية"
+        },
+        "file": {
+            "name": "report.pdf",
+            "size": 449,
+            "size_human": "449 B",
+            "mime_type": "application/pdf"
+        },
+        "download_url": "http://localhost:8000/api/v1/admin/reports/2/download",
+        "client_notified_at": "2026-09-24T03:50:50+03:00",
+        "first_downloaded_at": null,
+        "created_at": "2026-09-24T03:50:50+03:00",
+        "updated_at": "2026-09-24T03:50:50+03:00"
+    }
+}
+```
+
+#### `GET /admin/reports/{{report_id}}/download` — Download report (RPT-04)
+
+**Auth:** Admin token
+
+Streams the file as an attachment.
+
+**Permission:** `download-reports`
+
+**Errors:** 404 `NOT_FOUND`, 403 `FORBIDDEN`
+
+Example response:
+
+```json
+%PDF-1.4
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj
+4 0 obj<</Length 90>>stream
+BT /F1 24 Tf 72 720 Td (GCMC demo report fixture) Tj ET
+endstream
+endobj
+5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj
+xref
+0 6
+0000000000 65535 f 
+trailer<</Size 6/Root 1 0 R>>
+startxref
+0
+%%EOF
+```
+
+#### `POST /admin/reports/{{report_id}}/notify-client` — Notify client (RPT-06)
+
+**Auth:** Admin token
+
+Resends the report-ready email.
+
+**Permission:** `upload-reports`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم إشعار العميل بالتقرير.",
+    "data": {
+        "id": 2,
+        "title": "تقرير الحوكمة المؤسسية",
+        "summary": "تقييم شامل لممارسات الحوكمة مع التوصيات.",
+        "booking": {
+            "id": 2,
+            "reference": "BK-2026-000002",
+            "date": "2026-09-22",
+            "time": "12:00"
+        },
+        "consultant": {
+            "id": 3,
+            "name": "د. سارة الدوسري"
+        },
+        "client": {
+            "id": 1,
+            "name": "عميل تجريبي",
+            "company_name": "شركة تجريبية"
+        },
+        "file": {
+            "name": "report.pdf",
+            "size": 449,
+            "size_human": "449 B",
+            "mime_type": "application/pdf"
+        },
+        "download_url": "http://localhost:8000/api/v1/admin/reports/2/download",
+        "client_notified_at": "2026-09-24T03:50:50+03:00",
+        "first_downloaded_at": null,
+        "created_at": "2026-09-24T03:50:50+03:00",
+        "updated_at": "2026-09-24T03:50:50+03:00"
+    }
+}
+```
+
+#### `DELETE /admin/reports/{{report_id}}` — Delete report (RPT-05)
+
+**Auth:** Admin token
+
+Deletes the report and its file; the booking goes back to awaiting a report. (Deletes the report uploaded above — the seeded demo report survives for the client folder.)
+
+**Permission:** `delete-reports`
+
+**Errors:** 403 `FORBIDDEN`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم حذف التقرير.",
+    "data": null
+}
+```
+
+### 16 Client › Reports
+
+#### `POST /client/auth/login` — Login as demo client (CLI-AUTH-02)
+
+**Auth:** — (public)
+
+The demo client owns the seeded report, so this folder runs as him.
+
+Body:
+
+```json
+{
+    "email": "{{client_email}}",
+    "password": "{{client_password}}",
+    "device_name": "postman"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تسجيل الدخول بنجاح.",
+    "data": {
+        "token": "5|Q4bdltj74S96CrACS8Ymr4cZPVIY9G8io68KAPyM9764e36b",
+        "token_type": "Bearer",
+        "user": {
+            "id": 1,
+            "name": "عميل تجريبي",
+            "email": "client@gcmc.sa",
+            "phone": "0500000001",
+            "company_name": "شركة تجريبية",
+            "avatar_url": null,
+            "avatar_thumb_url": null,
+            "is_active": true,
+            "last_login_at": "2026-09-24T03:50:51+03:00",
+            "created_at": "2026-09-24T03:50:41+03:00",
+            "updated_at": "2026-09-24T03:50:51+03:00"
+        }
+    }
+}
+```
+
+#### `GET /client/reports` — List reports (CLI-RPT-01)
+
+**Auth:** Client token
+
+The reports of the client. `download_url` points to CLI-RPT-03.
+
+| Query param | Notes |
+|---|---|
+| `search` *(optional)* | title or consultant name |
+| `date_from` *(optional)* | YYYY-MM-DD |
+| `date_to` *(optional)* | YYYY-MM-DD |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 1,
+            "title": "تقرير الحوكمة المؤسسية",
+            "summary": "تقرير تجريبي يغطي تقييم ممارسات الحوكمة المؤسسية والتوصيات.",
+            "booking": {
+                "id": 1,
+                "reference": "BK-2026-000001",
+                "date": "2026-09-21",
+                "time": "10:00"
+            },
+            "consultant": {
+                "id": 2,
+                "name": "أ. أحمد العتيبي"
+            },
+            "client": {
+                "id": 1,
+                "name": "عميل تجريبي",
+                "company_name": "شركة تجريبية"
+            },
+            "file": {
+                "name": "governance-report.pdf",
+                "size": 192,
+                "size_human": "192 B",
+                "mime_type": "application/pdf"
+            },
+            "download_url": "http://localhost:8000/api/v1/client/reports/1/download",
+            "client_notified_at": "2026-09-24T03:50:41+03:00",
+            "first_downloaded_at": null,
+            "created_at": "2026-09-24T03:50:41+03:00",
+            "updated_at": "2026-09-24T03:50:41+03:00"
+        }
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 1,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/client/reports?page=1",
+        "last": "http://localhost:8000/api/v1/client/reports?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /client/reports/{{demo_report_id}}` — Show report (CLI-RPT-02)
+
+**Auth:** Client token
+
+One report. 404 when it belongs to another client.
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 1,
+        "title": "تقرير الحوكمة المؤسسية",
+        "summary": "تقرير تجريبي يغطي تقييم ممارسات الحوكمة المؤسسية والتوصيات.",
+        "booking": {
+            "id": 1,
+            "reference": "BK-2026-000001",
+            "date": "2026-09-21",
+            "time": "10:00"
+        },
+        "consultant": {
+            "id": 2,
+            "name": "أ. أحمد العتيبي"
+        },
+        "client": {
+            "id": 1,
+            "name": "عميل تجريبي",
+            "company_name": "شركة تجريبية"
+        },
+        "file": {
+            "name": "governance-report.pdf",
+            "size": 192,
+            "size_human": "192 B",
+            "mime_type": "application/pdf"
+        },
+        "download_url": "http://localhost:8000/api/v1/client/reports/1/download",
+        "client_notified_at": "2026-09-24T03:50:41+03:00",
+        "first_downloaded_at": null,
+        "created_at": "2026-09-24T03:50:41+03:00",
+        "updated_at": "2026-09-24T03:50:41+03:00"
+    }
+}
+```
+
+#### `GET /client/reports/{{demo_report_id}}/download` — Download report (CLI-RPT-03)
+
+**Auth:** Client token
+
+Streams the file; the first download sets `first_downloaded_at` (the "unread" counter of the dashboard).
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+%PDF-1.4
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj
+trailer<</Root 1 0 R>>
+%%EOF
+```
+
+### 17 Admin › Clients
+
+#### `GET /admin/clients` — List clients (ADM-CL-01)
+
+**Auth:** Admin token
+
+All clients with bookings_count, reports_count and the active subscription. A consultant only sees clients who booked him.
+
+**Permission:** `view-clients`
+
+| Query param | Notes |
+|---|---|
+| `search` *(optional)* | name, email, phone, company |
+| `is_active` *(optional)* | 1 | 0 |
+| `consultant_id` *(optional)* | admin only |
+| `has_active_subscription` *(optional)* | 1 | 0 |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 2,
+            "name": "عميل تجريبي",
+            "email": "client+1790211047589@example.com",
+            "phone": "0500000099",
+            "company_name": "شركة الاختبار المحدودة",
+            "avatar_url": null,
+            "avatar_thumb_url": null,
+            "is_active": true,
+            "last_login_at": "2026-09-24T03:50:48+03:00",
+            "bookings_count": 2,
+            "reports_count": 0,
+            "active_subscription": {
+                "id": 2,
+                "status": "active",
+                "starts_at": "2026-09-24T03:50:49+03:00",
+                "ends_at": "2026-10-24T03:50:49+03:00",
+                "consultations_limit": 2,
+                "consultations_used": 0,
+                "consultations_remaining": 2,
+                "is_unlimited": false,
+                "price_paid": 190000,
+                "price_paid_formatted": "1,900.00 SAR"
+            },
+            "created_at": "2026-09-24T03:50:47+03:00",
+            "updated_at": "2026-09-24T03:50:49+03:00"
+        },
+        "… (1 more)"
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 2,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/clients?page=1",
+        "last": "http://localhost:8000/api/v1/admin/clients?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /admin/clients/{{client_id}}` — Show client (ADM-CL-02)
+
+**Auth:** Admin token
+
+One client with locations, subscriptions and counts.
+
+**Permission:** `view-clients`
+
+**Errors:** 404 `NOT_FOUND`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "id": 1,
+        "name": "عميل تجريبي",
+        "email": "client@gcmc.sa",
+        "phone": "0500000001",
+        "company_name": "شركة تجريبية",
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": "2026-09-24T03:50:51+03:00",
+        "bookings_count": 3,
+        "reports_count": 1,
+        "locations": [
+            {
+                "id": 1,
+                "name": "الفرع الرئيسي — الرياض",
+                "city": "الرياض",
+                "address": "طريق العروبة، حي العليا، برج المملكة، الدور ١٨",
+                "latitude": "24.7136000",
+                "longitude": "46.6753000",
+                "is_default": true,
+                "created_at": "2026-09-24T03:50:41+03:00"
+            },
+            "… (3 more)"
+        ],
+        "active_subscription": {
+            "id": 1,
+            "status": "active",
+            "starts_at": "2026-09-01T00:00:00+03:00",
+            "ends_at": "2026-10-01T00:00:00+03:00",
+            "consultations_limit": null,
+            "consultations_used": 1,
+            "consultations_remaining": null,
+            "is_unlimited": true,
+            "price_paid": 980000,
+            "price_paid_formatted": "9,800.00 SAR"
+        },
+        "created_at": "2026-09-24T03:50:41+03:00",
+        "updated_at": "2026-09-24T03:50:51+03:00"
+    }
+}
+```
+
+#### `PUT /admin/clients/{{client_id}}` — Update client (ADM-CL-03)
+
+**Auth:** Admin token
+
+Updates a client.
+
+**Permission:** `update-clients`
+
+| Field | Rules |
+|---|---|
+| name | required |
+| email | required, unique |
+| phone | required, 05XXXXXXXX |
+| company_name | required |
+
+**Errors:** 422 `VALIDATION_ERROR`
+
+Body:
+
+```json
+{
+    "name": "عميل تجريبي",
+    "email": "client@gcmc.sa",
+    "phone": "0500000001",
+    "company_name": "شركة تجريبية"
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التحديث بنجاح.",
+    "data": {
+        "id": 1,
+        "name": "عميل تجريبي",
+        "email": "client@gcmc.sa",
+        "phone": "0500000001",
+        "company_name": "شركة تجريبية",
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": "2026-09-24T03:50:51+03:00",
+        "created_at": "2026-09-24T03:50:41+03:00",
+        "updated_at": "2026-09-24T03:50:51+03:00"
+    }
+}
+```
+
+#### `PATCH /admin/clients/{{client_id}}/status` — Update client status (ADM-CL-04)
+
+**Auth:** Admin token
+
+Activates/deactivates a client. Deactivation revokes his tokens.
+
+**Permission:** `update-clients`
+
+| Field | Rules |
+|---|---|
+| is_active | required boolean |
+
+Body:
+
+```json
+{
+    "is_active": true
+}
+```
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم التحديث بنجاح.",
+    "data": {
+        "id": 1,
+        "name": "عميل تجريبي",
+        "email": "client@gcmc.sa",
+        "phone": "0500000001",
+        "company_name": "شركة تجريبية",
+        "avatar_url": null,
+        "avatar_thumb_url": null,
+        "is_active": true,
+        "last_login_at": "2026-09-24T03:50:51+03:00",
+        "created_at": "2026-09-24T03:50:41+03:00",
+        "updated_at": "2026-09-24T03:50:51+03:00"
+    }
+}
+```
+
+#### `GET /admin/clients/{{client_id}}/bookings` — Client bookings (ADM-CL-06)
+
+**Auth:** Admin token
+
+The bookings of this client.
+
+**Permission:** `view-bookings`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 3,
+            "reference": "BK-2026-000003",
+            "status": "pending",
+            "status_label": "قيد الانتظار",
+            "report_status": "none",
+            "payment_status": "not_required",
+            "refund_status": "none",
+            "date": "2026-09-27",
+            "time": "10:00",
+            "starts_at": "2026-09-27T10:00:00+03:00",
+            "ends_at": "2026-09-27T10:30:00+03:00",
+            "duration_minutes": 30,
+            "amount": 0,
+            "amount_formatted": "0.00 SAR",
+            "currency": "SAR",
+            "package": {
+                "id": 3,
+                "slug": "gold",
+                "name": "الباقة الذهبية",
+                "name_ar": "الباقة الذهبية",
+                "name_en": "Gold Package"
+            },
+            "consultant": {
+                "id": 2,
+                "name": "أ. أحمد العتيبي",
+                "title": "مستشار حوكمة",
+                "specialization": "الحوكمة المؤسسية",
+                "avatar_thumb_url": null
+            },
+            "client": {
+                "id": 1,
+                "name": "عميل تجريبي",
+                "company_name": "شركة تجريبية",
+                "email": "client@gcmc.sa",
+                "phone": "0500000001"
+            },
+            "location": {
+                "id": 1,
+                "name": "الفرع الرئيسي — الرياض",
+                "city": "الرياض",
+                "address": "طريق العروبة، حي العليا، برج المملكة، الدور ١٨"
+            },
+            "meeting": {
+                "provider": "fake",
+                "status": "pending",
+                "url": null
+            },
+            "payment": null,
+            "client_notes": "حجز تجريبي قادم",
+            "can": {
+  …
+```
+
+#### `GET /admin/clients/{{client_id}}/reports` — Client reports (ADM-CL-07)
+
+**Auth:** Admin token
+
+The reports of this client.
+
+**Permission:** `view-reports`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 1,
+            "title": "تقرير الحوكمة المؤسسية",
+            "summary": "تقرير تجريبي يغطي تقييم ممارسات الحوكمة المؤسسية والتوصيات.",
+            "booking": {
+                "id": 1,
+                "reference": "BK-2026-000001",
+                "date": "2026-09-21",
+                "time": "10:00"
+            },
+            "consultant": {
+                "id": 2,
+                "name": "أ. أحمد العتيبي"
+            },
+            "client": {
+                "id": 1,
+                "name": "عميل تجريبي",
+                "company_name": "شركة تجريبية"
+            },
+            "file": {
+                "name": "governance-report.pdf",
+                "size": 192,
+                "size_human": "192 B",
+                "mime_type": "application/pdf"
+            },
+            "download_url": "http://localhost:8000/api/v1/admin/reports/1/download",
+            "client_notified_at": "2026-09-24T03:50:41+03:00",
+            "first_downloaded_at": "2026-09-24T03:50:51+03:00",
+            "created_at": "2026-09-24T03:50:41+03:00",
+            "updated_at": "2026-09-24T03:50:51+03:00"
+        }
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 1,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/clients/1/reports?page=1",
+        "last": "http://localhost:8000/api/v1/admin/clients/1/reports?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /admin/clients/{{client_id}}/subscriptions` — Client subscriptions (ADM-CL-08)
+
+**Auth:** Admin token
+
+The subscriptions of this client.
+
+**Permission:** `view-clients`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 1,
+            "package": {
+                "id": 3,
+                "slug": "gold",
+                "name": "الباقة الذهبية",
+                "name_ar": "الباقة الذهبية",
+                "name_en": "Gold Package"
+            },
+            "status": "active",
+            "starts_at": "2026-09-01T00:00:00+03:00",
+            "ends_at": "2026-10-01T00:00:00+03:00",
+            "consultations_limit": null,
+            "consultations_used": 1,
+            "consultations_remaining": null,
+            "is_unlimited": true,
+            "price_paid": 980000,
+            "price_paid_formatted": "9,800.00 SAR"
+        }
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 1,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/clients/1/subscriptions?page=1",
+        "last": "http://localhost:8000/api/v1/admin/clients/1/subscriptions?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `DELETE /admin/clients/{{new_client_id}}` — Delete client (ADM-CL-05)
+
+**Auth:** Admin token
+
+Deletes the client registered in folder 08 (his bookings were cancelled in folders 13–14). A client with future bookings cannot be deleted.
+
+**Permission:** `delete-clients`
+
+**Errors:** 422 `CLIENT_HAS_FUTURE_BOOKINGS`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم الحذف بنجاح.",
+    "data": null
+}
+```
+
+### 18 Admin › Payments
+
+#### `GET /admin/payments` — List payments (PAY-01)
+
+**Auth:** Admin token
+
+All payments (a consultant only sees payments of his own bookings). `gateway_response` is never returned.
+
+**Permission:** `view-payments`
+
+| Query param | Notes |
+|---|---|
+| `status` *(optional)* | initiated | paid | failed | refunded |
+| `client_id` *(optional)* | — |
+| `date_from` *(optional)* | YYYY-MM-DD |
+| `date_to` *(optional)* | YYYY-MM-DD |
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": [
+        {
+            "id": 2,
+            "booking_id": 4,
+            "booking_reference": "BK-2026-000004",
+            "amount": 190000,
+            "amount_formatted": "1,900.00 SAR",
+            "currency": "SAR",
+            "status": "paid",
+            "gateway": "fake",
+            "card_brand": "visa",
+            "card_last_four": "4242",
+            "failure_reason": null,
+            "transaction_url": null,
+            "paid_at": "2026-09-24T03:50:49+03:00",
+            "client": {
+                "id": 2,
+                "name": "عميل تجريبي",
+                "company_name": "شركة الاختبار المحدودة"
+            },
+            "created_at": "2026-09-24T03:50:49+03:00"
+        },
+        "… (2 more)"
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 15,
+        "total": 3,
+        "last_page": 1
+    },
+    "links": {
+        "first": "http://localhost:8000/api/v1/admin/payments?page=1",
+        "last": "http://localhost:8000/api/v1/admin/payments?page=1",
+        "prev": null,
+        "next": null
+    }
+}
+```
+
+#### `GET /admin/payments/{{payment_id}}` — Show payment (PAY-02)
+
+**Auth:** Admin token
+
+One payment.
+
+**Permission:** `view-payments`
+
+**Errors:** 404 `NOT_FOUND`, 403 `FORBIDDEN`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "payment": {
+            "id": 2,
+            "booking_id": 4,
+            "booking_reference": "BK-2026-000004",
+            "amount": 190000,
+            "amount_formatted": "1,900.00 SAR",
+            "currency": "SAR",
+            "status": "paid",
+            "gateway": "fake",
+            "card_brand": "visa",
+            "card_last_four": "4242",
+            "failure_reason": null,
+            "transaction_url": null,
+            "paid_at": "2026-09-24T03:50:49+03:00",
+            "client": {
+                "id": 2,
+                "name": "عميل تجريبي",
+                "company_name": "شركة الاختبار المحدودة"
+            },
+            "created_at": "2026-09-24T03:50:49+03:00"
+        },
+        "booking": {
+            "id": 4,
+            "reference": "BK-2026-000004",
+            "status": "cancelled",
+            "date": "2026-10-01",
+            "time": "09:00",
+            "consultant": {
+                "id": 7,
+                "name": "أ. نورة السبيعي"
+            }
+        }
+    }
+}
+```
+
+### 19 Admin › Dashboard
+
+#### `GET /admin/dashboard/stats` — Dashboard stats (DSH-01)
+
+**Auth:** Admin token
+
+The home counters. A consultant gets the same keys scoped to him, without `consultants` and `revenue`.
+
+**Permission:** `view-dashboard`
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "OK",
+    "data": {
+        "bookings": {
+            "total": 5,
+            "pending": 1,
+            "completed": 2,
+            "cancelled": 2,
+            "today": 0
+        },
+        "reports": {
+            "total": 1,
+            "pending": 1
+        },
+        "clients": {
+            "total": 1,
+            "new_this_month": 1
+        },
+        "consultants": {
+            "total": 6,
+            "active": 6
+        },
+        "revenue": {
+            "this_month": 1170000,
+            "this_month_formatted": "11,700.00 SAR",
+            "total": 1170000,
+            "total_formatted": "11,700.00 SAR"
+        },
+        "upcoming_bookings": [
+            {
+                "id": 3,
+                "reference": "BK-2026-000003",
+                "status": "pending",
+                "status_label": "قيد الانتظار",
+                "report_status": "none",
+                "payment_status": "not_required",
+                "refund_status": "none",
+                "date": "2026-09-27",
+                "time": "10:00",
+                "starts_at": "2026-09-27T10:00:00+03:00",
+                "ends_at": "2026-09-27T10:30:00+03:00",
+                "duration_minutes": 30,
+                "amount": 0,
+                "amount_formatted": "0.00 SAR",
+                "currency": "SAR",
+                "package": {
+                    "id": 3,
+                    "slug": "gold",
+                    "name": "الباقة الذهبية",
+                    "name_ar": "الباقة الذهبية",
+                    "name_en": "Gold Package"
+                },
+                "consultant": {
+                    "id": 2,
+  …
+```
+
+### 20 Webhooks
+
+#### `POST /webhooks/payments/moyasar` — Moyasar webhook (WHK-01)
+
+**Auth:** — (public)
+
+The gateway calls this on payment updates. Idempotent; always 200 for known events, 401 for a wrong secret. Skipped in the CI run (needs a real Moyasar signature).
+
+**Errors:** 401 `UNAUTHORIZED`
+
+Body:
+
+```json
+{
+    "id": "PASTE-PAYMENT-ID",
+    "status": "paid",
+    "secret_token": "PASTE-WEBHOOK-SECRET"
+}
+```
+
+### 99 Logout
+
+#### `POST /admin/auth/logout` — Admin logout (ADM-AUTH-02)
+
+**Auth:** Admin token
+
+Revokes the current token.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تسجيل الخروج بنجاح.",
+    "data": null
+}
+```
+
+#### `POST /client/auth/logout` — Client logout (CLI-AUTH-03)
+
+**Auth:** Client token
+
+Revokes the current token.
+
+Example response:
+
+```json
+{
+    "success": true,
+    "message": "تم تسجيل الخروج بنجاح.",
+    "data": null
+}
+```
+
+<!-- API-REFERENCE:END -->
+
+---
+
+## 20. Build phases and acceptance checklists
 
 Work in this order. After every phase: `npm run build` with zero TypeScript errors, then tick the list.
 
@@ -1548,7 +7584,7 @@ Work in this order. After every phase: `npm run build` with zero TypeScript erro
 
 ---
 
-## 20. Definition of Done
+## 21. Definition of Done
 
 - [ ] Every route in §9.1 exists, including the four URL-contract routes (`/reset-password`, `/admin/reset-password`, `/reports/[id]`, `/bookings/payment-callback`).
 - [ ] Every API call goes through `lib/api.ts` (correct guard token, `Accept-Language`, envelope handling); no raw `fetch` outside `lib/`.
