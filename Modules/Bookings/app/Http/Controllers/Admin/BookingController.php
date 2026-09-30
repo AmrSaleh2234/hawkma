@@ -67,6 +67,95 @@ class BookingController extends ApiController
     }
 
     /**
+     * BKG-01b GET /api/v1/admin/bookings/stats — Perm: view-bookings
+     *
+     * Aggregated counts for the bookings page charts and summary cards.
+     * Respects the same filters as the list endpoint.
+     */
+    public function stats(BookingIndexRequest $request): JsonResponse
+    {
+        $user = $request->user('admin');
+
+        $filters = $request->validated();
+        if ($user->isConsultant()) {
+            unset($filters['consultant_id']);
+        }
+
+        $baseQuery = fn () => Booking::query()
+            ->visibleTo($user)
+            ->where('status', '!=', BookingStatus::PendingPayment)
+            ->filter($filters);
+
+        $byStatus = collect(BookingStatus::cases())
+            ->filter(fn (BookingStatus $s) => $s !== BookingStatus::PendingPayment)
+            ->map(function (BookingStatus $status) use ($baseQuery) {
+                $count = (clone $baseQuery())->where('status', $status)->count();
+
+                return [
+                    'status' => $status->value,
+                    'label' => __('bookings::labels.status.'.$status->value),
+                    'count' => $count,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $byConsultant = (clone $baseQuery())
+            ->select('consultant_id', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('consultant_id')
+            ->with('consultant:id,name')
+            ->groupBy('consultant_id')
+            ->orderByDesc('count')
+            ->limit(10)
+            ->get()
+            ->map(fn ($row) => [
+                'consultant_id' => $row->consultant_id,
+                'consultant_name' => $row->consultant?->name,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+
+        $byPackage = (clone $baseQuery())
+            ->select('package_id', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('package_id')
+            ->with('package:id,slug,name_ar,name_en')
+            ->groupBy('package_id')
+            ->orderByDesc('count')
+            ->limit(10)
+            ->get()
+            ->map(fn ($row) => [
+                'package_id' => $row->package_id,
+                'package_name' => $row->package?->localizedName(),
+                'count' => (int) $row->count,
+            ])
+            ->all();
+
+        $byMonth = (clone $baseQuery())
+            ->selectRaw('DATE_FORMAT(starts_at, "%Y-%m") as month, COUNT(*) as count')
+            ->where('starts_at', '>=', now()->subMonths(11)->startOfMonth())
+            ->groupByRaw('month')
+            ->orderByRaw('month')
+            ->get()
+            ->map(fn ($row) => ['month' => $row->month, 'count' => (int) $row->count])
+            ->all();
+
+        $total = (clone $baseQuery())->count();
+        $today = (clone $baseQuery())
+            ->whereDate('starts_at', today())
+            ->where('status', '!=', BookingStatus::Cancelled)
+            ->count();
+
+        return $this->success([
+            'total' => $total,
+            'today' => $today,
+            'by_status' => $byStatus,
+            'by_consultant' => $byConsultant,
+            'by_package' => $byPackage,
+            'by_month' => $byMonth,
+        ]);
+    }
+
+    /**
      * BKG-02 GET /api/v1/admin/bookings/{booking} — Perm: view-bookings + policy
      */
     public function show(string $booking): JsonResponse

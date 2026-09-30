@@ -2,6 +2,8 @@
 
 namespace Modules\Dashboard\Services;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Modules\Bookings\Enums\BookingStatus;
 use Modules\Bookings\Enums\ReportStatus;
 use Modules\Bookings\Http\Resources\BookingResource;
@@ -39,6 +41,7 @@ class AdminStatsService
                     ->whereDate('starts_at', today())
                     ->where('status', '!=', BookingStatus::Cancelled)
                     ->count(),
+                'by_month' => $this->bookingsByMonth($bookings()),
             ],
             'reports' => [
                 'total' => Report::query()->visibleTo($user)->count(),
@@ -69,6 +72,7 @@ class AdminStatsService
                 'this_month_formatted' => Money::format($thisMonth),
                 'total' => $total,
                 'total_formatted' => Money::format($total),
+                'by_month' => $this->revenueByMonth(),
             ];
         }
 
@@ -83,5 +87,41 @@ class AdminStatsService
         );
 
         return $data;
+    }
+
+    /**
+     * @param  Builder<Booking>  $query
+     * @return array<int, array{month: string, count: int}>
+     */
+    protected function bookingsByMonth($query): array
+    {
+        return $query
+            ->selectRaw('DATE_FORMAT(starts_at, "%Y-%m") as month, COUNT(*) as count')
+            ->where('starts_at', '>=', now()->subMonths(11)->startOfMonth())
+            ->groupByRaw('month')
+            ->orderByRaw('month')
+            ->get()
+            ->map(fn ($row) => ['month' => $row->month, 'count' => (int) $row->count])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{month: string, amount: int, amount_formatted: string}>
+     */
+    protected function revenueByMonth(): array
+    {
+        return Payment::query()
+            ->where('status', PaymentRecordStatus::Paid)
+            ->where('paid_at', '>=', now()->subMonths(11)->startOfMonth())
+            ->selectRaw('DATE_FORMAT(paid_at, "%Y-%m") as month, SUM(amount) as amount')
+            ->groupByRaw('month')
+            ->orderByRaw('month')
+            ->get()
+            ->map(fn ($row) => [
+                'month' => $row->month,
+                'amount' => (int) $row->amount,
+                'amount_formatted' => Money::format((int) $row->amount),
+            ])
+            ->all();
     }
 }

@@ -15,9 +15,9 @@ class PackagesSeeder extends Seeder
     {
         $packages = [
             [
-                'slug' => 'iron',
-                'name_ar' => 'الباقة الحديدية',
-                'name_en' => 'Iron Package',
+                'slug' => 'bronz',
+                'name_ar' => 'الباقة البرونزية',
+                'name_en' => 'Bronz Package',
                 'description_ar' => 'للمنشآت الناشئة التي تبدأ رحلتها في الحوكمة والامتثال.',
                 'description_en' => 'For start-up establishments beginning their governance and compliance journey.',
                 'features' => [

@@ -19,6 +19,10 @@ Route::prefix('v1')->group(function () {
             ->middleware('permission:view-bookings,admin')
             ->name('calendar');
 
+        Route::get('stats', [AdminBookingController::class, 'stats'])
+            ->middleware('permission:view-bookings,admin')
+            ->name('stats');
+
         Route::get('/', [AdminBookingController::class, 'index'])
             ->middleware('permission:view-bookings,admin')
             ->name('index');
