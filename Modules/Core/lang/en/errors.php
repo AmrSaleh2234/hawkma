@@ -25,6 +25,8 @@ return [
 
     'PACKAGE_INACTIVE' => 'This package is not active.',
     'PACKAGE_HAS_SUBSCRIPTIONS' => 'This package has subscriptions and cannot be deleted.',
+    'SUBSCRIPTION_EXHAUSTED' => 'This subscription has no remaining consultations.',
+    'SUBSCRIPTION_INACTIVE' => 'This subscription is no longer active.',
 
     'LOCATION_NOT_OWNED' => 'This location does not belong to you.',
 
@@ -32,6 +34,7 @@ return [
     'PAYMENT_METHOD_NOT_OWNED' => 'This payment method does not belong to you.',
     'PAYMENT_FAILED' => 'The payment failed. Please try another card.',
     'PAYMENT_ALREADY_PROCESSED' => 'This payment has already been processed.',
+    'PAYMENT_PENDING_CONFIRMATION' => 'Your payment is being confirmed. Please check its status shortly.',
 
     'BOOKING_INVALID_STATUS' => 'The booking status does not allow this action.',
     'BOOKING_NOT_STARTED' => 'The booking has not started yet.',

@@ -13,7 +13,9 @@ class WebhookController extends ApiController
      * WHK-01 POST /api/v1/webhooks/payments/moyasar
      *
      * The body's secret_token must equal the configured webhook secret
-     * (else 401). Idempotent; always answers 200 {success: true} (§9.6).
+     * (else 401). Idempotent; answers 200 {success: true} (§9.6). When the
+     * gateway itself cannot be reached while reconciling, a 503 is returned
+     * on purpose so Moyasar retries the webhook.
      */
     public function moyasar(Request $request, PaymentService $payments): JsonResponse
     {

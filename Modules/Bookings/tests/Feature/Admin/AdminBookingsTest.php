@@ -11,6 +11,7 @@ use Modules\Bookings\Jobs\CancelMeetingJob;
 use Modules\Bookings\Models\Booking;
 use Modules\Bookings\Notifications\BookingCancelledNotification;
 use Modules\Bookings\Notifications\BookingConfirmedNotification;
+use Modules\Packages\Enums\SubscriptionStatus;
 use Modules\Packages\Models\ClientSubscription;
 use Modules\Packages\Models\Package;
 use Modules\Payments\Enums\PaymentRecordStatus;
@@ -429,6 +430,24 @@ class AdminBookingsTest extends TestCase
             ->assertJsonPath('data.payment_status', 'refunded');
 
         $this->assertSame(PaymentRecordStatus::Refunded, $payment->refresh()->status);
+    }
+
+    public function test_bkg_07_marking_refunded_cancels_the_subscription_the_booking_paid_for(): void
+    {
+        $this->actingAsAdmin();
+        $subscription = ClientSubscription::factory()->create(['status' => SubscriptionStatus::Active]);
+        $booking = Booking::factory()->cancelled()->create([
+            'client_id' => $subscription->client_id,
+            'client_subscription_id' => $subscription->id,
+            'payment_status' => 'paid',
+            'refund_status' => 'requested',
+        ]);
+        Payment::factory()->paid()->create(['booking_id' => $booking->id]);
+
+        $this->postJson($this->url.'/'.$booking->id.'/mark-refunded')->assertOk();
+
+        // The client got the money back — the package cannot stay active.
+        $this->assertSame(SubscriptionStatus::Cancelled, $subscription->refresh()->status);
     }
 
     public function test_bkg_07_only_when_a_refund_was_requested(): void

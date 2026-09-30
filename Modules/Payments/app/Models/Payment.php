@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 use Modules\Bookings\Models\Booking;
 use Modules\Clients\Models\Client;
 use Modules\Payments\Database\Factories\PaymentFactory;
@@ -17,6 +18,7 @@ class Payment extends Model
     use HasFactory;
 
     protected $fillable = [
+        'uuid',
         'booking_id',
         'client_id',
         'payment_method_id',
@@ -53,6 +55,15 @@ class Payment extends Model
     protected static function newFactory(): PaymentFactory
     {
         return PaymentFactory::new();
+    }
+
+    protected static function booted(): void
+    {
+        // Every payment gets a uuid (sent to Moyasar as `given_id`) even when
+        // created through the factory or a seeder.
+        static::creating(function (Payment $payment): void {
+            $payment->uuid ??= (string) Str::uuid();
+        });
     }
 
     /*

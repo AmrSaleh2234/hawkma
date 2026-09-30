@@ -7,7 +7,7 @@ use Modules\Payments\Enums\PaymentRecordStatus;
 final readonly class ChargeResult
 {
     /**
-     * @param  string  $status  initiated|paid|failed
+     * @param  string  $status  initiated|paid|failed|refunded (PaymentRecordStatus value)
      * @param  array<string, mixed>  $raw
      */
     public function __construct(

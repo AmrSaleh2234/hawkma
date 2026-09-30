@@ -2,7 +2,8 @@
 
 namespace Modules\Packages\Tests\Unit;
 
-use DomainException;
+use Modules\Core\Enums\ErrorCode;
+use Modules\Core\Exceptions\BusinessException;
 use Modules\Packages\Enums\SubscriptionStatus;
 use Modules\Packages\Models\ClientSubscription;
 use Modules\Packages\Models\Package;
@@ -146,13 +147,65 @@ class SubscriptionServiceTest extends TestCase
         $this->assertTrue($subscription->hasRemaining());
     }
 
-    public function test_consume_throws_when_nothing_is_left(): void
+    public function test_consume_throws_a_business_exception_when_nothing_is_left(): void
     {
         $subscription = ClientSubscription::factory()->usedUp()->create();
 
-        $this->expectException(DomainException::class);
+        try {
+            $this->service->consume($subscription);
+            $this->fail('BusinessException was not thrown');
+        } catch (BusinessException $e) {
+            $this->assertSame(ErrorCode::SubscriptionExhausted, $e->errorCode);
+            $this->assertSame(422, $e->status);
+        }
+    }
+
+    public function test_consume_refuses_a_subscription_cancelled_after_the_quote(): void
+    {
+        $subscription = ClientSubscription::factory()->create([
+            'consultations_limit' => 5,
+            'consultations_used' => 1,
+        ]);
+
+        // The booking was quoted while active, then an admin refunded it.
+        $this->service->cancel($subscription);
+
+        try {
+            $this->service->consume($subscription);
+            $this->fail('BusinessException was not thrown');
+        } catch (BusinessException $e) {
+            $this->assertSame(ErrorCode::SubscriptionInactive, $e->errorCode);
+            $this->assertSame(422, $e->status);
+        }
+
+        $this->assertSame(1, $subscription->refresh()->consultations_used);
+    }
+
+    public function test_consume_refuses_a_subscription_past_its_end_even_if_still_marked_active(): void
+    {
+        $subscription = ClientSubscription::factory()->create([
+            'status' => SubscriptionStatus::Active,
+            'starts_at' => now()->subDays(31),
+            'ends_at' => now()->subDay(),
+            'consultations_limit' => 5,
+            'consultations_used' => 1,
+        ]);
+
+        $this->expectException(BusinessException::class);
 
         $this->service->consume($subscription);
+    }
+
+    public function test_cancel_marks_an_active_subscription_cancelled_and_leaves_finished_ones(): void
+    {
+        $active = ClientSubscription::factory()->create(['status' => SubscriptionStatus::Active]);
+        $expired = ClientSubscription::factory()->create(['status' => SubscriptionStatus::Expired]);
+
+        $this->service->cancel($active);
+        $this->service->cancel($expired);
+
+        $this->assertSame(SubscriptionStatus::Cancelled, $active->refresh()->status);
+        $this->assertSame(SubscriptionStatus::Expired, $expired->refresh()->status);
     }
 
     /*

@@ -718,7 +718,7 @@ $wizard = folder('12 Client › Booking wizard', [
         ],
     ]),
     req('Create booking – saved card (CLI-BKG-02)', 'POST', 'client/bookings', [
-        'description' => desc('Books with a saved card: the card is charged, the booking becomes `pending` (confirmed), the meeting is created and the confirmation email is sent.', fields: ['package_id' => 'required', 'consultant_id' => 'required', 'date' => 'required Y-m-d', 'time' => 'required H:i', 'client_location_id' => 'required', 'payment_method_id' => 'required unless card_token', 'card_token' => 'a new card token', 'save_card' => 'optional', 'client_notes' => 'optional'], errors: ['409 `SLOT_NOT_AVAILABLE`', '422 `PAYMENT_METHOD_REQUIRED`', '402 `PAYMENT_FAILED`', '422 `PACKAGE_INACTIVE`']),
+        'description' => desc('Books with a saved card: the card is charged, the booking becomes `pending` (confirmed), the meeting is created and the confirmation email is sent.', fields: ['package_id' => 'required', 'consultant_id' => 'required', 'date' => 'required Y-m-d', 'time' => 'required H:i', 'client_location_id' => 'required', 'payment_method_id' => 'required unless card_token', 'card_token' => 'a new card token', 'save_card' => 'optional', 'client_notes' => 'optional'], errors: ['409 `SLOT_NOT_AVAILABLE`', '422 `PAYMENT_METHOD_REQUIRED`', '402 `PAYMENT_FAILED`', '422 `PACKAGE_INACTIVE`', '422 `SUBSCRIPTION_EXHAUSTED` (quota ran out mid-race — re-quote)', '503 `PAYMENT_PENDING_CONFIRMATION` (gateway unreachable — the charge may have gone through; the body has data.booking — poll it, do not resubmit)', '422 `SUBSCRIPTION_INACTIVE` (subscription cancelled/ended mid-race — re-quote)']),
         'body' => ['package_id' => '{{package_id}}', 'consultant_id' => '{{consultant_id}}', 'date' => '{{slot_date}}', 'time' => '{{slot_time}}', 'client_location_id' => '{{location_id}}', 'payment_method_id' => '{{payment_method_id}}', 'client_notes' => 'أرجو التركيز على الحوكمة'],
         'tests' => [
             'pm.test("pending + paid", () => { pm.expect(j.data.booking.status).to.eql("pending"); pm.expect(j.data.payment.status).to.eql("paid"); });',
@@ -736,7 +736,7 @@ $wizard = folder('12 Client › Booking wizard', [
         ],
     ]),
     req('Verify payment (CLI-PAY-02)', 'POST', 'client/payments/{{payment_id_3ds}}/verify', [
-        'description' => desc('After the 3DS redirect: fetches the payment from the gateway and applies the result (idempotent).', errors: ['404 `NOT_FOUND`']),
+        'description' => desc('After the 3DS redirect: fetches the payment from the gateway and applies the result (idempotent). A payment with no gateway id yet (charge timed out) is left initiated without calling the gateway — only the webhook can reconcile it.', errors: ['404 `NOT_FOUND`', '503 `PAYMENT_PENDING_CONFIRMATION` (gateway unreachable — try again shortly)']),
         'tests' => [
             'pm.test("paid", () => pm.expect(j.data.payment.status).to.eql("paid"));',
             'pm.test("booking confirmed", () => pm.expect(j.data.booking.status).to.eql("pending"));',
@@ -832,7 +832,7 @@ $adminBookings = folder('14 Admin › Bookings', [
         ],
     ]),
     req('Mark refunded (BKG-07)', 'POST', 'admin/bookings/{{booking_id_3ds}}/mark-refunded', [
-        'description' => desc('After refunding in the gateway dashboard: marks the booking refunded. Only possible while `refund_status = requested` (the client cancelled this paid booking in folder 13).', 'refund-payments', errors: ['422 `BOOKING_INVALID_STATUS`']),
+        'description' => desc('After refunding in the gateway dashboard: marks the booking refunded and cancels the subscription the booking paid for (the client got the money back). Only possible while `refund_status = requested` (the client cancelled this paid booking in folder 13).', 'refund-payments', errors: ['422 `BOOKING_INVALID_STATUS`']),
         'tests' => [
             'pm.test("refunded", () => pm.expect(j.data.refund_status).to.eql("refunded"));',
         ],
@@ -981,7 +981,7 @@ $dashboard = folder('19 Admin › Dashboard', [
 
 $webhooks = folder('20 Webhooks', [
     req('Moyasar webhook (WHK-01)', 'POST', 'webhooks/payments/moyasar', [
-        'description' => desc('The gateway calls this on payment updates. Idempotent; always 200 for known events, 401 for a wrong secret. Skipped in the CI run (needs a real Moyasar signature).', errors: ['401 `UNAUTHORIZED`']),
+        'description' => desc('The gateway calls this on payment updates. Idempotent; always 200 for known events, 401 for a wrong secret, 503 while the gateway is unreachable (Moyasar retries). Payments are matched by the Moyasar id, falling back to `data.metadata.payment_id` (set on every charge) so a payment whose charge response was lost is still reconciled. Skipped in the CI run (needs a real Moyasar signature).', errors: ['401 `UNAUTHORIZED`']),
         'body' => ['id' => 'PASTE-PAYMENT-ID', 'status' => 'paid', 'secret_token' => 'PASTE-WEBHOOK-SECRET'],
         'manual' => true,
     ]),

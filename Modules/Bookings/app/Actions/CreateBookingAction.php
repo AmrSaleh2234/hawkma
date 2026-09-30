@@ -16,6 +16,7 @@ use Modules\Core\Exceptions\BusinessException;
 use Modules\Packages\Models\Package;
 use Modules\Packages\Services\SubscriptionService;
 use Modules\Payments\Enums\PaymentRecordStatus;
+use Modules\Payments\Exceptions\GatewayException;
 use Modules\Payments\Models\Payment;
 use Modules\Payments\Models\PaymentMethod;
 use Modules\Payments\Services\PaymentService;
@@ -130,7 +131,11 @@ class CreateBookingAction
             return ['booking' => $booking, 'payment' => null];
         }
 
-        $payment = $this->payments->chargeBooking($booking, $method, $cardToken, $saveCard);
+        try {
+            $payment = $this->payments->chargeBooking($booking, $method, $cardToken, $saveCard);
+        } catch (GatewayException $e) {
+            throw $e->forBooking($booking->refresh(), $booking->payments()->latest('id')->first());
+        }
 
         if ($payment->isPaid()) {
             $booking = $this->stateMachine->markPaid($booking, $payment);

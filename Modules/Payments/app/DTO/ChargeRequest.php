@@ -15,5 +15,10 @@ final readonly class ChargeRequest
         public string $description,
         public string $callbackUrl,
         public array $metadata = [],
+        /**
+         * Our own idempotency key, sent to Moyasar as `given_id`: a retried
+         * charge with the same key is rejected instead of charging twice.
+         */
+        public ?string $givenId = null,
     ) {}
 }

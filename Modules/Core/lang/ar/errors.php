@@ -25,6 +25,8 @@ return [
 
     'PACKAGE_INACTIVE' => 'هذه الباقة غير نشطة.',
     'PACKAGE_HAS_SUBSCRIPTIONS' => 'هذه الباقة مرتبطة باشتراكات ولا يمكن حذفها.',
+    'SUBSCRIPTION_EXHAUSTED' => 'انتهى رصيد الاستشارات في هذا الاشتراك.',
+    'SUBSCRIPTION_INACTIVE' => 'هذا الاشتراك لم يعد نشطاً.',
 
     'LOCATION_NOT_OWNED' => 'هذا الموقع لا يتبع لك.',
 
@@ -32,6 +34,7 @@ return [
     'PAYMENT_METHOD_NOT_OWNED' => 'طريقة الدفع هذه لا تتبع لك.',
     'PAYMENT_FAILED' => 'فشلت عملية الدفع. الرجاء تجربة بطاقة أخرى.',
     'PAYMENT_ALREADY_PROCESSED' => 'تمت معالجة هذه الدفعة مسبقاً.',
+    'PAYMENT_PENDING_CONFIRMATION' => 'جارٍ تأكيد عملية الدفع. الرجاء التحقق من الحالة بعد قليل.',
 
     'BOOKING_INVALID_STATUS' => 'حالة الحجز لا تسمح بهذا الإجراء.',
     'BOOKING_NOT_STARTED' => 'لم يبدأ الحجز بعد.',
