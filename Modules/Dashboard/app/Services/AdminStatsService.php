@@ -10,6 +10,7 @@ use Modules\Bookings\Http\Resources\BookingResource;
 use Modules\Bookings\Models\Booking;
 use Modules\Clients\Models\Client;
 use Modules\Core\Support\Money;
+use Modules\Core\Support\QueryFilters;
 use Modules\Payments\Enums\PaymentRecordStatus;
 use Modules\Payments\Models\Payment;
 use Modules\Reports\Models\Report;
@@ -96,7 +97,7 @@ class AdminStatsService
     protected function bookingsByMonth($query): array
     {
         return $query
-            ->selectRaw('DATE_FORMAT(starts_at, "%Y-%m") as month, COUNT(*) as count')
+            ->selectRaw(QueryFilters::monthExpression('starts_at').' as month, COUNT(*) as count')
             ->where('starts_at', '>=', now()->subMonths(11)->startOfMonth())
             ->groupByRaw('month')
             ->orderByRaw('month')
@@ -113,7 +114,7 @@ class AdminStatsService
         return Payment::query()
             ->where('status', PaymentRecordStatus::Paid)
             ->where('paid_at', '>=', now()->subMonths(11)->startOfMonth())
-            ->selectRaw('DATE_FORMAT(paid_at, "%Y-%m") as month, SUM(amount) as amount')
+            ->selectRaw(QueryFilters::monthExpression('paid_at').' as month, SUM(amount) as amount')
             ->groupByRaw('month')
             ->orderByRaw('month')
             ->get()

@@ -2,8 +2,11 @@
 
 namespace Modules\Clients\Http\Controllers\Admin;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Modules\Bookings\Enums\BookingStatus;
 use Modules\Bookings\Http\Requests\BookingIndexRequest;
 use Modules\Bookings\Http\Resources\BookingResource;
 use Modules\Bookings\Models\Booking;
@@ -13,9 +16,11 @@ use Modules\Clients\Http\Resources\ClientResource;
 use Modules\Clients\Models\Client;
 use Modules\Clients\Services\ClientService;
 use Modules\Core\Http\Controllers\ApiController;
+use Modules\Core\Support\Money;
 use Modules\Core\Support\QueryFilters;
 use Modules\Packages\Http\Resources\SubscriptionResource;
 use Modules\Packages\Models\ClientSubscription;
+use Modules\Payments\Enums\PaymentRecordStatus;
 use Modules\Reports\Http\Resources\ReportResource;
 use Modules\Reports\Models\Report;
 
@@ -84,6 +89,68 @@ class ClientController extends ApiController
         $clients = $query->paginate(QueryFilters::perPage($request));
 
         return $this->paginated(ClientResource::collection($clients));
+    }
+
+    /**
+     * ADM-CL-01b GET /api/v1/admin/clients/stats — Perm: view-clients
+     *
+     * Aggregated counts for the clients page charts and summary cards.
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        $user = $request->user('admin');
+
+        $baseQuery = fn () => Client::query()->visibleTo($user);
+
+        $newByMonth = $baseQuery()
+            ->selectRaw(QueryFilters::monthExpression('created_at').' as month, COUNT(*) as count')
+            ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
+            ->groupByRaw('month')
+            ->orderByRaw('month')
+            ->get()
+            ->map(fn ($row) => ['month' => $row->month, 'count' => (int) $row->count])
+            ->all();
+
+        $paidPayments = fn (Builder $q) => $q
+            ->where('status', PaymentRecordStatus::Paid)
+            ->when(
+                $user->isConsultant(),
+                fn (Builder $q) => $q->whereHas('booking', fn (Builder $b) => $b->where('consultant_id', $user->id)),
+            );
+        $realBookings = fn (Builder $q) => $q
+            ->where('status', '!=', BookingStatus::PendingPayment)
+            ->when(
+                $user->isConsultant(),
+                fn (Builder $q) => $q->where('consultant_id', $user->id),
+            );
+
+        $topClients = $baseQuery()
+            ->whereHas('bookings', $realBookings)
+            ->withCount(['bookings as bookings_count' => $realBookings])
+            ->withSum(['payments as revenue' => $paidPayments], 'amount')
+            ->orderByDesc('bookings_count')
+            ->limit(10)
+            ->get()
+            ->map(fn (Client $client) => [
+                'client_id' => $client->id,
+                'client_name' => $client->name,
+                'company_name' => $client->company_name,
+                'bookings_count' => (int) $client->bookings_count,
+                'revenue' => (int) $client->revenue,
+                'revenue_formatted' => Money::format((int) $client->revenue),
+            ])
+            ->all();
+
+        return $this->success([
+            'total' => $baseQuery()->count(),
+            'active' => $baseQuery()->active()->count(),
+            'inactive' => $baseQuery()->where('is_active', false)->count(),
+            'new_this_month' => $baseQuery()
+                ->where('created_at', '>=', now()->startOfMonth())
+                ->count(),
+            'new_by_month' => $newByMonth,
+            'top_clients' => $topClients,
+        ]);
     }
 
     /**

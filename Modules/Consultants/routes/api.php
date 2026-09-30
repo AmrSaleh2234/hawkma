@@ -21,6 +21,9 @@ Route::prefix('v1')->group(function () {
         Route::get('consultants', [ConsultantController::class, 'index'])
             ->middleware('permission:view-consultants,admin')
             ->name('consultants.index');
+        Route::get('consultants/stats', [ConsultantController::class, 'stats'])
+            ->middleware('permission:view-consultants,admin')
+            ->name('consultants.stats.summary');
         Route::post('consultants', [ConsultantController::class, 'store'])
             ->middleware('permission:create-consultants,admin')
             ->name('consultants.store');

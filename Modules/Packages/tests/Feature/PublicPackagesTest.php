@@ -78,7 +78,7 @@ class PublicPackagesTest extends TestCase
         $response = $this->getJson('/api/v1/public/packages');
 
         $this->assertApiSuccess($response);
-        $this->assertEquals(['iron', 'silver', 'gold'], array_column($response->json('data'), 'slug'));
+        $this->assertEquals(['bronz', 'silver', 'gold'], array_column($response->json('data'), 'slug'));
         $this->assertSame(190000, $response->json('data.0.price'));
         $this->assertSame(450000, $response->json('data.1.price'));
         $this->assertSame(980000, $response->json('data.2.price'));

@@ -4,7 +4,9 @@ namespace Modules\Reports\Http\Controllers\Admin;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Modules\Bookings\Enums\BookingStatus;
 use Modules\Bookings\Enums\ReportStatus;
 use Modules\Bookings\Models\Booking;
 use Modules\Core\Http\Controllers\ApiController;
@@ -64,6 +66,60 @@ class ReportController extends ApiController
         $reports = $query->paginate(QueryFilters::perPage($request));
 
         return $this->paginated(ReportResource::collection($reports));
+    }
+
+    /**
+     * RPT-01b GET /api/v1/admin/reports/stats — Perm: view-reports
+     *
+     * Aggregated counts for the reports page charts and summary cards.
+     * `pending` = completed bookings still missing a report; `uploaded` =
+     * actual Report records, so `total` = pending + uploaded.
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        $user = $request->user('admin');
+
+        $pending = Booking::query()
+            ->visibleTo($user)
+            ->where('status', BookingStatus::Completed)
+            ->where('report_status', ReportStatus::Pending)
+            ->count();
+
+        $uploaded = Report::query()->visibleTo($user)->count();
+
+        $byMonth = Report::query()
+            ->visibleTo($user)
+            ->selectRaw(QueryFilters::monthExpression('created_at').' as month, COUNT(*) as count')
+            ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
+            ->groupByRaw('month')
+            ->orderByRaw('month')
+            ->get()
+            ->map(fn ($row) => ['month' => $row->month, 'count' => (int) $row->count])
+            ->all();
+
+        $byConsultant = Report::query()
+            ->visibleTo($user)
+            ->select('consultant_id', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('consultant_id')
+            ->with('consultant:id,name')
+            ->groupBy('consultant_id')
+            ->orderByDesc('count')
+            ->limit(10)
+            ->get()
+            ->map(fn ($row) => [
+                'consultant_id' => $row->consultant_id,
+                'consultant_name' => $row->consultant?->name,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+
+        return $this->success([
+            'total' => $pending + $uploaded,
+            'pending' => $pending,
+            'uploaded' => $uploaded,
+            'by_month' => $byMonth,
+            'by_consultant' => $byConsultant,
+        ]);
     }
 
     /**

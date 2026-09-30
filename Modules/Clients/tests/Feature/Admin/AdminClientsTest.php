@@ -2,9 +2,11 @@
 
 namespace Modules\Clients\Tests\Feature\Admin;
 
+use Modules\Bookings\Models\Booking;
 use Modules\Clients\Models\Client;
 use Modules\Packages\Models\ClientSubscription;
 use Modules\Packages\Models\Package;
+use Modules\Payments\Models\Payment;
 use Tests\TestCase;
 
 class AdminClientsTest extends TestCase
@@ -318,5 +320,70 @@ class AdminClientsTest extends TestCase
             403,
             'FORBIDDEN',
         );
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | ADM-CL-01b GET /api/v1/admin/clients/stats
+    |----------------------------------------------------------------------
+    */
+
+    public function test_adm_cl_01b_returns_aggregate_stats(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->createClient();
+        $this->createClient(['is_active' => false]);
+        $this->createClient(['created_at' => now()->subMonths(2)]);
+
+        // The top client: two real bookings, one hold, and paid revenue.
+        $top = $this->createClient(['name' => 'Top Client', 'company_name' => 'Top Co']);
+        $booking = Booking::factory()->completed()->create(['client_id' => $top->id]);
+        Booking::factory()->pending()->future()->create(['client_id' => $top->id]);
+        Booking::factory()->pendingPayment()->create(['client_id' => $top->id]);
+        Payment::factory()->paid()->create(['booking_id' => $booking->id, 'amount' => 190000]);
+
+        $response = $this->getJson('/api/v1/admin/clients/stats');
+
+        $this->assertApiSuccess($response)
+            ->assertJsonPath('data.total', 4)
+            ->assertJsonPath('data.active', 3)
+            ->assertJsonPath('data.inactive', 1)
+            ->assertJsonPath('data.new_this_month', 3);
+
+        $topClients = collect($response->json('data.top_clients'))->keyBy('client_id');
+        $this->assertSame(2, $topClients[$top->id]['bookings_count']);
+        $this->assertSame(190000, $topClients[$top->id]['revenue']);
+        $this->assertSame('1,900.00 SAR', $topClients[$top->id]['revenue_formatted']);
+        $this->assertSame('Top Co', $topClients[$top->id]['company_name']);
+
+        $byMonth = collect($response->json('data.new_by_month'))->keyBy('month');
+        $this->assertSame(3, $byMonth[now()->format('Y-m')]['count']);
+        $this->assertSame(1, $byMonth[now()->subMonths(2)->format('Y-m')]['count']);
+    }
+
+    public function test_adm_cl_01b_a_consultant_sees_only_his_clients(): void
+    {
+        $consultant = $this->createConsultant();
+        $this->actingAsConsultant($consultant);
+
+        $mine = $this->createClient();
+        Booking::factory()->create(['client_id' => $mine->id, 'consultant_id' => $consultant->id]);
+        $other = $this->createClient();
+        Booking::factory()->create(['client_id' => $other->id]); // another consultant
+
+        $response = $this->getJson('/api/v1/admin/clients/stats');
+
+        $this->assertSame(1, $response->json('data.total'));
+        $this->assertCount(1, $response->json('data.top_clients'));
+        $this->assertSame($mine->id, $response->json('data.top_clients.0.client_id'));
+    }
+
+    public function test_adm_cl_01b_requires_the_view_clients_permission(): void
+    {
+        $staff = $this->createStaffWithPermissions(['view-bookings']);
+        $this->actingAsAdmin($staff);
+
+        $this->getJson('/api/v1/admin/clients/stats')->assertForbidden();
     }
 }

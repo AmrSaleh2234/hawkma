@@ -26,6 +26,9 @@ Route::prefix('v1')->group(function () {
         Route::get('reports', [AdminReportController::class, 'index'])
             ->middleware('permission:view-reports,admin')
             ->name('reports.index');
+        Route::get('reports/stats', [AdminReportController::class, 'stats'])
+            ->middleware('permission:view-reports,admin')
+            ->name('reports.stats');
         Route::get('reports/{report}', [AdminReportController::class, 'show'])
             ->middleware('permission:view-reports,admin')
             ->name('reports.show');

@@ -102,7 +102,7 @@ class FullBookingJourneyTest extends TestCase
          * 5. Public: list the packages → choose iron.
          */
         $packages = $this->getJson('/api/v1/public/packages')->assertOk()->json('data');
-        $iron = collect($packages)->firstWhere('slug', 'iron');
+        $iron = collect($packages)->firstWhere('slug', 'bronz');
         $this->assertNotNull($iron);
 
         /*

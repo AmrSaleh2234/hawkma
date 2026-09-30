@@ -5,8 +5,10 @@ namespace Modules\Payments\Http\Controllers\Admin;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Modules\Core\Http\Controllers\ApiController;
+use Modules\Core\Support\Money;
 use Modules\Core\Support\QueryFilters;
 use Modules\Payments\Enums\PaymentRecordStatus;
 use Modules\Payments\Http\Resources\PaymentResource;
@@ -52,6 +54,75 @@ class PaymentController extends ApiController
         $payments = $query->latest()->paginate(QueryFilters::perPage($request));
 
         return $this->paginated(PaymentResource::collection($payments));
+    }
+
+    /**
+     * PAY-01b GET /api/v1/admin/payments/stats — Perm: view-payments
+     *
+     * Aggregated amounts for the payments page charts and summary cards.
+     * Respects status, date_from, date_to filters.
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        $request->validate([
+            'status' => ['nullable', Rule::enum(PaymentRecordStatus::class)],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        $baseQuery = fn () => Payment::query()
+            ->visibleTo($request->user('admin'))
+            ->when($request->query('status'), fn (Builder $q, $status) => $q->where('status', $status))
+            ->when($request->query('date_from'), fn (Builder $q, $from) => $q->where('created_at', '>=', $from.' 00:00:00'))
+            ->when($request->query('date_to'), fn (Builder $q, $to) => $q->where('created_at', '<=', $to.' 23:59:59'));
+
+        $totalAmount = (int) $baseQuery()->sum('amount');
+
+        $byStatus = collect(PaymentRecordStatus::cases())
+            ->map(function (PaymentRecordStatus $status) use ($baseQuery) {
+                $rows = $baseQuery()
+                    ->where('status', $status)
+                    ->selectRaw('COUNT(*) as count, COALESCE(SUM(amount), 0) as amount')
+                    ->first();
+
+                return [
+                    'status' => $status->value,
+                    'count' => (int) $rows->count,
+                    'amount' => (int) $rows->amount,
+                    'amount_formatted' => Money::format((int) $rows->amount),
+                ];
+            })
+            ->all();
+
+        $byGateway = $baseQuery()
+            ->select('gateway', DB::raw('COUNT(*) as count'))
+            ->groupBy('gateway')
+            ->orderByDesc('count')
+            ->get()
+            ->map(fn ($row) => ['gateway' => $row->gateway, 'count' => (int) $row->count])
+            ->all();
+
+        $byMonth = $baseQuery()
+            ->selectRaw(QueryFilters::monthExpression('created_at').' as month, COUNT(*) as count, COALESCE(SUM(amount), 0) as amount')
+            ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
+            ->groupByRaw('month')
+            ->orderByRaw('month')
+            ->get()
+            ->map(fn ($row) => [
+                'month' => $row->month,
+                'count' => (int) $row->count,
+                'amount' => (int) $row->amount,
+                'amount_formatted' => Money::format((int) $row->amount),
+            ])
+            ->all();
+
+        return $this->success([
+            'total_amount' => $totalAmount,
+            'total_amount_formatted' => Money::format($totalAmount),
+            'by_status' => $byStatus,
+            'by_gateway' => $byGateway,
+            'by_month' => $byMonth,
+        ]);
     }
 
     /**

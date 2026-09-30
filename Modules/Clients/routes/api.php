@@ -42,6 +42,9 @@ Route::prefix('v1')->group(function () {
         Route::get('clients', [AdminClientController::class, 'index'])
             ->middleware('permission:view-clients,admin')
             ->name('clients.index');
+        Route::get('clients/stats', [AdminClientController::class, 'stats'])
+            ->middleware('permission:view-clients,admin')
+            ->name('clients.stats');
         Route::get('clients/{client}', [AdminClientController::class, 'show'])
             ->middleware('permission:view-clients,admin')
             ->name('clients.show');

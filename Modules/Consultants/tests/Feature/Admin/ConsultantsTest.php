@@ -4,6 +4,8 @@ namespace Modules\Consultants\Tests\Feature\Admin;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
+use Modules\Bookings\Models\Booking;
+use Modules\Payments\Models\Payment;
 use Modules\Users\Enums\UserType;
 use Modules\Users\Models\User;
 use Modules\Users\Notifications\StaffAccountCreatedNotification;
@@ -326,5 +328,69 @@ class ConsultantsTest extends TestCase
 
         $this->assertApiSuccess($response);
         $this->assertNotNull($consultant->fresh()->getFirstMedia('avatar'));
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | CON-01b GET /api/v1/admin/consultants/stats
+    |----------------------------------------------------------------------
+    */
+
+    public function test_con_01b_returns_aggregate_stats(): void
+    {
+        $this->actingAsAdmin();
+
+        $top = $this->createConsultant(['name' => 'Ahmad', 'specialization' => 'حوكمة']);
+        $this->createConsultant(['specialization' => 'حوكمة']);
+        $this->createConsultant(['specialization' => 'امتثال', 'is_active' => false]);
+
+        $completed = Booking::factory()->withReportPending()->create(['consultant_id' => $top->id]);
+        Booking::factory()->completed()->create([
+            'consultant_id' => $top->id,
+            'report_status' => 'uploaded',
+        ]);
+        Booking::factory()->pending()->future()->create(['consultant_id' => $top->id]);
+        Booking::factory()->pendingPayment()->create(['consultant_id' => $top->id]); // excluded
+        Payment::factory()->paid()->create(['booking_id' => $completed->id, 'amount' => 450000]);
+
+        $response = $this->getJson('/api/v1/admin/consultants/stats');
+
+        $this->assertApiSuccess($response)
+            ->assertJsonPath('data.total', 3)
+            ->assertJsonPath('data.active', 2);
+
+        $bySpec = collect($response->json('data.by_specialization'))->keyBy('specialization');
+        $this->assertSame(2, $bySpec['حوكمة']['count']);
+        $this->assertSame(1, $bySpec['امتثال']['count']);
+
+        $topRow = collect($response->json('data.top_consultants'))->firstWhere('consultant_id', $top->id);
+        $this->assertSame(3, $topRow['bookings_count']);
+        $this->assertSame(2, $topRow['completed_count']);
+        $this->assertSame(1, $topRow['pending_reports_count']);
+        $this->assertSame(450000, $topRow['revenue']);
+        $this->assertSame('4,500.00 SAR', $topRow['revenue_formatted']);
+    }
+
+    public function test_con_01b_a_consultant_sees_only_himself(): void
+    {
+        $consultant = $this->createConsultant();
+        $consultant->givePermissionTo('view-consultants');
+        $this->actingAsConsultant($consultant);
+        $this->createConsultant();
+
+        $response = $this->getJson('/api/v1/admin/consultants/stats');
+
+        $this->assertApiSuccess($response)
+            ->assertJsonPath('data.total', 1);
+        $this->assertCount(1, $response->json('data.top_consultants'));
+        $this->assertSame($consultant->id, $response->json('data.top_consultants.0.consultant_id'));
+    }
+
+    public function test_con_01b_requires_the_view_consultants_permission(): void
+    {
+        $staff = $this->createStaffWithPermissions(['view-bookings']);
+        $this->actingAsAdmin($staff);
+
+        $this->getJson('/api/v1/admin/consultants/stats')->assertForbidden();
     }
 }

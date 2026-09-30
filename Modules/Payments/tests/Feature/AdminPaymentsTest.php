@@ -107,4 +107,76 @@ class AdminPaymentsTest extends TestCase
 
         $this->getJson($this->url.'/'.$payment->id)->assertNotFound();
     }
+
+    /*
+    |----------------------------------------------------------------------
+    | PAY-01b GET /api/v1/admin/payments/stats
+    |----------------------------------------------------------------------
+    */
+
+    public function test_pay_01b_returns_aggregate_stats(): void
+    {
+        $this->actingAsAdmin();
+
+        Payment::factory()->paid()->create(['amount' => 190000]);
+        Payment::factory()->paid()->create(['amount' => 450000]);
+        Payment::factory()->failed()->create(['amount' => 980000]);
+
+        $response = $this->getJson($this->url.'/stats');
+
+        $this->assertApiSuccess($response)
+            ->assertJsonPath('data.total_amount', 1620000)
+            ->assertJsonPath('data.total_amount_formatted', '16,200.00 SAR');
+
+        $byStatus = collect($response->json('data.by_status'))->keyBy('status');
+        $this->assertSame(2, $byStatus['paid']['count']);
+        $this->assertSame(640000, $byStatus['paid']['amount']);
+        $this->assertSame('6,400.00 SAR', $byStatus['paid']['amount_formatted']);
+        $this->assertSame(1, $byStatus['failed']['count']);
+        $this->assertSame(980000, $byStatus['failed']['amount']);
+        $this->assertSame(0, $byStatus['initiated']['count']);
+
+        $byGateway = collect($response->json('data.by_gateway'))->keyBy('gateway');
+        $this->assertSame(3, $byGateway['fake']['count']);
+
+        $byMonth = collect($response->json('data.by_month'))->keyBy('month');
+        $this->assertSame(3, $byMonth[now()->format('Y-m')]['count']);
+        $this->assertSame(1620000, $byMonth[now()->format('Y-m')]['amount']);
+    }
+
+    public function test_pay_01b_respects_status_and_date_filters(): void
+    {
+        $this->actingAsAdmin();
+        Payment::factory()->paid()->create(['amount' => 190000, 'created_at' => now()->subDays(2)]);
+        Payment::factory()->failed()->create(['amount' => 50000]);
+
+        $this->assertSame(190000, $this->getJson($this->url.'/stats?status=paid')->json('data.total_amount'));
+
+        $range = $this->getJson($this->url.'/stats?date_from='.now()->toDateString().'&date_to='.now()->toDateString());
+        $this->assertSame(50000, $range->json('data.total_amount'));
+    }
+
+    public function test_pay_01b_a_consultant_sees_only_his_bookings_payments(): void
+    {
+        $consultant = $this->createConsultant();
+        $consultant->givePermissionTo('view-payments');
+        $this->actingAsConsultant($consultant);
+
+        $ownBooking = Booking::factory()->create(['consultant_id' => $consultant->id]);
+        Payment::factory()->paid()->create(['booking_id' => $ownBooking->id, 'amount' => 190000]);
+        Payment::factory()->paid()->create(['amount' => 450000]); // another consultant's
+
+        $response = $this->getJson($this->url.'/stats');
+
+        $this->assertSame(190000, $response->json('data.total_amount'));
+        $this->assertSame(1, collect($response->json('data.by_status'))->firstWhere('status', 'paid')['count']);
+    }
+
+    public function test_pay_01b_requires_the_view_payments_permission(): void
+    {
+        $staff = $this->createStaffWithPermissions(['view-bookings']);
+        $this->actingAsAdmin($staff);
+
+        $this->getJson($this->url.'/stats')->assertForbidden();
+    }
 }

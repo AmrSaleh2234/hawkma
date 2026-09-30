@@ -471,4 +471,96 @@ class AdminBookingsTest extends TestCase
 
         $this->postJson($this->url.'/'.$booking->id.'/mark-refunded')->assertForbidden();
     }
+
+    /*
+    |----------------------------------------------------------------------
+    | BKG-01b GET /api/v1/admin/bookings/stats
+    |----------------------------------------------------------------------
+    */
+
+    public function test_bkg_01b_returns_aggregate_stats_for_an_admin(): void
+    {
+        $this->actingAsAdmin();
+        $consultant = $this->createConsultant();
+        $package = Package::factory()->iron()->create();
+
+        Booking::factory()->pending()->create([
+            'consultant_id' => $consultant->id,
+            'package_id' => $package->id,
+            'starts_at' => now()->setTime(14, 0),
+            'ends_at' => now()->setTime(14, 30),
+        ]);
+        Booking::factory()->pending()->future()->create([
+            'consultant_id' => $consultant->id,
+            'package_id' => $package->id,
+        ]);
+        Booking::factory()->completed()->create(['package_id' => $package->id]);
+        Booking::factory()->cancelled()->past()->create();
+        Booking::factory()->pendingPayment()->create(); // excluded everywhere
+
+        $response = $this->getJson($this->url.'/stats');
+
+        $this->assertApiSuccess($response)
+            ->assertJsonPath('data.total', 4)
+            ->assertJsonPath('data.today', 1);
+
+        $byStatus = collect($response->json('data.by_status'))->keyBy('status');
+        $this->assertSame(2, $byStatus['pending']['count']);
+        $this->assertSame(1, $byStatus['completed']['count']);
+        $this->assertSame(1, $byStatus['cancelled']['count']);
+        $this->assertArrayNotHasKey('pending_payment', $byStatus);
+        $this->assertNotEmpty($byStatus['pending']['label']);
+
+        $byConsultant = collect($response->json('data.by_consultant'))->keyBy('consultant_id');
+        $this->assertSame(2, $byConsultant[$consultant->id]['count']);
+        $this->assertSame($consultant->name, $byConsultant[$consultant->id]['consultant_name']);
+
+        $byPackage = collect($response->json('data.by_package'))->keyBy('package_id');
+        $this->assertSame(3, $byPackage[$package->id]['count']);
+        $this->assertSame('Iron Package', $byPackage[$package->id]['package_name']);
+
+        $byMonth = collect($response->json('data.by_month'))->keyBy('month');
+        $this->assertSame(4, $byMonth[now()->format('Y-m')]['count']);
+    }
+
+    public function test_bkg_01b_respects_the_list_filters(): void
+    {
+        $this->actingAsAdmin();
+        $consultant = $this->createConsultant();
+
+        Booking::factory()->pending()->future()->create(['consultant_id' => $consultant->id]);
+        Booking::factory()->completed()->create();
+
+        $this->assertSame(1, $this->getJson($this->url.'/stats?status=completed')->json('data.total'));
+        $this->assertSame(1, $this->getJson($this->url.'/stats?consultant_id='.$consultant->id)->json('data.total'));
+
+        // The completed booking started two days ago — a range ending today
+        // keeps it while the future pending one falls outside.
+        $range = $this->getJson($this->url.'/stats?date_from='
+            .now()->subDays(2)->toDateString().'&date_to='.now()->toDateString());
+        $this->assertSame(1, $range->json('data.total'));
+    }
+
+    public function test_bkg_01b_a_consultant_sees_only_his_stats(): void
+    {
+        $consultant = $this->createConsultant();
+        $this->actingAsConsultant($consultant);
+
+        Booking::factory()->pending()->future()->create(['consultant_id' => $consultant->id]);
+        Booking::factory()->count(2)->pending()->future()->create(); // others'
+
+        $response = $this->getJson($this->url.'/stats');
+
+        $this->assertSame(1, $response->json('data.total'));
+        $this->assertCount(1, $response->json('data.by_consultant'));
+        $this->assertSame($consultant->id, $response->json('data.by_consultant.0.consultant_id'));
+    }
+
+    public function test_bkg_01b_requires_the_view_bookings_permission(): void
+    {
+        $staff = $this->createStaffWithPermissions(['view-payments']);
+        $this->actingAsAdmin($staff);
+
+        $this->getJson($this->url.'/stats')->assertForbidden();
+    }
 }

@@ -2,14 +2,21 @@
 
 namespace Modules\Consultants\Http\Controllers\Admin;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Modules\Bookings\Enums\BookingStatus;
+use Modules\Bookings\Enums\ReportStatus;
 use Modules\Consultants\Http\Requests\Admin\StoreConsultantRequest;
 use Modules\Consultants\Http\Requests\Admin\UpdateConsultantRequest;
 use Modules\Consultants\Http\Resources\ConsultantResource;
 use Modules\Consultants\Services\ConsultantService;
 use Modules\Core\Http\Controllers\ApiController;
+use Modules\Core\Support\Money;
 use Modules\Core\Support\QueryFilters;
+use Modules\Payments\Enums\PaymentRecordStatus;
+use Modules\Payments\Models\Payment;
 use Modules\Users\Http\Requests\Admin\UpdateUserStatusRequest;
 use Modules\Users\Models\User;
 
@@ -51,6 +58,80 @@ class ConsultantController extends ApiController
         $consultants = $query->paginate(QueryFilters::perPage($request));
 
         return $this->paginated(ConsultantResource::collection($consultants));
+    }
+
+    /**
+     * CON-01b GET /api/v1/admin/consultants/stats — Perm: view-consultants
+     *
+     * Aggregated counts for the consultants page charts and summary cards.
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        $baseQuery = fn () => User::query()
+            ->consultants()
+            ->when(
+                $request->user()->isConsultant(),
+                fn (Builder $q) => $q->whereKey($request->user()->id),
+            );
+
+        $realBookings = fn (Builder $q) => $q->where('status', '!=', BookingStatus::PendingPayment);
+
+        $bySpecialization = $baseQuery()
+            ->whereNotNull('specialization')
+            ->where('specialization', '!=', '')
+            ->select('specialization', DB::raw('COUNT(*) as count'))
+            ->groupBy('specialization')
+            ->orderByDesc('count')
+            ->get()
+            ->map(fn ($row) => [
+                'specialization' => $row->specialization,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+
+        // Revenue: paid payments joined through bookings → consultant_id.
+        $revenueByConsultant = Payment::query()
+            ->join('bookings', 'payments.booking_id', '=', 'bookings.id')
+            ->where('payments.status', PaymentRecordStatus::Paid)
+            ->groupBy('bookings.consultant_id')
+            ->selectRaw('bookings.consultant_id, SUM(payments.amount) as revenue')
+            ->pluck('revenue', 'consultant_id');
+
+        $topConsultants = $baseQuery()
+            ->withCount(['consultantBookings as bookings_count' => $realBookings])
+            ->withCount([
+                'consultantBookings as completed_count' => fn (Builder $q) => $q
+                    ->where('status', BookingStatus::Completed),
+            ])
+            ->withCount([
+                'consultantBookings as pending_reports_count' => fn (Builder $q) => $q
+                    ->where('status', BookingStatus::Completed)
+                    ->where('report_status', ReportStatus::Pending),
+            ])
+            ->orderByDesc('bookings_count')
+            ->limit(10)
+            ->get()
+            ->map(function (User $consultant) use ($revenueByConsultant) {
+                $revenue = (int) ($revenueByConsultant[$consultant->id] ?? 0);
+
+                return [
+                    'consultant_id' => $consultant->id,
+                    'consultant_name' => $consultant->name,
+                    'bookings_count' => (int) $consultant->bookings_count,
+                    'completed_count' => (int) $consultant->completed_count,
+                    'pending_reports_count' => (int) $consultant->pending_reports_count,
+                    'revenue' => $revenue,
+                    'revenue_formatted' => Money::format($revenue),
+                ];
+            })
+            ->all();
+
+        return $this->success([
+            'total' => $baseQuery()->count(),
+            'active' => $baseQuery()->active()->count(),
+            'by_specialization' => $bySpecialization,
+            'top_consultants' => $topConsultants,
+        ]);
     }
 
     /**

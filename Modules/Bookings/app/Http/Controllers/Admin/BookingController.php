@@ -90,7 +90,7 @@ class BookingController extends ApiController
         $byStatus = collect(BookingStatus::cases())
             ->filter(fn (BookingStatus $s) => $s !== BookingStatus::PendingPayment)
             ->map(function (BookingStatus $status) use ($baseQuery) {
-                $count = (clone $baseQuery())->where('status', $status)->count();
+                $count = $baseQuery()->where('status', $status)->count();
 
                 return [
                     'status' => $status->value,
@@ -101,7 +101,7 @@ class BookingController extends ApiController
             ->values()
             ->all();
 
-        $byConsultant = (clone $baseQuery())
+        $byConsultant = $baseQuery()
             ->select('consultant_id', DB::raw('COUNT(*) as count'))
             ->whereNotNull('consultant_id')
             ->with('consultant:id,name')
@@ -116,7 +116,7 @@ class BookingController extends ApiController
             ])
             ->all();
 
-        $byPackage = (clone $baseQuery())
+        $byPackage = $baseQuery()
             ->select('package_id', DB::raw('COUNT(*) as count'))
             ->whereNotNull('package_id')
             ->with('package:id,slug,name_ar,name_en')
@@ -131,8 +131,8 @@ class BookingController extends ApiController
             ])
             ->all();
 
-        $byMonth = (clone $baseQuery())
-            ->selectRaw('DATE_FORMAT(starts_at, "%Y-%m") as month, COUNT(*) as count')
+        $byMonth = $baseQuery()
+            ->selectRaw(QueryFilters::monthExpression('starts_at').' as month, COUNT(*) as count')
             ->where('starts_at', '>=', now()->subMonths(11)->startOfMonth())
             ->groupByRaw('month')
             ->orderByRaw('month')
@@ -140,8 +140,8 @@ class BookingController extends ApiController
             ->map(fn ($row) => ['month' => $row->month, 'count' => (int) $row->count])
             ->all();
 
-        $total = (clone $baseQuery())->count();
-        $today = (clone $baseQuery())
+        $total = $baseQuery()->count();
+        $today = $baseQuery()
             ->whereDate('starts_at', today())
             ->where('status', '!=', BookingStatus::Cancelled)
             ->count();

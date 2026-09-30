@@ -4,12 +4,24 @@ namespace Modules\Core\Support;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 final class QueryFilters
 {
     public const DEFAULT_PER_PAGE = 15;
 
     public const MAX_PER_PAGE = 100;
+
+    /**
+     * A driver-aware "YYYY-MM" expression for GROUP BY month queries:
+     * DATE_FORMAT on MySQL, strftime on SQLite (the test driver).
+     */
+    public static function monthExpression(string $column): string
+    {
+        return DB::connection()->getDriverName() === 'sqlite'
+            ? "strftime('%Y-%m', {$column})"
+            : "DATE_FORMAT({$column}, '%Y-%m')";
+    }
 
     /**
      * Apply the shared listing conventions (search + sort) to a query.

@@ -227,4 +227,74 @@ class AdminReportsTest extends TestCase
         Notification::assertSentTo($report->client, ReportReadyNotification::class);
         $this->assertNotNull($report->refresh()->client_notified_at);
     }
+
+    /*
+    |----------------------------------------------------------------------
+    | RPT-01b GET /api/v1/admin/reports/stats
+    |----------------------------------------------------------------------
+    */
+
+    public function test_rpt_01b_returns_pending_uploaded_and_breakdowns(): void
+    {
+        $this->actingAsAdmin();
+        $consultant = $this->createConsultant(['name' => 'Report Consultant']);
+
+        // Two completed bookings awaiting a report.
+        Booking::factory()->withReportPending()->create(['consultant_id' => $consultant->id]);
+        Booking::factory()->withReportPending()->create(['consultant_id' => $consultant->id]);
+
+        // One uploaded report.
+        $uploadedBooking = Booking::factory()->completed()->create([
+            'consultant_id' => $consultant->id,
+            'report_status' => 'uploaded',
+        ]);
+        Report::factory()->create(['booking_id' => $uploadedBooking->id]);
+
+        $response = $this->getJson('/api/v1/admin/reports/stats');
+
+        $this->assertApiSuccess($response)
+            ->assertJsonPath('data.pending', 2)
+            ->assertJsonPath('data.uploaded', 1)
+            ->assertJsonPath('data.total', 3);
+
+        $byConsultant = collect($response->json('data.by_consultant'))->keyBy('consultant_id');
+        $this->assertSame(1, $byConsultant[$consultant->id]['count']);
+        $this->assertSame('Report Consultant', $byConsultant[$consultant->id]['consultant_name']);
+
+        $byMonth = collect($response->json('data.by_month'))->keyBy('month');
+        $this->assertSame(1, $byMonth[now()->format('Y-m')]['count']);
+    }
+
+    public function test_rpt_01b_a_consultant_sees_only_his_numbers(): void
+    {
+        $consultant = $this->createConsultant();
+        $this->actingAsConsultant($consultant);
+
+        // Mine: one pending, one uploaded.
+        Booking::factory()->withReportPending()->create(['consultant_id' => $consultant->id]);
+        $ownUploaded = Booking::factory()->completed()->create([
+            'consultant_id' => $consultant->id,
+            'report_status' => 'uploaded',
+        ]);
+        Report::factory()->create(['booking_id' => $ownUploaded->id]);
+
+        // Another consultant's pending booking and report.
+        Booking::factory()->withReportPending()->create();
+        Report::factory()->create();
+
+        $response = $this->getJson('/api/v1/admin/reports/stats');
+
+        $this->assertSame(1, $response->json('data.pending'));
+        $this->assertSame(1, $response->json('data.uploaded'));
+        $this->assertCount(1, $response->json('data.by_consultant'));
+        $this->assertSame($consultant->id, $response->json('data.by_consultant.0.consultant_id'));
+    }
+
+    public function test_rpt_01b_requires_the_view_reports_permission(): void
+    {
+        $staff = $this->createStaffWithPermissions(['view-bookings']);
+        $this->actingAsAdmin($staff);
+
+        $this->getJson('/api/v1/admin/reports/stats')->assertForbidden();
+    }
 }

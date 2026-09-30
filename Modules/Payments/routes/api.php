@@ -26,6 +26,7 @@ Route::prefix('v1')->group(function () {
 
     Route::prefix('admin/payments')->name('admin.payments.')->middleware(['auth:admin', 'active.user', 'throttle:api', 'permission:view-payments,admin'])->group(function () {
         Route::get('/', [AdminPaymentController::class, 'index'])->name('index');
+        Route::get('stats', [AdminPaymentController::class, 'stats'])->name('stats');
         Route::get('{payment}', [AdminPaymentController::class, 'show'])->name('show');
     });
 });

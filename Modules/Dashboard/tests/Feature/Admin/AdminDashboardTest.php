@@ -160,4 +160,37 @@ class AdminDashboardTest extends TestCase
         $this->actingAsAdmin($staff);
         $this->getJson('/api/v1/admin/dashboard/stats')->assertForbidden();
     }
+
+    public function test_dsh_01_includes_monthly_series_for_bookings_and_revenue(): void
+    {
+        $this->actingAsAdmin();
+
+        $booking = Booking::factory()->pending()->create([
+            'starts_at' => now()->setTime(14, 0),
+            'ends_at' => now()->setTime(14, 30),
+        ]);
+        $oldBooking = Booking::factory()->completed()->create(); // two days ago, same month
+        Booking::factory()->pendingPayment()->future()->create(); // excluded
+
+        Payment::factory()->paid()->create([
+            'booking_id' => $booking->id,
+            'amount' => 190000,
+            'paid_at' => now(),
+        ]);
+        Payment::factory()->paid()->create([
+            'booking_id' => $oldBooking->id,
+            'amount' => 450000,
+            'paid_at' => now()->subMonth(),
+        ]);
+
+        $response = $this->getJson('/api/v1/admin/dashboard/stats');
+
+        $byMonth = collect($response->json('data.bookings.by_month'))->keyBy('month');
+        $this->assertSame(2, $byMonth[now()->format('Y-m')]['count']);
+
+        $revenue = collect($response->json('data.revenue.by_month'))->keyBy('month');
+        $this->assertSame(190000, $revenue[now()->format('Y-m')]['amount']);
+        $this->assertSame('1,900.00 SAR', $revenue[now()->format('Y-m')]['amount_formatted']);
+        $this->assertSame(450000, $revenue[now()->subMonth()->format('Y-m')]['amount']);
+    }
 }
