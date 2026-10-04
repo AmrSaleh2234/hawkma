@@ -163,7 +163,7 @@ class AuthTest extends TestCase
         $this->assertApiSuccess($response)
             ->assertJsonPath('data.roles', ['admin']);
 
-        $this->assertCount(34, $response->json('data.permissions'));
+        $this->assertCount(41, $response->json('data.permissions'));
     }
 
     public function test_adm_auth_03_consultant_gets_exactly_the_consultant_permissions(): void

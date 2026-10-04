@@ -1,0 +1,11 @@
+{
+    "name": "JoinRequests",
+    "alias": "joinrequests",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\JoinRequests\\Providers\\JoinRequestsServiceProvider"
+    ],
+    "files": []
+}

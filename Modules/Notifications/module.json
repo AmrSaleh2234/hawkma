@@ -1,0 +1,11 @@
+{
+    "name": "Notifications",
+    "alias": "notifications",
+    "description": "In-app notification centre: the API that reads the database channel and mirrors relevant activity to admin users.",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Notifications\\Providers\\NotificationsServiceProvider"
+    ],
+    "files": []
+}
