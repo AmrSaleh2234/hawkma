@@ -144,8 +144,9 @@ the new user's own bell) do **not** have `recipient` — check with
 ## 3. UX flow (the bell)
 
 1. **Badge**: `GET …/notifications/unread-count` on app load → show the
-   number on the bell icon. Poll every 30–60 s while the user is active
-   (no websockets — polling is the contract for now).
+   number on the bell icon. Then either subscribe to the real-time
+   channel (§3a — recommended) or poll every 30–60 s while the user is
+   active.
 2. **Open the dropdown**: `GET …/notifications?per_page=10` (add
    `unread=1` for an "unread only" tab). Show icon + text per `type`,
    bold when `read_at === null`, relative time from `created_at`.
@@ -157,6 +158,117 @@ the new user's own bell) do **not** have `recipient` — check with
      `reset_password`) have no details page — just mark read.
 4. **"Mark all read"** button → `POST …/read-all`, then clear the badge.
 5. **Per-item delete** → `DELETE …/{id}`, then remove the row locally.
+
+---
+
+## 3a. Real-time delivery (WebSockets / Reverb)
+
+Every notification stored in the database is also **pushed instantly** to
+the recipient's private channel. The REST endpoints above stay the source
+of truth — the socket is a fast "new item arrived" signal so you can
+insert the notification into the bell and bump the badge without
+re-fetching (or you can just re-fetch on the event if that's simpler).
+
+### Server setup (DevOps note)
+
+```bash
+php artisan reverb:start   # WebSocket server, default :8080
+php artisan queue:work     # broadcasts are queued — required!
+```
+
+`.env`: `BROADCAST_CONNECTION=reverb` plus the `REVERB_*` block (see
+`.env.example`). The `REVERB_APP_KEY`/`HOST`/`PORT`/`SCHEME` values are
+frontend-visible connection details, not secrets.
+
+### Client setup (Laravel Echo + pusher-js)
+
+```bash
+npm install laravel-echo pusher-js
+```
+
+```js
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+
+window.Pusher = Pusher;
+
+const echo = new Echo({
+    broadcaster: 'reverb',
+    key: import.meta.env.VITE_REVERB_APP_KEY,        // = REVERB_APP_KEY
+    wsHost: import.meta.env.VITE_REVERB_HOST,        // = REVERB_HOST
+    wsPort: import.meta.env.VITE_REVERB_PORT ?? 8080,
+    wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
+    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'http') === 'https',
+    enabledTransports: ['ws', 'wss'],
+    authEndpoint: `${API_ORIGIN}/broadcasting/auth`, // NOT under /api/v1
+    auth: {
+        headers: {
+            // The same Sanctum token used for the REST API —
+            // admin token on the admin portal, client token on the client portal.
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+        },
+    },
+});
+```
+
+### Channel & event contract
+
+| Portal | Private channel | Event |
+|---|---|---|
+| Admin portal (staff + consultants) | `admin.{userId}` | `.notification.received` |
+| Client portal | `client.{clientId}` | `.notification.received` |
+
+```js
+// Admin portal — userId = the logged-in user/consultant id
+echo.private(`admin.${userId}`)
+    .listen('.notification.received', ({ notification }) => {
+        prependToBell(notification);   // same shape as GET list item
+        bumpBadge();
+    });
+
+// Client portal — clientId = the logged-in client id
+echo.private(`client.${clientId}`)
+    .listen('.notification.received', ({ notification }) => {
+        prependToBell(notification);
+        bumpBadge();
+    });
+```
+
+### Push payload
+
+Identical to one item of `GET …/notifications` — you can insert it
+directly into the list:
+
+```json
+{
+  "notification": {
+    "id": "9f1b2c3d-…",
+    "type": "new_booking",
+    "data": { "type": "new_booking", "booking_id": 42, "reference": "BK-2026-000042" },
+    "read_at": null,
+    "created_at": "2026-09-20T09:05:00+03:00"
+  }
+}
+```
+
+`notification.id` is the real `notifications` table id — the same value
+you pass to `PATCH …/{id}/read` and `DELETE …/{id}`.
+
+### Notes
+
+- **Channel auth is guard-scoped**: `POST /broadcasting/auth` accepts
+  either token type, but a client token can only subscribe to
+  `client.{id}` and an admin token only to `admin.{id}`. Wrong channel or
+  wrong id → `403`; no token → `401`.
+- **Mirroring included**: the admin-activity feed copies are pushed too —
+  staff see mirrored notifications arrive live, consultants don't (same
+  rules as the REST bell).
+- **Socket down?** Nothing breaks — the bell simply doesn't update live;
+  the REST endpoints still have everything. Keep the `unread-count`
+  endpoint as a reconnect/on-load sync point.
+- Disconnect `echo.disconnect()` on logout so the next session doesn't
+  reuse a stale channel.
 
 ---
 

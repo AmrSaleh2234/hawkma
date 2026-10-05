@@ -4,6 +4,7 @@ namespace Modules\Notifications\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Notifications\Events\NotificationSent;
+use Modules\Notifications\Listeners\BroadcastNotification;
 use Modules\Notifications\Listeners\MirrorNotificationsToAdmins;
 
 class EventServiceProvider extends ServiceProvider
@@ -16,6 +17,7 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         NotificationSent::class => [
             MirrorNotificationsToAdmins::class,
+            BroadcastNotification::class,
         ],
     ];
 
