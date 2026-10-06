@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/joinrequests",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\JoinRequests\\": "app/",
+            "Modules\\JoinRequests\\Database\\Factories\\": "database/factories/",
+            "Modules\\JoinRequests\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\JoinRequests\\Tests\\": "tests/"
+        }
+    }
+}
