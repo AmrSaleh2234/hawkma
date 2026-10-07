@@ -12,5 +12,6 @@
     "Dashboard": true,
     "SupportTickets": true,
     "JoinRequests": true,
-    "Reviews": true
+    "Reviews": true,
+    "ActivityLogs": true
 }

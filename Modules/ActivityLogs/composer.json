@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/activity-logs",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\ActivityLogs\\": "app/",
+            "Modules\\ActivityLogs\\Database\\Factories\\": "database/factories/",
+            "Modules\\ActivityLogs\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\ActivityLogs\\Tests\\": "tests/"
+        }
+    }
+}

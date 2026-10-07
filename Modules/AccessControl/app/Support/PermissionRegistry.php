@@ -38,6 +38,8 @@ final class PermissionRegistry
 
     public const GROUP_REVIEWS = 'reviews';
 
+    public const GROUP_ACTIVITY_LOGS = 'activity_logs';
+
     /**
      * All permissions grouped by their group key.
      *
@@ -60,6 +62,7 @@ final class PermissionRegistry
             self::GROUP_SUPPORT_TICKETS => ['view-support-tickets', 'reply-support-tickets', 'manage-support-tickets'],
             self::GROUP_JOIN_REQUESTS => ['view-join-requests', 'manage-join-requests'],
             self::GROUP_REVIEWS => ['view-reviews', 'manage-reviews'],
+            self::GROUP_ACTIVITY_LOGS => ['view-activity-logs'],
         ];
     }
 

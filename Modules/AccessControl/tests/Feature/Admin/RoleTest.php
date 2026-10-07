@@ -63,7 +63,7 @@ class RoleTest extends TestCase
 
         $this->assertTrue($roles->has('admin'));
         $this->assertTrue($roles->has('consultant'));
-        $this->assertSame(41, $roles['admin']['permissions_count']);
+        $this->assertSame(42, $roles['admin']['permissions_count']);
         $this->assertSame(12, $roles['consultant']['permissions_count']);
         $this->assertSame(2, $roles['admin']['users_count']);
         $this->assertSame(1, $roles['consultant']['users_count']);

@@ -1,0 +1,11 @@
+{
+    "name": "ActivityLogs",
+    "alias": "activity-logs",
+    "description": "System and API activity (audit) log with admin listing and filters.",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\ActivityLogs\\Providers\\ActivityLogsServiceProvider"
+    ],
+    "files": []
+}

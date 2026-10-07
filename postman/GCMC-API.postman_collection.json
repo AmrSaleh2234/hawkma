@@ -11483,7 +11483,7 @@
                     ],
                     "response": [
                         {
-                            "name": "Step 1 – Packages (PUB-01) — example",
+                            "name": "List packages (PUB-01) — example",
                             "originalRequest": {
                                 "method": "GET",
                                 "header": [
@@ -11506,10 +11506,7 @@
                                         "packages"
                                     ]
                                 },
-                                "auth": {
-                                    "type": "noauth"
-                                },
-                                "description": "The client picks a package."
+                                "description": "The active subscription packages, ordered by sort_order. Prices are halalas; `price_formatted` is the display value."
                             },
                             "status": "OK",
                             "code": 200,
@@ -11533,7 +11530,7 @@
                                 },
                                 {
                                     "key": "Date",
-                                    "value": "Thu, 24 Sep 2026 01:29:21 GMT"
+                                    "value": "Thu, 24 Sep 2026 01:29:15 GMT"
                                 },
                                 {
                                     "key": "Content-Type",
@@ -11545,7 +11542,7 @@
                                 },
                                 {
                                     "key": "X-RateLimit-Remaining",
-                                    "value": "58"
+                                    "value": "59"
                                 },
                                 {
                                     "key": "Vary",
@@ -11605,7 +11602,7 @@
                     ],
                     "response": [
                         {
-                            "name": "Step 3 – Consultants (PUB-03) — example",
+                            "name": "List consultants (PUB-03) — example",
                             "originalRequest": {
                                 "method": "GET",
                                 "header": [
@@ -11626,12 +11623,29 @@
                                     "path": [
                                         "public",
                                         "consultants"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "search",
+                                            "value": "",
+                                            "description": "Search name/title/specialization",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "specialization",
+                                            "value": "",
+                                            "description": "Exact specialization filter",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1",
+                                            "description": "Page number",
+                                            "disabled": true
+                                        }
                                     ]
                                 },
-                                "auth": {
-                                    "type": "noauth"
-                                },
-                                "description": "The client picks a consultant."
+                                "description": "Active consultants who have availability. 12 per page by default."
                             },
                             "status": "OK",
                             "code": 200,
@@ -11655,7 +11669,7 @@
                                 },
                                 {
                                     "key": "Date",
-                                    "value": "Thu, 24 Sep 2026 01:29:21 GMT"
+                                    "value": "Thu, 24 Sep 2026 01:29:15 GMT"
                                 },
                                 {
                                     "key": "Content-Type",
@@ -11667,7 +11681,7 @@
                                 },
                                 {
                                     "key": "X-RateLimit-Remaining",
-                                    "value": "58"
+                                    "value": "59"
                                 },
                                 {
                                     "key": "Vary",
@@ -11746,7 +11760,7 @@
                     ],
                     "response": [
                         {
-                            "name": "Step 4 – Available dates (PUB-05) — example",
+                            "name": "Available dates (PUB-05) — example",
                             "originalRequest": {
                                 "method": "GET",
                                 "header": [
@@ -11774,14 +11788,11 @@
                                         {
                                             "key": "month",
                                             "value": "{{slot_month}}",
-                                            "description": "YYYY-MM"
+                                            "description": "YYYY-MM (defaults to the current month)"
                                         }
                                     ]
                                 },
-                                "auth": {
-                                    "type": "noauth"
-                                },
-                                "description": "The client picks a date."
+                                "description": "The dates of a month on which the consultant still has free slots.\n\n**Errors:** 422 `VALIDATION_ERROR`, 404 `NOT_FOUND`"
                             },
                             "status": "OK",
                             "code": 200,
@@ -11805,7 +11816,7 @@
                                 },
                                 {
                                     "key": "Date",
-                                    "value": "Thu, 24 Sep 2026 01:29:21 GMT"
+                                    "value": "Thu, 24 Sep 2026 01:29:15 GMT"
                                 },
                                 {
                                     "key": "Content-Type",
@@ -11817,7 +11828,7 @@
                                 },
                                 {
                                     "key": "X-RateLimit-Remaining",
-                                    "value": "58"
+                                    "value": "59"
                                 },
                                 {
                                     "key": "Vary",
@@ -11887,7 +11898,7 @@
                     ],
                     "response": [
                         {
-                            "name": "Step 4 – Slots (PUB-06) — example",
+                            "name": "Slots (PUB-06) — example",
                             "originalRequest": {
                                 "method": "GET",
                                 "header": [
@@ -11915,14 +11926,11 @@
                                         {
                                             "key": "date",
                                             "value": "{{slot_date}}",
-                                            "description": "YYYY-MM-DD"
+                                            "description": "YYYY-MM-DD, required"
                                         }
                                     ]
                                 },
-                                "auth": {
-                                    "type": "noauth"
-                                },
-                                "description": "The client picks a time."
+                                "description": "The free slots of one day. Booked slots are hidden.\n\n**Errors:** 422 `VALIDATION_ERROR`, 404 `NOT_FOUND`"
                             },
                             "status": "OK",
                             "code": 200,
@@ -11946,7 +11954,7 @@
                                 },
                                 {
                                     "key": "Date",
-                                    "value": "Thu, 24 Sep 2026 01:29:21 GMT"
+                                    "value": "Thu, 24 Sep 2026 01:29:15 GMT"
                                 },
                                 {
                                     "key": "Content-Type",
@@ -11958,7 +11966,7 @@
                                 },
                                 {
                                     "key": "X-RateLimit-Remaining",
-                                    "value": "58"
+                                    "value": "59"
                                 },
                                 {
                                     "key": "Vary",
@@ -12015,7 +12023,7 @@
                     ],
                     "response": [
                         {
-                            "name": "Step 5 – Locations (CLI-LOC-01) — example",
+                            "name": "List locations (CLI-LOC-01) — example",
                             "originalRequest": {
                                 "method": "GET",
                                 "header": [
@@ -12038,7 +12046,7 @@
                                         "locations"
                                     ]
                                 },
-                                "description": "The client picks where the consultation happens."
+                                "description": "The locations of the client; one of them is the default."
                             },
                             "status": "OK",
                             "code": 200,
@@ -12074,7 +12082,7 @@
                                 },
                                 {
                                     "key": "X-RateLimit-Remaining",
-                                    "value": "94"
+                                    "value": "106"
                                 },
                                 {
                                     "key": "Vary",
@@ -12082,7 +12090,7 @@
                                 }
                             ],
                             "cookie": [],
-                            "body": "{\"success\":true,\"message\":\"OK\",\"data\":[{\"id\":5,\"name\":\"\\u0627\\u0644\\u0645\\u0642\\u0631 \\u0627\\u0644\\u0631\\u0626\\u064a\\u0633\\u064a (\\u0645\\u062d\\u062f\\u0651\\u062b)\",\"city\":\"\\u0627\\u0644\\u0631\\u064a\\u0627\\u0636\",\"address\":\"\\u0637\\u0631\\u064a\\u0642 \\u0627\\u0644\\u0645\\u0644\\u0643 \\u0641\\u0647\\u062f\\u060c \\u0628\\u0631\\u062c \\u0627\\u0644\\u0645\\u0643\\u0627\\u062a\\u0628\\u060c \\u0627\\u0644\\u062f\\u0648\\u0631 \\u0665\",\"latitude\":\"24.7136000\",\"longitude\":\"46.6753000\",\"is_default\":true,\"created_at\":\"2026-09-24T04:29:21+03:00\"}]}"
+                            "body": "{\"success\":true,\"message\":\"OK\",\"data\":[]}"
                         }
                     ]
                 },
@@ -12131,7 +12139,7 @@
                     ],
                     "response": [
                         {
-                            "name": "Step 6 – Payment methods (CLI-PM-01) — example",
+                            "name": "List payment methods (CLI-PM-01) — example",
                             "originalRequest": {
                                 "method": "GET",
                                 "header": [
@@ -12154,7 +12162,7 @@
                                         "payment-methods"
                                     ]
                                 },
-                                "description": "The client picks a saved card or adds a new one."
+                                "description": "The saved cards. `gateway_token` is never returned."
                             },
                             "status": "OK",
                             "code": 200,
@@ -12190,7 +12198,7 @@
                                 },
                                 {
                                     "key": "X-RateLimit-Remaining",
-                                    "value": "93"
+                                    "value": "99"
                                 },
                                 {
                                     "key": "Vary",
@@ -12198,7 +12206,7 @@
                                 }
                             ],
                             "cookie": [],
-                            "body": "{\"success\":true,\"message\":\"OK\",\"data\":[{\"id\":2,\"brand\":\"visa\",\"last_four\":\"4242\",\"exp_month\":12,\"exp_year\":2028,\"holder_name\":\"Test Card\",\"is_default\":true,\"is_expired\":false,\"display\":\"Visa \\u2022\\u2022\\u2022\\u2022 4242\",\"created_at\":\"2026-09-24T04:29:21+03:00\"}]}"
+                            "body": "{\"success\":true,\"message\":\"OK\",\"data\":[]}"
                         }
                     ]
                 },
@@ -15704,7 +15712,7 @@
                     ],
                     "response": [
                         {
-                            "name": "Login as demo client (CLI-AUTH-02) — example",
+                            "name": "Login (CLI-AUTH-02) — example",
                             "originalRequest": {
                                 "method": "POST",
                                 "header": [
@@ -15728,13 +15736,10 @@
                                         "login"
                                     ]
                                 },
-                                "auth": {
-                                    "type": "noauth"
-                                },
-                                "description": "The demo client owns the seeded report, so this folder runs as him.",
+                                "description": "Client login. An admin email cannot log in here.\n\n| Field | Rules |\n|---|---|\n| email | required email |\n| password | required |\n\n**Errors:** 422 `INVALID_CREDENTIALS`, 403 `ACCOUNT_DISABLED`",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"email\": \"{{client_email}}\",\n    \"password\": \"{{client_password}}\",\n    \"device_name\": \"postman\"\n}",
+                                    "raw": "{\n    \"email\": \"{{new_client_email}}\",\n    \"password\": \"Password@123\",\n    \"device_name\": \"postman\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -15764,7 +15769,7 @@
                                 },
                                 {
                                     "key": "Date",
-                                    "value": "Thu, 24 Sep 2026 01:29:22 GMT"
+                                    "value": "Thu, 24 Sep 2026 01:29:19 GMT"
                                 },
                                 {
                                     "key": "Content-Type",
@@ -15776,7 +15781,7 @@
                                 },
                                 {
                                     "key": "X-RateLimit-Remaining",
-                                    "value": "8"
+                                    "value": "9"
                                 },
                                 {
                                     "key": "Vary",
@@ -15784,7 +15789,7 @@
                                 }
                             ],
                             "cookie": [],
-                            "body": "{\"success\":true,\"message\":\"\\u062a\\u0645 \\u062a\\u0633\\u062c\\u064a\\u0644 \\u0627\\u0644\\u062f\\u062e\\u0648\\u0644 \\u0628\\u0646\\u062c\\u0627\\u062d.\",\"data\":{\"token\":\"5|NSd3hwjzzyOzh6ygl9RW5ge71T32SkRulw7nOJQ77f98d57f\",\"token_type\":\"Bearer\",\"user\":{\"id\":1,\"name\":\"\\u0639\\u0645\\u064a\\u0644 \\u062a\\u062c\\u0631\\u064a\\u0628\\u064a\",\"email\":\"client@gcmc.sa\",\"phone\":\"0500000001\",\"company_name\":\"\\u0634\\u0631\\u0643\\u0629 \\u062a\\u062c\\u0631\\u064a\\u0628\\u064a\\u0629\",\"avatar_url\":null,\"avatar_thumb_url\":null,\"is_active\":true,\"last_login_at\":\"2026-09-24T04:29:22+03:00\",\"created_at\":\"2026-09-24T04:28:55+03:00\",\"updated_at\":\"2026-09-24T04:29:22+03:00\"}}}"
+                            "body": "{\"success\":true,\"message\":\"\\u062a\\u0645 \\u062a\\u0633\\u062c\\u064a\\u0644 \\u0627\\u0644\\u062f\\u062e\\u0648\\u0644 \\u0628\\u0646\\u062c\\u0627\\u062d.\",\"data\":{\"token\":\"4|EMMxxLAGhfoZczCML8KvHPmq08rzWhGekBmLdg2S3afa40df\",\"token_type\":\"Bearer\",\"user\":{\"id\":2,\"name\":\"\\u0639\\u0645\\u064a\\u0644 \\u062a\\u062c\\u0631\\u064a\\u0628\\u064a\",\"email\":\"client+1790213359519@example.com\",\"phone\":\"0500000099\",\"company_name\":\"\\u0634\\u0631\\u0643\\u0629 \\u0627\\u0644\\u0627\\u062e\\u062a\\u0628\\u0627\\u0631\",\"avatar_url\":null,\"avatar_thumb_url\":null,\"is_active\":true,\"last_login_at\":\"2026-09-24T04:29:19+03:00\",\"created_at\":\"2026-09-24T04:29:19+03:00\",\"updated_at\":\"2026-09-24T04:29:19+03:00\"}}}"
                         }
                     ]
                 },
@@ -19864,6 +19869,166 @@
             ],
             "auth": {
                 "type": "noauth"
+            }
+        },
+        {
+            "name": "27 Admin › Activity Logs",
+            "item": [
+                {
+                    "name": "List activity logs (LOG-01)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/activity-logs",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "activity-logs"
+                            ],
+                            "query": [
+                                {
+                                    "key": "user_id",
+                                    "value": "",
+                                    "description": "admin/consultant who performed the action",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "client_id",
+                                    "value": "",
+                                    "description": "client who performed the action",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "module",
+                                    "value": "",
+                                    "description": "users | consultants | clients | packages | bookings | ...",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "event",
+                                    "value": "",
+                                    "description": "created | updated | deleted | restored | login | logout | login_failed",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "log_name",
+                                    "value": "",
+                                    "description": "system | api",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "",
+                                    "description": "Y-m-d or Y-m-d H:i:s",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "",
+                                    "description": "Y-m-d or Y-m-d H:i:s",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "description, ip or actor name",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "sort",
+                                    "value": "",
+                                    "description": "created_at (- for desc)",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "The unified audit trail, newest first. `log_name=system` holds model events (created/updated/deleted/restored) for every module; `log_name=api` holds auth events (login/logout/login_failed). Each row carries the acting user/client (`causer`), the affected record (`subject`), the changed data (`properties`), the ip and the timestamp.\n\n**Permission:** `view-activity-logs`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Activity log filters (LOG-02)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/activity-logs/meta",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "activity-logs",
+                                "meta"
+                            ]
+                        },
+                        "description": "The values behind the LOG-01 filter dropdowns: modules that produced log rows, the event names and the log sources.\n\n**Permission:** `view-activity-logs`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                }
+            ],
+            "auth": {
+                "type": "bearer",
+                "bearer": [
+                    {
+                        "key": "token",
+                        "value": "{{admin_token}}",
+                        "type": "string"
+                    }
+                ]
             }
         },
         {

@@ -4,6 +4,8 @@ namespace Modules\Clients\Services;
 
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\NewAccessToken;
+use Modules\ActivityLogs\Enums\ActivityEvent;
+use Modules\ActivityLogs\Support\ActivityLogger;
 use Modules\Clients\Models\Client;
 use Modules\Clients\Notifications\ClientWelcomeNotification;
 use Modules\Core\Enums\ErrorCode;
@@ -33,6 +35,11 @@ class ClientAuthService
         $client = Client::query()->where('email', mb_strtolower($email))->first();
 
         if (! $client || ! Hash::check($password, $client->password)) {
+            ActivityLogger::api(ActivityEvent::LoginFailed, causer: $client, properties: [
+                'guard' => 'client',
+                'email' => $email,
+            ]);
+
             throw new BusinessException(
                 ErrorCode::InvalidCredentials,
                 errors: ['email' => [__('core::errors.INVALID_CREDENTIALS')]],
@@ -40,12 +47,23 @@ class ClientAuthService
         }
 
         if (! $client->is_active) {
+            ActivityLogger::api(ActivityEvent::LoginFailed, causer: $client, properties: [
+                'guard' => 'client',
+                'email' => $email,
+                'reason' => 'account_disabled',
+            ]);
+
             throw new BusinessException(ErrorCode::AccountDisabled, status: 403);
         }
 
         $client->forceFill(['last_login_at' => now()])->save();
 
         $token = $client->createToken($deviceName ?: 'client-dashboard');
+
+        ActivityLogger::api(ActivityEvent::Login, causer: $client, properties: [
+            'guard' => 'client',
+            'device_name' => $deviceName,
+        ]);
 
         return [$client, $token];
     }
@@ -56,5 +74,7 @@ class ClientAuthService
     public function logout(Client $client): void
     {
         $client->currentAccessToken()->delete();
+
+        ActivityLogger::api(ActivityEvent::Logout, causer: $client, properties: ['guard' => 'client']);
     }
 }

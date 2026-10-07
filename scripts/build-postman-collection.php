@@ -1151,6 +1151,25 @@ $reviews = folder('26 Reviews', [
     req('Approve review', 'PATCH', 'admin/reviews/{{review_id}}/approve', ['auth' => bearerAuth('admin_token')]),
     req('Reject review', 'PATCH', 'admin/reviews/{{review_id}}/reject', ['auth' => bearerAuth('admin_token'), 'body' => ['reason' => 'Not appropriate.']]),
 ], 'none');
+$activityLogs = folder('27 Admin › Activity Logs', [
+    req('List activity logs (LOG-01)', 'GET', 'admin/activity-logs', [
+        'description' => desc('The unified audit trail, newest first. `log_name=system` holds model events (created/updated/deleted/restored) for every module; `log_name=api` holds auth events (login/logout/login_failed). Each row carries the acting user/client (`causer`), the affected record (`subject`), the changed data (`properties`), the ip and the timestamp.', 'view-activity-logs'),
+        'query' => [
+            ['user_id', '', 'admin/consultant who performed the action', true],
+            ['client_id', '', 'client who performed the action', true],
+            ['module', '', 'users | consultants | clients | packages | bookings | ...', true],
+            ['event', '', 'created | updated | deleted | restored | login | logout | login_failed', true],
+            ['log_name', '', 'system | api', true],
+            ['date_from', '', 'Y-m-d or Y-m-d H:i:s', true],
+            ['date_to', '', 'Y-m-d or Y-m-d H:i:s', true],
+            ['search', '', 'description, ip or actor name', true],
+            ['sort', '', 'created_at (- for desc)', true],
+        ],
+    ]),
+    req('Activity log filters (LOG-02)', 'GET', 'admin/activity-logs/meta', [
+        'description' => desc('The values behind the LOG-01 filter dropdowns: modules that produced log rows, the event names and the log sources.', 'view-activity-logs'),
+    ]),
+], 'admin_token');
 // ---------------------------------------------------------------------
 // Collection
 // ---------------------------------------------------------------------
@@ -1167,7 +1186,7 @@ $collection = [
         $packages, $clientAuth, $clientProfile, $locations, $paymentMethods,
         $wizard, $clientBookings, $adminBookings, $adminReports, $clientReports,
         $adminClients, $adminPayments, $dashboard, $webhooks,
-        $adminNotifications, $clientNotifications, $adminSupportTickets, $clientSupportTickets, $joinRequests, $reviews, $logout,
+        $adminNotifications, $clientNotifications, $adminSupportTickets, $clientSupportTickets, $joinRequests, $reviews, $activityLogs, $logout,
     ],
 ];
 

@@ -238,6 +238,7 @@ of strings) and `user.type` (`admin` | `consultant`) in the store.
 | Clients | `view-clients` |
 | Packages | `view-packages` |
 | Payments | `view-payments` |
+| Activity logs | `view-activity-logs` |
 | Profile | — (every logged-in user) |
 | My availability (consultant) | `view-availability` |
 
@@ -426,6 +427,16 @@ Same payloads as above against `GET|PUT /admin/my/availability` (MY-01/02),
   `status`: `initiated | paid | failed | refunded`. `gateway_response` is never
   exposed.
 - Show: `GET /admin/payments/{id}` (PAY-02) — payment + booking summary.
+
+#### Activity logs
+- List: `GET /admin/activity-logs` (LOG-01) — the audit trail: every
+  create/update/draft/restore per module plus login/logout/failed-login
+  events, with actor (`causer`), record (`subject`), diff (`properties`),
+  ip and timestamp. Filters: `user_id`, `client_id`, `module`, `event`,
+  `log_name` (`system`|`api`), `date_from`/`date_to` (date or datetime),
+  `search`, `sort`.
+- Filter dropdown values: `GET /admin/activity-logs/meta` (LOG-02).
+- Full field-by-field guide in `docs/ACTIVITY_LOGS_GUIDE.md`.
 
 #### Profile (both user types)
 `GET /admin/profile` (ADM-PRF-01) · `PUT /admin/profile` (ADM-PRF-02) · avatar
