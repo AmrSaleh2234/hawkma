@@ -42,10 +42,11 @@ class CreateBookingAction
      */
     public function execute(Client $client, array $data): array
     {
-        $package = Package::query()->findOrFail($data['package_id']);
-        if (! $package->is_active) {
-            throw new BusinessException(ErrorCode::PackageInactive);
-        }
+        // withTrashed: a drafted (soft-deleted) package must still serve the
+        // remaining quota of an active subscription — the purchase terms are
+        // frozen on the subscription (§9.4), so only NEW purchases require
+        // an active package.
+        $package = Package::withTrashed()->findOrFail($data['package_id']);
 
         $consultant = User::query()->findOrFail($data['consultant_id']);
         if (! $consultant->isConsultant() || ! $consultant->is_active) {
@@ -87,16 +88,25 @@ class CreateBookingAction
             // (d)
             $quote = $this->subscriptions->quote($client, $package);
 
-            // (e)
+            // (e) A drafted or deactivated package can still serve the
+            // remaining quota of an active subscription; a new purchase
+            // requires an active, non-drafted package.
+            if ($quote['requires_payment'] && (! $package->is_active || $package->trashed())) {
+                throw new BusinessException(ErrorCode::PackageInactive);
+            }
+
             if ($quote['requires_payment'] && $method === null && $cardToken === null) {
                 throw new BusinessException(ErrorCode::PaymentMethodRequired);
             }
 
-            // (f)
+            // (f) The snapshot freezes the package display data at purchase
+            // time; bookings under an active subscription reuse the
+            // subscription's snapshot so all its bookings match.
             $booking = Booking::query()->create([
                 'client_id' => $client->id,
                 'consultant_id' => $consultant->id,
                 'package_id' => $package->id,
+                'package_snapshot' => $quote['subscription']?->package_snapshot ?? $package->snapshot(),
                 'client_subscription_id' => $quote['subscription']?->id,
                 'client_location_id' => $location->id,
                 'location_snapshot' => [

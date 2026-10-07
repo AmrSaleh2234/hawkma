@@ -12,6 +12,8 @@ use Modules\Consultants\Http\Requests\Admin\StoreConsultantRequest;
 use Modules\Consultants\Http\Requests\Admin\UpdateConsultantRequest;
 use Modules\Consultants\Http\Resources\ConsultantResource;
 use Modules\Consultants\Services\ConsultantService;
+use Modules\Core\Enums\ErrorCode;
+use Modules\Core\Exceptions\BusinessException;
 use Modules\Core\Http\Controllers\ApiController;
 use Modules\Core\Support\Money;
 use Modules\Core\Support\QueryFilters;
@@ -135,6 +137,54 @@ class ConsultantController extends ApiController
     }
 
     /**
+     * CON-19 GET /api/v1/admin/consultants/trashed — Perm: view-consultants
+     *
+     * Drafted (soft-deleted) consultants, most recently drafted first.
+     * Query: search, specialization, per_page. A drafted consultant cannot
+     * hold a token, so this list is effectively admins-only content.
+     */
+    public function trashed(Request $request): JsonResponse
+    {
+        $query = User::query()->consultants()->onlyTrashed()->with(['roles', 'media']);
+
+        QueryFilters::apply(
+            $query,
+            $request,
+            ['name', 'email', 'phone', 'specialization'],
+            ['name', 'created_at', 'deleted_at'],
+            '-deleted_at',
+        );
+
+        if ($request->filled('specialization')) {
+            $query->where('specialization', $request->string('specialization')->value());
+        }
+
+        return $this->paginated(ConsultantResource::collection($query->paginate(QueryFilters::perPage($request))));
+    }
+
+    /**
+     * CON-20 POST /api/v1/admin/consultants/{id}/restore — Perm: delete-consultants
+     *
+     * Restores a drafted consultant (roles and availability are kept; the
+     * consultant logs in again — tokens were removed at draft time).
+     */
+    public function restore(string $id): JsonResponse
+    {
+        $consultant = User::query()->consultants()->withTrashed()->findOrFail($id);
+
+        if (! $consultant->trashed()) {
+            throw new BusinessException(ErrorCode::NotDrafted);
+        }
+
+        $consultant->restore();
+
+        return $this->success(
+            ConsultantResource::make($consultant->fresh('roles')),
+            __('core::messages.restored'),
+        );
+    }
+
+    /**
      * CON-02 POST /api/v1/admin/consultants
      *
      * The type and the consultant role are set automatically.
@@ -181,7 +231,9 @@ class ConsultantController extends ApiController
     /**
      * CON-05 DELETE /api/v1/admin/consultants/{consultant}
      *
-     * 409 CONSULTANT_HAS_FUTURE_BOOKINGS if there are future pending bookings.
+     * 409 CONSULTANT_HAS_FUTURE_BOOKINGS if there are future pending
+     * bookings. Drafting keeps the consultant's data (soft delete) — he can
+     * be restored with CON-20.
      */
     public function destroy(Request $request, User $consultant): JsonResponse
     {

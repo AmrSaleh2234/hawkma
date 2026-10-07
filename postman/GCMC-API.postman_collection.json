@@ -4221,6 +4221,121 @@
               "body": "{\"success\":true,\"message\":\"\\u062a\\u0645 \\u0627\\u0644\\u062d\\u0630\\u0641 \\u0628\\u0646\\u062c\\u0627\\u062d.\",\"data\":null}"
             }
           ]
+        },
+        {
+          "name": "List drafted users (USR-09)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users/trashed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "trashed"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "name, email or phone",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "",
+                  "description": "admin | consultant",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "name | created_at | deleted_at (- for desc)",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "",
+                  "description": "default 15, max 100",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Drafted (soft-deleted) users, most recently drafted first.\n\n**Permission:** `view-users`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"envelope\", () => {",
+                  "  pm.expect(j).to.have.property(\"success\", true);",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restore drafted user (USR-10)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{user_id}}/restore",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "{{user_id}}",
+                "restore"
+              ]
+            },
+            "description": "Restores a drafted user (the inverse of deleting). The user keeps his roles and simply logs in again.\n\n**Permission:** `delete-users`\n\n**Errors:** 422 `NOT_DRAFTED`, 404 `NOT_FOUND`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"envelope\", () => {",
+                  "  pm.expect(j).to.have.property(\"success\", true);",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ],
       "auth": {
@@ -6669,6 +6784,121 @@
           ]
         },
         {
+          "name": "List drafted consultants (CON-19)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/consultants/trashed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "consultants",
+                "trashed"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "name, email, phone or specialization",
+                  "disabled": true
+                },
+                {
+                  "key": "specialization",
+                  "value": "",
+                  "description": "exact match",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "name | created_at | deleted_at (- for desc)",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "",
+                  "description": "default 15, max 100",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Drafted (soft-deleted) consultants, most recently drafted first.\n\n**Permission:** `view-consultants`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"envelope\", () => {",
+                  "  pm.expect(j).to.have.property(\"success\", true);",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restore drafted consultant (CON-20)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/consultants/{{consultant_id}}/restore",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "consultants",
+                "{{consultant_id}}",
+                "restore"
+              ]
+            },
+            "description": "Restores a drafted consultant (roles and availability are kept).\n\n**Permission:** `delete-consultants`\n\n**Errors:** 422 `NOT_DRAFTED`, 404 `NOT_FOUND`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"envelope\", () => {",
+                  "  pm.expect(j).to.have.property(\"success\", true);",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Consultants stats (CON-01b)",
           "request": {
             "method": "GET",
@@ -8287,6 +8517,115 @@
               ],
               "cookie": [],
               "body": "{\"success\":true,\"message\":\"\\u062a\\u0645 \\u0627\\u0644\\u062d\\u0630\\u0641 \\u0628\\u0646\\u062c\\u0627\\u062d.\",\"data\":null}"
+            }
+          ]
+        },
+        {
+          "name": "List drafted packages (PKG-07)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/packages/trashed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "packages",
+                "trashed"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "name_ar, name_en or slug",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "price | sort_order | created_at | deleted_at (- for desc)",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "",
+                  "description": "default 15, max 100",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Drafted (soft-deleted) packages, most recently drafted first, with subscriptions_count.\n\n**Permission:** `view-packages`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"envelope\", () => {",
+                  "  pm.expect(j).to.have.property(\"success\", true);",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restore drafted package (PKG-08)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/packages/{{package_id_new}}/restore",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "packages",
+                "{{package_id_new}}",
+                "restore"
+              ]
+            },
+            "description": "Restores a drafted package. `is_active` keeps the value it had — restoring does not re-publish the package. Existing subscriptions were never affected (they use the purchase-time snapshot).\n\n**Permission:** `delete-packages`\n\n**Errors:** 422 `NOT_DRAFTED`, 404 `NOT_FOUND`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"envelope\", () => {",
+                  "  pm.expect(j).to.have.property(\"success\", true);",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "});"
+                ]
+              }
             }
           ]
         }
@@ -16875,6 +17214,115 @@
               ],
               "cookie": [],
               "body": "{\"success\":true,\"message\":\"\\u062a\\u0645 \\u0627\\u0644\\u062d\\u0630\\u0641 \\u0628\\u0646\\u062c\\u0627\\u062d.\",\"data\":null}"
+            }
+          ]
+        },
+        {
+          "name": "List drafted clients (ADM-CL-09)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/clients/trashed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "clients",
+                "trashed"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "name, email, phone or company_name",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "name | company_name | created_at | deleted_at (- for desc)",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "",
+                  "description": "default 15, max 100",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Drafted (soft-deleted) clients, most recently drafted first. Consultants only see their own (former) clients.\n\n**Permission:** `view-clients`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"envelope\", () => {",
+                  "  pm.expect(j).to.have.property(\"success\", true);",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restore drafted client (ADM-CL-10)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/clients/{{new_client_id}}/restore",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "clients",
+                "{{new_client_id}}",
+                "restore"
+              ]
+            },
+            "description": "Restores a drafted client (locations and subscriptions are kept; the client simply logs in again).\n\n**Permission:** `delete-clients`\n\n**Errors:** 422 `NOT_DRAFTED`, 404 `NOT_FOUND`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"envelope\", () => {",
+                  "  pm.expect(j).to.have.property(\"success\", true);",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "});"
+                ]
+              }
             }
           ]
         },

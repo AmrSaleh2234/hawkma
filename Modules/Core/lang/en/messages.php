@@ -5,6 +5,7 @@ return [
     'created' => 'Created successfully.',
     'updated' => 'Updated successfully.',
     'deleted' => 'Deleted successfully.',
+    'restored' => 'Restored successfully.',
     'logged_in' => 'Logged in successfully.',
     'logged_out' => 'Logged out successfully.',
     'registered' => 'Registered successfully.',

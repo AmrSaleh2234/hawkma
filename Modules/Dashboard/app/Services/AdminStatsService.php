@@ -3,7 +3,6 @@
 namespace Modules\Dashboard\Services;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Modules\Bookings\Enums\BookingStatus;
 use Modules\Bookings\Enums\ReportStatus;
 use Modules\Bookings\Http\Resources\BookingResource;

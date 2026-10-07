@@ -4,6 +4,8 @@ namespace Modules\Packages\Http\Controllers\Admin;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Core\Enums\ErrorCode;
+use Modules\Core\Exceptions\BusinessException;
 use Modules\Core\Http\Controllers\ApiController;
 use Modules\Core\Support\QueryFilters;
 use Modules\Packages\Http\Requests\Admin\StorePackageRequest;
@@ -45,6 +47,27 @@ class PackageController extends ApiController
     }
 
     /**
+     * PKG-07 GET /api/v1/admin/packages/trashed — Perm: view-packages
+     *
+     * Drafted (soft-deleted) packages, most recently drafted first, with
+     * subscriptions_count. Query: search, per_page.
+     */
+    public function trashed(Request $request): JsonResponse
+    {
+        $query = Package::query()->onlyTrashed()->withCount('subscriptions');
+
+        QueryFilters::apply(
+            $query,
+            $request,
+            ['name_ar', 'name_en', 'slug'],
+            ['name_ar', 'name_en', 'price', 'sort_order', 'created_at', 'deleted_at'],
+            '-deleted_at',
+        );
+
+        return $this->paginated(PackageResource::collection($query->paginate(QueryFilters::perPage($request))));
+    }
+
+    /**
      * PKG-02 POST /api/v1/admin/packages
      */
     public function store(StorePackageRequest $request): JsonResponse
@@ -80,13 +103,37 @@ class PackageController extends ApiController
      * PKG-05 DELETE /api/v1/admin/packages/{package}
      *
      * 409 PACKAGE_HAS_SUBSCRIPTIONS if there are active subscriptions;
-     * otherwise soft delete.
+     * otherwise soft delete. Existing subscriptions keep working with the
+     * purchase-time state (package_snapshot), and the package can be
+     * restored with PKG-08.
      */
     public function destroy(Package $package): JsonResponse
     {
         $this->packages->delete($package);
 
         return $this->noContent(__('core::messages.deleted'));
+    }
+
+    /**
+     * PKG-08 POST /api/v1/admin/packages/{id}/restore — Perm: delete-packages
+     *
+     * Restores a drafted package. `is_active` keeps the value it had —
+     * restoring does not automatically re-publish the package.
+     */
+    public function restore(string $id): JsonResponse
+    {
+        $package = Package::withTrashed()->findOrFail($id);
+
+        if (! $package->trashed()) {
+            throw new BusinessException(ErrorCode::NotDrafted);
+        }
+
+        $package->restore();
+
+        return $this->success(
+            PackageResource::make($package->refresh()->loadCount('subscriptions')),
+            __('core::messages.restored'),
+        );
     }
 
     /**

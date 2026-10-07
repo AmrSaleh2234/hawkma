@@ -51,12 +51,14 @@ class SubscriptionService
     /**
      * Create the subscription once a payment succeeds (plan §9.4). The state
      * machine then increments consultations_used to 1 for the booking that
-     * paid.
+     * paid. The package display data is snapshotted here so later package
+     * updates or deletes never change what this subscription shows.
      */
     public function activateFromPayment(Client $client, Package $package, Payment $payment): ClientSubscription
     {
         return $client->subscriptions()->create([
             'package_id' => $package->id,
+            'package_snapshot' => $package->snapshot(),
             'status' => SubscriptionStatus::Active,
             'starts_at' => now(),
             'ends_at' => now()->addDays($package->billing_period_days),

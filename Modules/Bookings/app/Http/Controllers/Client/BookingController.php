@@ -33,7 +33,9 @@ class BookingController extends ApiController
      */
     public function quote(QuoteBookingRequest $request, QuoteBookingAction $action): JsonResponse
     {
-        $package = Package::query()->findOrFail($request->integer('package_id'));
+        // withTrashed: quoting must work for a drafted package when an
+        // active subscription covers the booking (remaining quota).
+        $package = Package::withTrashed()->findOrFail($request->integer('package_id'));
         $consultant = $request->filled('consultant_id')
             ? User::query()->findOrFail($request->integer('consultant_id'))
             : null;

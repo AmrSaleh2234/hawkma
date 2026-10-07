@@ -21,6 +21,9 @@ Route::prefix('v1')->group(function () {
         Route::get('packages', [PackageController::class, 'index'])
             ->middleware('permission:view-packages,admin')
             ->name('packages.index');
+        Route::get('packages/trashed', [PackageController::class, 'trashed'])
+            ->middleware('permission:view-packages,admin')
+            ->name('packages.trashed');
         Route::post('packages', [PackageController::class, 'store'])
             ->middleware('permission:create-packages,admin')
             ->name('packages.store');
@@ -33,6 +36,9 @@ Route::prefix('v1')->group(function () {
         Route::delete('packages/{package}', [PackageController::class, 'destroy'])
             ->middleware('permission:delete-packages,admin')
             ->name('packages.destroy');
+        Route::post('packages/{id}/restore', [PackageController::class, 'restore'])
+            ->middleware('permission:delete-packages,admin')
+            ->name('packages.restore');
         Route::patch('packages/{package}/status', [PackageController::class, 'updateStatus'])
             ->middleware('permission:update-packages,admin')
             ->name('packages.status.update');

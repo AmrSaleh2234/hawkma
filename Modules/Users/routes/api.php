@@ -31,6 +31,9 @@ Route::prefix('v1')->group(function () {
         Route::get('users', [UserController::class, 'index'])
             ->middleware('permission:view-users,admin')
             ->name('users.index');
+        Route::get('users/trashed', [UserController::class, 'trashed'])
+            ->middleware('permission:view-users,admin')
+            ->name('users.trashed');
         Route::post('users', [UserController::class, 'store'])
             ->middleware('permission:create-users,admin')
             ->name('users.store');
@@ -43,6 +46,9 @@ Route::prefix('v1')->group(function () {
         Route::delete('users/{user}', [UserController::class, 'destroy'])
             ->middleware('permission:delete-users,admin')
             ->name('users.destroy');
+        Route::post('users/{id}/restore', [UserController::class, 'restore'])
+            ->middleware('permission:delete-users,admin')
+            ->name('users.restore');
         Route::put('users/{user}/roles', [UserController::class, 'syncRoles'])
             ->middleware('permission:assign-roles,admin')
             ->name('users.roles.update');

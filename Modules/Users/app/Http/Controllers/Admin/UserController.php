@@ -4,6 +4,8 @@ namespace Modules\Users\Http\Controllers\Admin;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Core\Enums\ErrorCode;
+use Modules\Core\Exceptions\BusinessException;
 use Modules\Core\Http\Controllers\ApiController;
 use Modules\Core\Support\QueryFilters;
 use Modules\Users\Http\Requests\Admin\AssignRolesRequest;
@@ -43,6 +45,31 @@ class UserController extends ApiController
         $users = $query->paginate(QueryFilters::perPage($request));
 
         return $this->paginated(UserResource::collection($users));
+    }
+
+    /**
+     * USR-09 GET /api/v1/admin/users/trashed — Perm: view-users
+     *
+     * Drafted (soft-deleted) users, most recently drafted first. Query:
+     * search, type, per_page.
+     */
+    public function trashed(Request $request): JsonResponse
+    {
+        $query = User::query()->onlyTrashed()->with(['roles', 'media']);
+
+        QueryFilters::apply(
+            $query,
+            $request,
+            ['name', 'email', 'phone'],
+            ['name', 'created_at', 'deleted_at'],
+            '-deleted_at',
+        );
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->string('type')->value());
+        }
+
+        return $this->paginated(UserResource::collection($query->paginate(QueryFilters::perPage($request))));
     }
 
     /**
@@ -91,6 +118,29 @@ class UserController extends ApiController
         $this->users->delete($user, $request->user());
 
         return $this->noContent(__('core::messages.deleted'));
+    }
+
+    /**
+     * USR-10 POST /api/v1/admin/users/{id}/restore — Perm: delete-users
+     *
+     * Restores a drafted user (the inverse of drafting). Drafted users keep
+     * their roles; their tokens were deleted at draft time, so they simply
+     * log in again.
+     */
+    public function restore(string $id): JsonResponse
+    {
+        $user = User::withTrashed()->findOrFail($id);
+
+        if (! $user->trashed()) {
+            throw new BusinessException(ErrorCode::NotDrafted);
+        }
+
+        $user->restore();
+
+        return $this->success(
+            UserResource::make($user->fresh('roles')),
+            __('core::messages.restored'),
+        );
     }
 
     /**

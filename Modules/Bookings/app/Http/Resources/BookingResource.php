@@ -36,13 +36,7 @@ class BookingResource extends JsonResource
             'amount' => $this->amount,
             'amount_formatted' => Money::format($this->amount, $this->currency),
             'currency' => $this->currency,
-            'package' => $this->package === null ? null : [
-                'id' => $this->package->id,
-                'slug' => $this->package->slug,
-                'name' => $this->package->localizedName(),
-                'name_ar' => $this->package->name_ar,
-                'name_en' => $this->package->name_en,
-            ],
+            'package' => $this->packageDisplay(),
             'consultant' => $this->consultant === null ? null : [
                 'id' => $this->consultant->id,
                 'name' => $this->consultant->name,

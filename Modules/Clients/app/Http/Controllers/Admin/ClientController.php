@@ -5,7 +5,6 @@ namespace Modules\Clients\Http\Controllers\Admin;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Modules\Bookings\Enums\BookingStatus;
 use Modules\Bookings\Http\Requests\BookingIndexRequest;
 use Modules\Bookings\Http\Resources\BookingResource;
@@ -15,6 +14,8 @@ use Modules\Clients\Http\Requests\Admin\UpdateClientStatusRequest;
 use Modules\Clients\Http\Resources\ClientResource;
 use Modules\Clients\Models\Client;
 use Modules\Clients\Services\ClientService;
+use Modules\Core\Enums\ErrorCode;
+use Modules\Core\Exceptions\BusinessException;
 use Modules\Core\Http\Controllers\ApiController;
 use Modules\Core\Support\Money;
 use Modules\Core\Support\QueryFilters;
@@ -151,6 +152,50 @@ class ClientController extends ApiController
             'new_by_month' => $newByMonth,
             'top_clients' => $topClients,
         ]);
+    }
+
+    /**
+     * ADM-CL-09 GET /api/v1/admin/clients/trashed — Perm: view-clients
+     *
+     * Drafted (soft-deleted) clients, most recently drafted first. Scoped
+     * the same as the main list: a consultant sees only the clients he has
+     * (or had) bookings with. Query: search, per_page.
+     */
+    public function trashed(Request $request): JsonResponse
+    {
+        $query = Client::query()->onlyTrashed()->visibleTo($request->user())->with('media');
+
+        QueryFilters::apply(
+            $query,
+            $request,
+            ['name', 'email', 'phone', 'company_name'],
+            ['name', 'company_name', 'created_at', 'deleted_at'],
+            '-deleted_at',
+        );
+
+        return $this->paginated(ClientResource::collection($query->paginate(QueryFilters::perPage($request))));
+    }
+
+    /**
+     * ADM-CL-10 POST /api/v1/admin/clients/{id}/restore — Perm: delete-clients
+     *
+     * Restores a drafted client (the inverse of drafting). Locations and
+     * subscriptions are kept; the client simply logs in again.
+     */
+    public function restore(string $id): JsonResponse
+    {
+        $client = Client::withTrashed()->findOrFail($id);
+
+        if (! $client->trashed()) {
+            throw new BusinessException(ErrorCode::NotDrafted);
+        }
+
+        $client->restore();
+
+        return $this->success(
+            ClientResource::make($client->refresh()),
+            __('core::messages.restored'),
+        );
     }
 
     /**

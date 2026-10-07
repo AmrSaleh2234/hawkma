@@ -17,6 +17,7 @@ class ClientSubscription extends Model
     protected $fillable = [
         'client_id',
         'package_id',
+        'package_snapshot',
         'status',
         'starts_at',
         'ends_at',
@@ -39,6 +40,7 @@ class ClientSubscription extends Model
             'status' => SubscriptionStatus::class,
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
+            'package_snapshot' => 'array',
             'consultations_limit' => 'integer',
             'consultations_used' => 'integer',
             'price_paid' => 'integer',
@@ -99,6 +101,18 @@ class ClientSubscription extends Model
         return $this->consultations_limit === null;
     }
 
+    /**
+     * The package summary for resources/emails: the purchase-time snapshot
+     * wins, so package updates or deletes never change what this
+     * subscription shows.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function packageDisplay(): ?array
+    {
+        return Package::displayFrom($this->package_snapshot, $this->package);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Relations
@@ -112,6 +126,8 @@ class ClientSubscription extends Model
 
     public function package(): BelongsTo
     {
-        return $this->belongsTo(Package::class);
+        // withTrashed: a subscription must still resolve its package after
+        // the package is drafted (soft deleted).
+        return $this->belongsTo(Package::class)->withTrashed();
     }
 }

@@ -175,3 +175,46 @@ Regression tests: `SubscriptionServiceTest::test_consume_refuses_a_subscription_
 `test_consume_refuses_a_subscription_past_its_end_even_if_still_marked_active`,
 and the 503 body assertions in
 `GatewayOutageTest::test_a_charge_timeout_is_reconciled_by_the_webhook_via_the_metadata_payment_id`.
+
+## 11. Draft (soft delete) lists + restore endpoints (beyond §10)
+
+The plan soft-deletes the main records but never gives the admin a way to see
+or bring them back. Added 8 admin endpoints — `GET /admin/{users|consultants|
+clients|packages}/trashed` and `POST /admin/{…}/{id}/restore` (USR-09/10,
+CON-19/20, ADM-CL-09/10, PKG-07/08):
+
+- No new permissions: the drafted list uses the resource's `view-*`
+  permission, restore uses its `delete-*` permission (whoever can draft can
+  un-draft).
+- Restore of a live record → 422 `NOT_DRAFTED` (new error code); unknown id
+  → 404.
+- Restore routes use an `{id}` param (not implicit model binding, which
+  404s on trashed rows); `trashed` routes are registered before the
+  `{param}` routes so they are not swallowed.
+- `deleted_at` was added to `UserResource`, `ConsultantResource`,
+  `ClientResource`, `PackageResource` (null for live records).
+- Reports/locations/payment methods are soft-deleted but have no restore
+  (report delete also clears the file), bookings use cancel — documented in
+  `docs/DRAFT_AND_RESTORE_GUIDE.md`.
+
+## 12. Package purchases are frozen at purchase time (§9.4 extension)
+
+The plan snapshots `consultations_limit` and `price_paid` on the
+subscription, but a package rename/delete still changed what existing
+subscriptions/bookings displayed, and drafting/deactivating a package blocked
+the client from booking the subscription's **remaining** consultations
+(`PACKAGE_INACTIVE` was checked before the quote). Now:
+
+- `bookings.package_snapshot` and `client_subscriptions.package_snapshot`
+  (json, new migration `2026_01_01_000900`) freeze `{id, slug, name_ar,
+  name_en}` at purchase time; `BookingResource`/`SubscriptionResource`/
+  booking emails/Google Meet events show the snapshot, not the live package.
+- The `package` relations on `Booking`/`ClientSubscription` are
+  `withTrashed()` so legacy rows still resolve drafted packages.
+- `CreateBookingAction`/`QuoteBookingAction` resolve the package
+  `withTrashed()` and only enforce `PACKAGE_INACTIVE` when the quote
+  **requires payment** — a subscription-covered booking of a drafted or
+  deactivated package is free and allowed; new purchases are rejected.
+- A booking covered by a subscription reuses the subscription's snapshot, so
+  every booking inside one package purchase shows identical package data.
+

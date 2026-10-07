@@ -5,6 +5,8 @@ namespace Modules\Bookings\Actions;
 use Carbon\CarbonImmutable;
 use Modules\Clients\Models\Client;
 use Modules\Consultants\Services\SlotService;
+use Modules\Core\Enums\ErrorCode;
+use Modules\Core\Exceptions\BusinessException;
 use Modules\Packages\Models\ClientSubscription;
 use Modules\Packages\Models\Package;
 use Modules\Packages\Services\SubscriptionService;
@@ -42,6 +44,13 @@ class QuoteBookingAction
         ?string $time = null,
     ): array {
         $quote = $this->subscriptions->quote($client, $package);
+
+        // Mirrors CreateBookingAction: the remaining quota of an active
+        // subscription still applies after the package is updated or
+        // drafted; only a new purchase requires an active package.
+        if ($quote['requires_payment'] && (! $package->is_active || $package->trashed())) {
+            throw new BusinessException(ErrorCode::PackageInactive);
+        }
 
         $slotAvailable = null;
         if ($consultant && $date && $time) {

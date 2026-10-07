@@ -79,6 +79,7 @@ Branch on `error_code` (stable), never on `message` (translated).
 | 403 | `FORBIDDEN` | Missing permission / policy denied | "لا تملك صلاحية" toast; hide the action next time |
 | 403 | `ACCOUNT_DISABLED` | `is_active = false` | Block login: "الحساب معطّل، تواصل مع الإدارة" |
 | 404 | `NOT_FOUND` | Not found (or belongs to someone else) | 404 page |
+| 422 | `NOT_DRAFTED` | Restore called on a live (not drafted) record | Silently refresh the drafts list |
 | 405 | `METHOD_NOT_ALLOWED` | Wrong HTTP method | Dev error |
 | 422 | `VALIDATION_ERROR` | Form validation | Inline field errors from `errors` |
 | 422 | `INVALID_CREDENTIALS` | Wrong email/password | "بيانات الدخول غير صحيحة" |
@@ -317,6 +318,8 @@ to the Reports page filtered by "pending".
 - Roles: `PUT /admin/users/{id}/roles` `{ "roles": ["admin"] }` (USR-06).
 - Activate/deactivate: `PATCH /admin/users/{id}/status` `{ "is_active": false }` (USR-07) — revokes the user's tokens; `LAST_ADMIN` possible.
 - Delete: `DELETE /admin/users/{id}` (USR-05) — `CANNOT_DELETE_SELF`, `LAST_ADMIN`.
+- Drafts tab: `GET /admin/users/trashed?search=&type=` (USR-09) · restore
+  `POST /admin/users/{id}/restore` (USR-10). See `docs/DRAFT_AND_RESTORE_GUIDE.md`.
 
 #### Consultants
 - List: `GET /admin/consultants?search=&is_active=&specialization=` (CON-01).
@@ -328,7 +331,9 @@ to the Reports page filtered by "pending".
   - Profile: `GET /admin/consultants/{id}` (CON-03) · edit `PUT` (CON-04) ·
     photo `POST /admin/consultants/{id}/photo` (CON-07) · status
     `PATCH /admin/consultants/{id}/status` (CON-06) · delete `DELETE` (CON-05,
-    `CONSULTANT_HAS_FUTURE_BOOKINGS`).
+    `CONSULTANT_HAS_FUTURE_BOOKINGS`) · drafts tab
+    `GET /admin/consultants/trashed` (CON-19) · restore
+    `POST /admin/consultants/{id}/restore` (CON-20).
   - Availability: `GET /admin/consultants/{id}/availability` (CON-08) · replace
     `PUT` (CON-09) with
     `{ "days": [ { "day_of_week": 0, "ranges": [ { "start_time": "09:00", "end_time": "17:00" } ] } ] }`.
@@ -393,6 +398,8 @@ Same payloads as above against `GET|PUT /admin/my/availability` (MY-01/02),
   `GET /admin/clients/{id}/reports` (ADM-CL-07) · subscriptions
   `GET /admin/clients/{id}/subscriptions` (ADM-CL-08).
 - Delete: `DELETE /admin/clients/{id}` (ADM-CL-05) — `CLIENT_HAS_FUTURE_BOOKINGS`.
+- Drafts tab: `GET /admin/clients/trashed` (ADM-CL-09) · restore
+  `POST /admin/clients/{id}/restore` (ADM-CL-10).
 
 #### Packages
 - List: `GET /admin/packages?search=&is_active=` (PKG-01) — includes inactive.
@@ -404,6 +411,15 @@ Same payloads as above against `GET|PUT /admin/my/availability` (MY-01/02),
 - Show/edit: `GET|PUT /admin/packages/{id}` (PKG-03/04).
 - Status: `PATCH /admin/packages/{id}/status` (PKG-06).
 - Delete: `DELETE /admin/packages/{id}` (PKG-05) — soft delete.
+- Drafts tab: `GET /admin/packages/trashed` (PKG-07) · restore
+  `POST /admin/packages/{id}/restore` (PKG-08, does not re-publish —
+  `is_active` keeps its value).
+- **Existing purchases are frozen**: changing the price/quota/name or
+  drafting a package never changes a client's active subscription or past
+  bookings (they carry a purchase-time `package_snapshot`), and the client
+  can still book the subscription's remaining consultations. Only new
+  purchases of an inactive/drafted package are rejected (`PACKAGE_INACTIVE`).
+  Details in `docs/DRAFT_AND_RESTORE_GUIDE.md` §4.
 
 #### Payments
 - List: `GET /admin/payments?status=&client_id=&date_from=&date_to=` (PAY-01).

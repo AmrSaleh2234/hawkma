@@ -24,6 +24,9 @@ Route::prefix('v1')->group(function () {
         Route::get('consultants/stats', [ConsultantController::class, 'stats'])
             ->middleware('permission:view-consultants,admin')
             ->name('consultants.stats.summary');
+        Route::get('consultants/trashed', [ConsultantController::class, 'trashed'])
+            ->middleware('permission:view-consultants,admin')
+            ->name('consultants.trashed');
         Route::post('consultants', [ConsultantController::class, 'store'])
             ->middleware('permission:create-consultants,admin')
             ->name('consultants.store');
@@ -36,6 +39,9 @@ Route::prefix('v1')->group(function () {
         Route::delete('consultants/{consultant}', [ConsultantController::class, 'destroy'])
             ->middleware('permission:delete-consultants,admin')
             ->name('consultants.destroy');
+        Route::post('consultants/{id}/restore', [ConsultantController::class, 'restore'])
+            ->middleware('permission:delete-consultants,admin')
+            ->name('consultants.restore');
         Route::patch('consultants/{consultant}/status', [ConsultantController::class, 'updateStatus'])
             ->middleware('permission:update-consultants,admin')
             ->name('consultants.status.update');

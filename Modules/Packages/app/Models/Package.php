@@ -91,6 +91,49 @@ class Package extends Model
         return $this->consultations_limit === null;
     }
 
+    /**
+     * The purchase-time snapshot of the display fields, stored on
+     * subscriptions and bookings so later package updates or deletes never
+     * change what an existing purchase shows.
+     *
+     * @return array<string, mixed>
+     */
+    public function snapshot(): array
+    {
+        return [
+            'id' => $this->id,
+            'slug' => $this->slug,
+            'name_ar' => $this->name_ar,
+            'name_en' => $this->name_en,
+        ];
+    }
+
+    /**
+     * The package summary shown on bookings and subscriptions: the stored
+     * snapshot wins (it freezes the state at purchase time), the package
+     * itself — even a drafted one — fills the gaps for legacy rows.
+     *
+     * @param  array<string, mixed>|null  $snapshot
+     * @return array<string, mixed>|null
+     */
+    public static function displayFrom(?array $snapshot, ?self $package): ?array
+    {
+        if ($snapshot === null && $package === null) {
+            return null;
+        }
+
+        $data = array_replace([
+            'id' => $package?->id,
+            'slug' => $package?->slug,
+            'name_ar' => $package?->name_ar,
+            'name_en' => $package?->name_en,
+        ], $snapshot ?? []);
+
+        $data['name'] = app()->getLocale() === 'ar' ? $data['name_ar'] : $data['name_en'];
+
+        return $data;
+    }
+
     public function localizedName(?string $locale = null): string
     {
         $locale ??= app()->getLocale();

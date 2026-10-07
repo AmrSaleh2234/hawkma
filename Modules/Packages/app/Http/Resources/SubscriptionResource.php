@@ -12,13 +12,9 @@ class SubscriptionResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'package' => $this->whenLoaded('package', fn () => [
-                'id' => $this->package->id,
-                'slug' => $this->package->slug,
-                'name' => $this->package->localizedName(),
-                'name_ar' => $this->package->name_ar,
-                'name_en' => $this->package->name_en,
-            ]),
+            // The purchase-time snapshot wins: package updates or deletes
+            // never change what this subscription shows.
+            'package' => $this->whenLoaded('package', fn () => $this->packageDisplay()),
             'status' => $this->status->value,
             'starts_at' => $this->starts_at?->toIso8601String(),
             'ends_at' => $this->ends_at?->toIso8601String(),

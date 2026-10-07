@@ -9,6 +9,7 @@ enum ErrorCode: string
     case Forbidden = 'FORBIDDEN';
     case AccountDisabled = 'ACCOUNT_DISABLED';
     case NotFound = 'NOT_FOUND';
+    case NotDrafted = 'NOT_DRAFTED';
     case MethodNotAllowed = 'METHOD_NOT_ALLOWED';
     case TooManyRequests = 'TOO_MANY_REQUESTS';
     case ServerError = 'SERVER_ERROR';

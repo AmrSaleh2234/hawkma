@@ -38,7 +38,7 @@ class BookingConfirmedNotification extends Notification implements ShouldQueue
                 'consultant' => $booking->consultant->name,
                 'date' => $booking->starts_at->format('Y-m-d'),
                 'time' => $booking->starts_at->format('H:i'),
-                'package' => $booking->package->localizedName(),
+                'package' => $booking->packageDisplayName(),
             ]));
 
         if ($booking->location_snapshot) {

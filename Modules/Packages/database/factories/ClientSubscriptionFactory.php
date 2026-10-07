@@ -36,6 +36,7 @@ class ClientSubscriptionFactory extends Factory
     {
         return $this->state(fn () => [
             'package_id' => $package->id,
+            'package_snapshot' => $package->snapshot(),
             'ends_at' => now()->addDays($package->billing_period_days),
             'consultations_limit' => $package->consultations_limit,
             'price_paid' => $package->price,

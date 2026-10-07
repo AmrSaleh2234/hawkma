@@ -22,7 +22,7 @@ class GoogleMeetProvider implements MeetingProvider
 
         $event = new Event([
             'summary' => "GCMC Consultation {$booking->reference} - {$booking->client->company_name}",
-            'description' => "Consultant: {$booking->consultant->name}\nPackage: {$booking->package->name_en}",
+            'description' => "Consultant: {$booking->consultant->name}\nPackage: {$booking->packageDisplayName('en')}",
             'start' => ['dateTime' => $booking->starts_at->toRfc3339String(), 'timeZone' => 'Asia/Riyadh'],
             'end' => ['dateTime' => $booking->ends_at->toRfc3339String(), 'timeZone' => 'Asia/Riyadh'],
             'attendees' => [

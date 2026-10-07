@@ -6,6 +6,7 @@ return [
     'FORBIDDEN' => 'You do not have permission to perform this action.',
     'ACCOUNT_DISABLED' => 'This account is disabled.',
     'NOT_FOUND' => 'The requested resource was not found.',
+    'NOT_DRAFTED' => 'This record is not drafted, so it cannot be restored.',
     'METHOD_NOT_ALLOWED' => 'This method is not allowed for this endpoint.',
     'TOO_MANY_REQUESTS' => 'Too many requests. Please slow down.',
     'SERVER_ERROR' => 'An unexpected error occurred. Please try again later.',

@@ -45,6 +45,9 @@ Route::prefix('v1')->group(function () {
         Route::get('clients/stats', [AdminClientController::class, 'stats'])
             ->middleware('permission:view-clients,admin')
             ->name('clients.stats');
+        Route::get('clients/trashed', [AdminClientController::class, 'trashed'])
+            ->middleware('permission:view-clients,admin')
+            ->name('clients.trashed');
         Route::get('clients/{client}', [AdminClientController::class, 'show'])
             ->middleware('permission:view-clients,admin')
             ->name('clients.show');
@@ -57,6 +60,9 @@ Route::prefix('v1')->group(function () {
         Route::delete('clients/{client}', [AdminClientController::class, 'destroy'])
             ->middleware('permission:delete-clients,admin')
             ->name('clients.destroy');
+        Route::post('clients/{id}/restore', [AdminClientController::class, 'restore'])
+            ->middleware('permission:delete-clients,admin')
+            ->name('clients.restore');
 
         Route::get('clients/{client}/subscriptions', [AdminClientController::class, 'subscriptions'])
             ->middleware('permission:view-clients,admin')

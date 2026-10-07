@@ -33,6 +33,7 @@ class Booking extends Model
         'client_id',
         'consultant_id',
         'package_id',
+        'package_snapshot',
         'client_subscription_id',
         'client_location_id',
         'location_snapshot',
@@ -78,6 +79,7 @@ class Booking extends Model
             'refund_status' => RefundStatus::class,
             'meeting_status' => MeetingStatus::class,
             'location_snapshot' => 'array',
+            'package_snapshot' => 'array',
             'amount' => 'integer',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
@@ -170,6 +172,36 @@ class Booking extends Model
         return (int) $this->starts_at->diffInMinutes($this->ends_at);
     }
 
+    /**
+     * The package summary for resources/emails: the purchase-time snapshot
+     * wins, so package updates or deletes never change what this booking
+     * shows. Falls back to the package relation (withTrashed) for legacy
+     * rows created before snapshots existed.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function packageDisplay(): ?array
+    {
+        return Package::displayFrom($this->package_snapshot, $this->package);
+    }
+
+    /**
+     * The localized package name for emails and calendar events (the
+     * purchase-time name, not the current one).
+     */
+    public function packageDisplayName(?string $locale = null): ?string
+    {
+        $data = $this->packageDisplay();
+
+        if ($data === null) {
+            return null;
+        }
+
+        $locale ??= app()->getLocale();
+
+        return $locale === 'ar' ? $data['name_ar'] : $data['name_en'];
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Relations
@@ -190,7 +222,9 @@ class Booking extends Model
 
     public function package(): BelongsTo
     {
-        return $this->belongsTo(Package::class);
+        // withTrashed: a booking must still resolve its package after the
+        // package is drafted (soft deleted).
+        return $this->belongsTo(Package::class)->withTrashed();
     }
 
     public function subscription(): BelongsTo
