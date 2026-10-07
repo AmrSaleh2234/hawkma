@@ -63,8 +63,8 @@ class RoleTest extends TestCase
 
         $this->assertTrue($roles->has('admin'));
         $this->assertTrue($roles->has('consultant'));
-        $this->assertSame(34, $roles['admin']['permissions_count']);
-        $this->assertSame(10, $roles['consultant']['permissions_count']);
+        $this->assertSame(41, $roles['admin']['permissions_count']);
+        $this->assertSame(12, $roles['consultant']['permissions_count']);
         $this->assertSame(2, $roles['admin']['users_count']);
         $this->assertSame(1, $roles['consultant']['users_count']);
         $this->assertTrue($roles['admin']['is_protected']);
@@ -190,7 +190,7 @@ class RoleTest extends TestCase
             ->assertJsonPath('data.name', 'consultant')
             ->assertJsonStructure(['data' => ['permissions' => [['id', 'name', 'group', 'label']]]]);
 
-        $this->assertCount(10, $response->json('data.permissions'));
+        $this->assertCount(12, $response->json('data.permissions'));
     }
 
     public function test_acl_04_unknown_role_returns_404(): void

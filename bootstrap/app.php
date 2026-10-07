@@ -32,6 +32,14 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    // Private-channel auth at POST /broadcasting/auth accepts a Sanctum
+    // token of either guard (staff/consultant or client). The default
+    // `web` middleware is deliberately not used: this is a stateless API
+    // and the session/CSRF stack would only break token-based clients.
+    ->withBroadcasting(
+        channels: __DIR__.'/../routes/channels.php',
+        attributes: ['middleware' => ['auth:admin,client']],
+    )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => RoleMiddleware::class,

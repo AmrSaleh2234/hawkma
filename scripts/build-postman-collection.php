@@ -370,6 +370,17 @@ $users = folder('04 Admin › Users', [
     req('Delete user (USR-05)', 'DELETE', 'admin/users/{{user_id}}', [
         'description' => desc('Deletes a user. You cannot delete yourself or the last active admin.', 'delete-users', errors: ['422 `LAST_ADMIN`', '422 `CANNOT_DELETE_SELF`']),
     ]),
+    req('List drafted users (USR-09)', 'GET', 'admin/users/trashed', [
+        'description' => desc('Drafted (soft-deleted) users, most recently drafted first. Deleting is drafting: the data is kept and the user can be restored (USR-10).', 'view-users'),
+        'query' => [
+            ['search', '', 'name, email or phone', true],
+            ['type', '', 'admin | consultant', true],
+            ['sort', '', 'name | created_at | deleted_at (- for desc)', true],
+        ],
+    ]),
+    req('Restore drafted user (USR-10)', 'POST', 'admin/users/{{user_id}}/restore', [
+        'description' => desc('Restores a drafted user (the inverse of deleting). The user keeps his roles and simply logs in again.', 'delete-users', errors: ['422 `NOT_DRAFTED`', '404 `NOT_FOUND`']),
+    ]),
 ], 'admin_token');
 
 // ---------------------------------------------------------------------
@@ -399,6 +410,9 @@ $consultants = folder('05 Admin › Consultants', [
             ['is_active', '', '1 | 0', true],
             ['specialization', '', 'exact match', true],
         ],
+    ]),
+    req('Consultants stats (CON-01b)', 'GET', 'admin/consultants/stats', [
+        'description' => desc('Aggregated counts for the consultants page charts and summary cards: total, active, by_specialization, top_consultants.', 'view-consultants'),
     ]),
     req('Create consultant (CON-02)', 'POST', 'admin/consultants', [
         'description' => desc('Creates a consultant; the role `consultant` is assigned automatically. Without a password, a set-password email is sent.', 'create-consultants', ['name' => 'required, max 150', 'email' => 'required, email, unique', 'phone' => 'optional', 'photo' => 'optional image ≤ 2 MB', 'title' => 'optional', 'specialization' => 'optional', 'bio' => 'optional', 'password' => 'optional, confirmed', 'availability' => 'optional {days: [{day_of_week, ranges: [{start_time, end_time}]}]}'], ['422 `VALIDATION_ERROR`', '403 `FORBIDDEN`']),
@@ -477,6 +491,17 @@ $consultants = folder('05 Admin › Consultants', [
     req('Delete consultant (CON-05)', 'DELETE', 'admin/consultants/{{consultant_id}}', [
         'description' => desc('Deletes a consultant (kept last in the folder: the booking wizard re-reads the public list).', 'delete-consultants', errors: ['422 `CONSULTANT_HAS_FUTURE_BOOKINGS`']),
     ]),
+    req('List drafted consultants (CON-19)', 'GET', 'admin/consultants/trashed', [
+        'description' => desc('Drafted (soft-deleted) consultants, most recently drafted first. A drafted consultant keeps his availability and can be restored (CON-20).', 'view-consultants'),
+        'query' => [
+            ['search', '', 'name, email, phone, specialization', true],
+            ['specialization', '', 'exact match', true],
+            ['sort', '', 'name | created_at | deleted_at (- for desc)', true],
+        ],
+    ]),
+    req('Restore drafted consultant (CON-20)', 'POST', 'admin/consultants/{{consultant_id}}/restore', [
+        'description' => desc('Restores a drafted consultant (roles and availability are kept).', 'delete-consultants', errors: ['422 `NOT_DRAFTED`', '404 `NOT_FOUND`']),
+    ]),
 ], 'admin_token');
 
 // ---------------------------------------------------------------------
@@ -536,6 +561,16 @@ $packages = folder('07 Admin › Packages', [
     ]),
     req('Delete package (PKG-05)', 'DELETE', 'admin/packages/{{package_id_new}}', [
         'description' => desc('Soft-deletes a package.', 'delete-packages', errors: ['422 `PACKAGE_IN_USE`']),
+    ]),
+    req('List drafted packages (PKG-07)', 'GET', 'admin/packages/trashed', [
+        'description' => desc('Drafted (soft-deleted) packages, most recently drafted first, with subscriptions_count. Existing purchases are never affected — subscriptions and bookings keep the purchase-time snapshot.', 'view-packages'),
+        'query' => [
+            ['search', '', 'name_ar, name_en or slug', true],
+            ['sort', '', 'price | sort_order | created_at | deleted_at (- for desc)', true],
+        ],
+    ]),
+    req('Restore drafted package (PKG-08)', 'POST', 'admin/packages/{{package_id_new}}/restore', [
+        'description' => desc('Restores a drafted package. `is_active` keeps the value it had — restoring does not re-publish the package (use PKG-06 for that).', 'delete-packages', errors: ['422 `NOT_DRAFTED`', '404 `NOT_FOUND`']),
     ]),
 ], 'admin_token');
 
@@ -794,6 +829,16 @@ $adminBookings = folder('14 Admin › Bookings', [
             ['sort', '', '-starts_at (default)', true],
         ],
     ]),
+    req('Bookings stats (BKG-01b)', 'GET', 'admin/bookings/stats', [
+        'description' => desc('Aggregated counts for the bookings page charts and summary cards: total, today, by_status, by_consultant, by_package, by_month. Accepts the same filters as the list endpoint (status, consultant_id, package_id, date_from, date_to).', 'view-bookings'),
+        'query' => [
+            ['status', '', 'pending_payment | pending | completed | cancelled', true],
+            ['consultant_id', '', 'admin only', true],
+            ['package_id', '', '', true],
+            ['date_from', '', 'YYYY-MM-DD', true],
+            ['date_to', '', 'YYYY-MM-DD', true],
+        ],
+    ]),
     req('List completed bookings (BKG-01)', 'GET', 'admin/bookings', [
         'description' => desc('Finds the demo completed booking that still awaits a report; the report upload uses it.', 'view-bookings'),
         'query' => [['status', 'completed', '']],
@@ -856,6 +901,9 @@ $adminReports = folder('15 Admin › Reports', [
         'tests' => [
             $set('demo_report_id', 'j.data[0].id'),
         ],
+    ]),
+    req('Reports stats (RPT-01b)', 'GET', 'admin/reports/stats', [
+        'description' => desc('Aggregated counts for the reports page: total, pending (completed bookings missing a report), uploaded, by_month, by_consultant.', 'view-reports'),
     ]),
     req('Upload report (RPT-03)', 'POST', 'admin/bookings/{{completed_booking_id}}/report', [
         'description' => desc('Uploads the report of a completed booking (pdf/doc/docx ≤ 20 MB, private disk). Uploading again replaces the file. The client gets an email with a dashboard link and a 7-day signed download link unless `notify_client` is false.', 'upload-reports', ['title' => 'required, max 191', 'summary' => 'optional', 'file' => 'required pdf/doc/docx ≤ 20 MB', 'notify_client' => 'optional, default true'], ['422 `REPORT_NOT_ALLOWED` (booking not completed)', '422 `VALIDATION_ERROR`', '403 `FORBIDDEN`']),
@@ -929,6 +977,9 @@ $adminClients = folder('17 Admin › Clients', [
             $set('client_id', 'j.data.find(c => c.email === "client@gcmc.sa").id'),
         ],
     ]),
+    req('Clients stats (ADM-CL-01b)', 'GET', 'admin/clients/stats', [
+        'description' => desc('Aggregated counts for the clients page: total, active, inactive, new_this_month, new_by_month, top_clients.', 'view-clients'),
+    ]),
     req('Show client (ADM-CL-02)', 'GET', 'admin/clients/{{client_id}}', [
         'description' => desc('One client with locations, subscriptions and counts.', 'view-clients', errors: ['404 `NOT_FOUND`']),
     ]),
@@ -952,6 +1003,16 @@ $adminClients = folder('17 Admin › Clients', [
     req('Delete client (ADM-CL-05)', 'DELETE', 'admin/clients/{{new_client_id}}', [
         'description' => desc('Deletes the client registered in folder 08 (his bookings were cancelled in folders 13–14). A client with future bookings cannot be deleted.', 'delete-clients', errors: ['422 `CLIENT_HAS_FUTURE_BOOKINGS`']),
     ]),
+    req('List drafted clients (ADM-CL-09)', 'GET', 'admin/clients/trashed', [
+        'description' => desc('Drafted (soft-deleted) clients, most recently drafted first. A consultant only sees the clients he had bookings with.', 'view-clients'),
+        'query' => [
+            ['search', '', 'name, email, phone or company', true],
+            ['sort', '', 'name | company_name | created_at | deleted_at (- for desc)', true],
+        ],
+    ]),
+    req('Restore drafted client (ADM-CL-10)', 'POST', 'admin/clients/{{new_client_id}}/restore', [
+        'description' => desc('Restores a drafted client (locations and subscriptions are kept; he simply logs in again).', 'delete-clients', errors: ['422 `NOT_DRAFTED`', '404 `NOT_FOUND`']),
+    ]),
 ], 'admin_token');
 
 // ---------------------------------------------------------------------
@@ -964,6 +1025,14 @@ $adminPayments = folder('18 Admin › Payments', [
         'query' => [
             ['status', '', 'initiated | paid | failed | refunded', true],
             ['client_id', '', '', true],
+            ['date_from', '', 'YYYY-MM-DD', true],
+            ['date_to', '', 'YYYY-MM-DD', true],
+        ],
+    ]),
+    req('Payments stats (PAY-01b)', 'GET', 'admin/payments/stats', [
+        'description' => desc('Aggregated amounts for the payments page: total_amount, by_status, by_gateway, by_month. Accepts status, date_from, date_to.', 'view-payments'),
+        'query' => [
+            ['status', '', 'initiated | paid | failed | refunded', true],
             ['date_from', '', 'YYYY-MM-DD', true],
             ['date_to', '', 'YYYY-MM-DD', true],
         ],
@@ -987,6 +1056,58 @@ $webhooks = folder('20 Webhooks', [
     ]),
 ], 'none');
 
+$adminNotifications = folder('21 Admin › Notifications', [
+    req('List notifications (NTF-01)', 'GET', 'admin/notifications', [
+        'description' => desc('The bell feed: the user\'s own notifications plus, for staff, a mirrored copy of every relevant activity (`data.recipient` names the original receiver). Newest first; `read_at = null` means unread.',
+            fields: ['unread' => '1 → only unread', 'type' => 'data.type filter (new_booking, booking_confirmed, booking_cancelled, payment_failed, report_ready, client_welcome, staff_account_created)']),
+        'query' => [
+            ['unread', '1', 'only unread', true],
+            ['type', '', 'data.type filter', true],
+            ['per_page', '15', '≤ 100', true],
+            ['page', '1', 'Page number', true],
+        ],
+        'tests' => ['if (j.data.length) { pm.environment.set("notification_id", j.data[0].id); }'],
+    ]),
+    req('Unread count (NTF-02)', 'GET', 'admin/notifications/unread-count', [
+        'description' => desc('The badge number — lightweight endpoint for polling.'),
+    ]),
+    req('Mark read (NTF-03)', 'PATCH', 'admin/notifications/{{notification_id}}/read', [
+        'description' => desc('Marks one notification read. Idempotent.', errors: ['404 `NOT_FOUND` (also for another user\'s notification)']),
+    ]),
+    req('Mark all read (NTF-04)', 'POST', 'admin/notifications/read-all', [
+        'description' => desc('Marks every unread notification read; returns `data.marked_count`.'),
+    ]),
+    req('Delete notification (NTF-05)', 'DELETE', 'admin/notifications/{{notification_id}}', [
+        'description' => desc('Deletes one notification.', errors: ['404 `NOT_FOUND`']),
+    ]),
+], 'admin_token');
+
+$clientNotifications = folder('22 Client › Notifications', [
+    req('List notifications (CLI-NTF-01)', 'GET', 'client/notifications', [
+        'description' => desc('The client bell: his own notifications (booking_confirmed, booking_cancelled, payment_failed, report_ready, client_welcome). Newest first; `read_at = null` means unread.',
+            fields: ['unread' => '1 → only unread', 'type' => 'data.type filter']),
+        'query' => [
+            ['unread', '1', 'only unread', true],
+            ['type', '', 'data.type filter', true],
+            ['per_page', '15', '≤ 100', true],
+            ['page', '1', 'Page number', true],
+        ],
+        'tests' => ['if (j.data.length) { pm.environment.set("notification_id", j.data[0].id); }'],
+    ]),
+    req('Unread count (CLI-NTF-02)', 'GET', 'client/notifications/unread-count', [
+        'description' => desc('The badge number — lightweight endpoint for polling.'),
+    ]),
+    req('Mark read (CLI-NTF-03)', 'PATCH', 'client/notifications/{{notification_id}}/read', [
+        'description' => desc('Marks one notification read. Idempotent.', errors: ['404 `NOT_FOUND`']),
+    ]),
+    req('Mark all read (CLI-NTF-04)', 'POST', 'client/notifications/read-all', [
+        'description' => desc('Marks every unread notification read; returns `data.marked_count`.'),
+    ]),
+    req('Delete notification (CLI-NTF-05)', 'DELETE', 'client/notifications/{{notification_id}}', [
+        'description' => desc('Deletes one notification.', errors: ['404 `NOT_FOUND`']),
+    ]),
+], 'client_token');
+
 $logout = folder('99 Logout', [
     req('Admin logout (ADM-AUTH-02)', 'POST', 'admin/auth/logout', [
         'auth' => bearerAuth('admin_token'),
@@ -998,6 +1119,38 @@ $logout = folder('99 Logout', [
     ]),
 ], 'none');
 
+$adminSupportTickets = folder('23 Admin › Customer Service', [
+    req('List support tickets', 'GET', 'admin/support-tickets', ['query' => [['status', 'open', 'status filter', true], ['category', 'technical', 'category filter', true]], 'tests' => ['if (j.data.length) { pm.environment.set("support_ticket_id", j.data[0].id); }']]),
+    req('Open support chat', 'GET', 'admin/support-tickets/{{support_ticket_id}}'),
+    req('Open support media', 'GET', 'admin/support-tickets/{{support_ticket_id}}/messages/{{support_message_id}}/media/{{support_collection}}'),
+    req('Reply in support chat', 'POST', 'admin/support-tickets/{{support_ticket_id}}/messages', ['formdata' => [['body', 'We are reviewing your request.'], ['image', null, 'file'], ['voice', null, 'file']]]),
+    req('Change support status', 'PATCH', 'admin/support-tickets/{{support_ticket_id}}/status', ['body' => ['status' => 'in_progress']]),
+], 'admin_token');
+
+$clientSupportTickets = folder('24 Client › Customer Service', [
+    req('List my support tickets', 'GET', 'client/support-tickets', ['tests' => ['if (j.data.length) { pm.environment.set("support_ticket_id", j.data[0].id); }']]),
+    req('Add service', 'POST', 'client/support-tickets', ['formdata' => [['category', 'general_inquiry'], ['description', 'I need help with my service.'], ['image', null, 'file'], ['voice', null, 'file']], 'tests' => ['pm.environment.set("support_ticket_id", j.data.id);']]),
+    req('Open support chat', 'GET', 'client/support-tickets/{{support_ticket_id}}'),
+    req('Open support media', 'GET', 'client/support-tickets/{{support_ticket_id}}/messages/{{support_message_id}}/media/{{support_collection}}'),
+    req('Send support message', 'POST', 'client/support-tickets/{{support_ticket_id}}/messages', ['formdata' => [['body', 'Additional details'], ['image', null, 'file'], ['voice', null, 'file']]]),
+], 'client_token');
+$joinRequests = folder('25 Join Us', [
+    req('Submit join request', 'POST', 'public/join-requests', ['formdata' => [['name', 'Expert Person'], ['email', 'expert@example.com'], ['phone', '+966500000000'], ['specialization', 'Governance'], ['bio', 'Ten years of experience'], ['linkedin_url', 'https://linkedin.com/in/expert'], ['cv', null, 'file']], 'tests' => ['pm.environment.set("join_request_id", j.data.id);']]),
+    req('List join requests', 'GET', 'admin/join-requests', ['auth' => bearerAuth('admin_token'), 'query' => [['status', 'pending', 'status filter', true], ['search', 'Expert', 'search', true]]]),
+    req('Show join request', 'GET', 'admin/join-requests/{{join_request_id}}', ['auth' => bearerAuth('admin_token')]),
+    req('Download CV', 'GET', 'admin/join-requests/{{join_request_id}}/cv', ['auth' => bearerAuth('admin_token'), 'raw_tests' => downloadTests()]),
+    req('Approve join request', 'PATCH', 'admin/join-requests/{{join_request_id}}/approve', ['auth' => bearerAuth('admin_token')]),
+    req('Reject join request', 'PATCH', 'admin/join-requests/{{join_request_id}}/reject', ['auth' => bearerAuth('admin_token'), 'body' => ['reason' => 'Experience requirements were not met.']]),
+], 'none');
+$reviews = folder('26 Reviews', [
+    req('Submit review', 'POST', 'client/reviews', ['auth' => bearerAuth('client_token'), 'body' => ['name' => 'Satisfied Client', 'rating' => 5, 'comment' => 'Great service, very professional.'], 'tests' => ['pm.environment.set("review_id", j.data.id);']]),
+    req('My reviews', 'GET', 'client/reviews', ['auth' => bearerAuth('client_token')]),
+    req('Public approved reviews', 'GET', 'public/reviews'),
+    req('List reviews', 'GET', 'admin/reviews', ['auth' => bearerAuth('admin_token'), 'query' => [['status', 'pending', 'status filter', true], ['search', 'Great', 'search', true]]]),
+    req('Show review', 'GET', 'admin/reviews/{{review_id}}', ['auth' => bearerAuth('admin_token')]),
+    req('Approve review', 'PATCH', 'admin/reviews/{{review_id}}/approve', ['auth' => bearerAuth('admin_token')]),
+    req('Reject review', 'PATCH', 'admin/reviews/{{review_id}}/reject', ['auth' => bearerAuth('admin_token'), 'body' => ['reason' => 'Not appropriate.']]),
+], 'none');
 // ---------------------------------------------------------------------
 // Collection
 // ---------------------------------------------------------------------
@@ -1013,7 +1166,8 @@ $collection = [
         $public, $adminAuth, $adminProfile, $roles, $users, $consultants, $my,
         $packages, $clientAuth, $clientProfile, $locations, $paymentMethods,
         $wizard, $clientBookings, $adminBookings, $adminReports, $clientReports,
-        $adminClients, $adminPayments, $dashboard, $webhooks, $logout,
+        $adminClients, $adminPayments, $dashboard, $webhooks,
+        $adminNotifications, $clientNotifications, $adminSupportTickets, $clientSupportTickets, $joinRequests, $reviews, $logout,
     ],
 ];
 
@@ -1056,7 +1210,7 @@ $envValues = [
     ['client_password', 'Password@123', 'secret'],
     ['ci', '', 'default'],
 ];
-$tokenVars = ['admin_token', 'consultant_token', 'client_token', 'role_id', 'user_id', 'consultant_id', 'time_off_id', 'client_id', 'location_id', 'package_id', 'package_slug', 'payment_method_id', 'booking_id', 'payment_id', 'report_id', 'slot_date', 'slot_time', 'new_client_email'];
+$tokenVars = ['admin_token', 'consultant_token', 'client_token', 'role_id', 'user_id', 'consultant_id', 'time_off_id', 'client_id', 'location_id', 'package_id', 'package_slug', 'payment_method_id', 'booking_id', 'payment_id', 'report_id', 'slot_date', 'slot_time', 'new_client_email', 'notification_id'];
 foreach ($tokenVars as $var) {
     $envValues[] = [$var, '', 'default'];
 }

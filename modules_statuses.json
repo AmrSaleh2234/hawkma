@@ -8,5 +8,9 @@
     "Payments": true,
     "Bookings": true,
     "Reports": true,
-    "Dashboard": true
+    "Notifications": true,
+    "Dashboard": true,
+    "SupportTickets": true,
+    "JoinRequests": true,
+    "Reviews": true
 }
