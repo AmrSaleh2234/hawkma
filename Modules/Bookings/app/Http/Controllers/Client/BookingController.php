@@ -5,10 +5,12 @@ namespace Modules\Bookings\Http\Controllers\Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Bookings\Actions\CreateBookingAction;
+use Modules\Bookings\Actions\CreateSubscriptionBookingAction;
 use Modules\Bookings\Actions\QuoteBookingAction;
 use Modules\Bookings\Http\Requests\Client\CancelBookingRequest;
 use Modules\Bookings\Http\Requests\Client\QuoteBookingRequest;
 use Modules\Bookings\Http\Requests\Client\StoreBookingRequest;
+use Modules\Bookings\Http\Requests\Client\StoreSubscriptionBookingRequest;
 use Modules\Bookings\Http\Resources\BookingResource;
 use Modules\Bookings\Models\Booking;
 use Modules\Bookings\Services\BookingStateMachine;
@@ -94,6 +96,33 @@ class BookingController extends ApiController
             $this->bookingPayload($result['booking'], $result['payment']),
             __('bookings::messages.booking_created'),
         );
+    }
+
+    /**
+     * CLI-BKG-06 POST /api/v1/client/subscriptions/{subscription}/bookings
+     *
+     * Books the next meeting inside an already-purchased package: the first
+     * booking paid for it, so this consumes one consultation from the
+     * subscription quota — no payment fields. 404 if the subscription is not
+     * the client's.
+     */
+    public function storeFromSubscription(
+        StoreSubscriptionBookingRequest $request,
+        string $subscription,
+        CreateSubscriptionBookingAction $action,
+    ): JsonResponse {
+        $subscription = $request->user('client')->subscriptions()
+            ->with('package')
+            ->findOrFail($subscription);
+
+        $booking = $action->execute($request->user('client'), $subscription, $request->validated());
+
+        return $this->created([
+            'booking' => BookingResource::make(
+                $booking->loadMissing(['package', 'consultant', 'client', 'latestPayment'])
+            ),
+            'subscription' => SubscriptionResource::make($subscription->refresh()),
+        ], __('bookings::messages.booking_created'));
     }
 
     /**

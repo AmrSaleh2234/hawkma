@@ -13,6 +13,11 @@ Route::prefix('v1')->group(function () {
         Route::post('{booking}/cancel', [BookingController::class, 'cancel'])->name('cancel');
     });
 
+    // Book a meeting inside an already-purchased package (CLI-BKG-06).
+    Route::prefix('client/subscriptions')->name('client.subscriptions.bookings.')->middleware(['auth:client', 'active.client', 'throttle:api'])->group(function () {
+        Route::post('{subscription}/bookings', [BookingController::class, 'storeFromSubscription'])->name('store');
+    });
+
     Route::prefix('admin/bookings')->name('admin.bookings.')->middleware(['auth:admin', 'active.user', 'throttle:api'])->group(function () {
         // Static segments before {booking} so they are not captured as an id.
         Route::get('calendar', [AdminBookingController::class, 'calendar'])

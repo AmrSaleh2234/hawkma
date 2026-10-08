@@ -485,6 +485,10 @@ badge the "My reports" menu item.
 - All: `GET /client/subscriptions` (CLI-SUB-01) — `consultations_used` /
   `consultations_remaining` (`null` = unlimited), `status`, `ends_at`.
 - Active only: `GET /client/subscriptions/active` (CLI-SUB-02).
+- **Book the next session** in a purchased package:
+  `POST /client/subscriptions/{id}/bookings` (CLI-BKG-06) — see §5.8. Show a
+  "Book session" button on each subscription card where `status = active` and
+  (`consultations_remaining > 0` or `is_unlimited`).
 
 #### My locations
 CRUD: `GET|POST /client/locations` (CLI-LOC-01/02), `GET|PUT|DELETE
@@ -599,6 +603,48 @@ POST /client/bookings
 The slot was taken between the quote and the submit. Re-call PUB-06 for the
 same date, mark the chosen time as gone, and ask the user to pick another
 slot. Do not retry the same payload.
+
+### 5.8 Booking the next session in a purchased package
+
+The first booking pays for the package and activates the subscription. Every
+later session just consumes one consultation — **no quote, no payment step**.
+This is the "Book session" flow from "My packages" (§4.2):
+
+1. `GET /client/subscriptions/active` (CLI-SUB-02) → the client picks a
+   subscription (card) with `consultations_remaining > 0` or `is_unlimited`.
+2. Pick consultant + date + time exactly like the wizard steps 3–4
+   (`GET /public/consultants`, `available-dates`, `slots`) and a location
+   (`GET /client/locations`). The package comes **from the subscription** —
+   there is no `package_id` field.
+3. Submit:
+
+```
+POST /client/subscriptions/{id}/bookings
+{ "consultant_id": 12,
+  "date": "2026-10-12", "time": "10:00",
+  "client_location_id": 3,
+  "client_notes": "optional" }
+
+→ 201 data {
+    "booking": { /* same Booking object as CLI-BKG-02:
+                   status "pending", payment_status "not_required",
+                   amount 0, meeting.url once created */ },
+    "subscription": { /* the fresh subscription — update the card's
+                         consultations_used / consultations_remaining
+                         from this response */ }
+  }
+```
+
+- The booking appears in "My bookings" like any other
+  (`GET /client/bookings`), with the Meet link at `booking.meeting.url`.
+- `404` → the subscription is not the client's; `422 SUBSCRIPTION_INACTIVE` →
+  it expired or was cancelled (refresh the list, hide the button);
+  `422 SUBSCRIPTION_EXHAUSTED` → quota ran out (offer to buy the package again
+  through the normal wizard); `409 SLOT_NOT_AVAILABLE` → §5.7.
+- Equivalent alternative: the normal `POST /client/bookings` (§5.6) also
+  works — when the quote returns `requires_payment = false` the payment fields
+  are simply omitted. Prefer this endpoint for the "My packages" shortcut so
+  the flow has no payment step at all.
 
 ---
 

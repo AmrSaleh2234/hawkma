@@ -66,7 +66,12 @@ class CreateBookingTest extends TestCase
             ->assertJsonPath('data.payment.transaction_url', null);
 
         $booking = Booking::first();
-        $this->assertSame('BK-2026-000001', $booking->reference);
+        // Reference = BK-{year}-{id padded}: derived from this booking so the
+        // assertion does not depend on ids reset between test files.
+        $this->assertSame(
+            sprintf('BK-%s-%06d', $booking->created_at->year, $booking->id),
+            $booking->reference,
+        );
         $this->assertNull($booking->expires_at);
         $this->assertSame('Headquarters', $booking->location_snapshot['name']);
 
