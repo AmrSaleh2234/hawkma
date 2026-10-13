@@ -333,7 +333,7 @@ The landing-page **Join Us** form lets an expert apply to become a consultant. I
 - `phone` — required.
 - `specialization` — required.
 - `bio` — optional, max 5,000.
-- `linkedin_url` — optional valid URL.
+- `licenses` — optional text (professional licenses or permits), max 500.
 - `cv` — **required PDF**, maximum 20 MB.
 
 A successful submission returns `201` with status `pending` and sends a `join_request_submitted` database notification to staff. Duplicate pending applications and existing account emails return `422`.

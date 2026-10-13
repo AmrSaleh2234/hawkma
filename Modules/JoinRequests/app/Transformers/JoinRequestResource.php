@@ -21,7 +21,7 @@ class JoinRequestResource extends JsonResource
             'phone' => $this->phone,
             'specialization' => $this->specialization,
             'bio' => $this->bio,
-            'linkedin_url' => $this->linkedin_url,
+            'licenses' => $this->licenses,
             'cv_url' => $cvUrl,
             'cv' => $cv !== null ? [
                 'name' => $cv->file_name,
