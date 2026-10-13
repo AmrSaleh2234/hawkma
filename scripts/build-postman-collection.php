@@ -1135,7 +1135,7 @@ $clientSupportTickets = folder('24 Client › Customer Service', [
     req('Send support message', 'POST', 'client/support-tickets/{{support_ticket_id}}/messages', ['formdata' => [['body', 'Additional details'], ['image', null, 'file'], ['voice', null, 'file']]]),
 ], 'client_token');
 $joinRequests = folder('25 Join Us', [
-    req('Submit join request', 'POST', 'public/join-requests', ['formdata' => [['name', 'Expert Person'], ['email', 'expert@example.com'], ['phone', '+966500000000'], ['specialization', 'Governance'], ['bio', 'Ten years of experience'], ['linkedin_url', 'https://linkedin.com/in/expert'], ['cv', null, 'file']], 'tests' => ['pm.environment.set("join_request_id", j.data.id);']]),
+    req('Submit join request', 'POST', 'public/join-requests', ['formdata' => [['name', 'Expert Person'], ['email', 'expert@example.com'], ['phone', '+966500000000'], ['specialization', 'Governance'], ['bio', 'Ten years of experience'], ['licenses', 'SCEGA license No. 12345'], ['cv', null, 'file']], 'tests' => ['pm.environment.set("join_request_id", j.data.id);']]),
     req('List join requests', 'GET', 'admin/join-requests', ['auth' => bearerAuth('admin_token'), 'query' => [['status', 'pending', 'status filter', true], ['search', 'Expert', 'search', true]]]),
     req('Show join request', 'GET', 'admin/join-requests/{{join_request_id}}', ['auth' => bearerAuth('admin_token')]),
     req('Download CV', 'GET', 'admin/join-requests/{{join_request_id}}/cv', ['auth' => bearerAuth('admin_token'), 'raw_tests' => downloadTests()]),

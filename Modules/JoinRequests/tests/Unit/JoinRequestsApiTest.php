@@ -73,6 +73,6 @@ class JoinRequestsApiTest extends TestCase
 
     private function record(): array
     {
-        return ['name' => 'Expert Person', 'email' => 'expert@example.com', 'phone' => '+966500000000', 'specialization' => 'Governance', 'bio' => 'Ten years of experience.', 'linkedin_url' => 'https://linkedin.com/in/expert', 'status' => 'pending'];
+        return ['name' => 'Expert Person', 'email' => 'expert@example.com', 'phone' => '+966500000000', 'specialization' => 'Governance', 'bio' => 'Ten years of experience.', 'licenses' => 'SCEGA license No. 12345', 'status' => 'pending'];
     }
 }
