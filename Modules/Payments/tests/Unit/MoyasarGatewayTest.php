@@ -261,6 +261,23 @@ class MoyasarGatewayTest extends TestCase
         $this->assertSame('AHMED ALI', $details->holderName);
     }
 
+    public function test_token_details_rejects_a_token_that_is_not_active(): void
+    {
+        Http::fake([
+            'api.moyasar.com/v1/tokens/tok_1' => Http::response([
+                'status' => 'initiated',
+                'brand' => 'visa',
+                'last_four' => '1111',
+                'month' => '12',
+                'year' => '2030',
+            ]),
+        ]);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        $this->gateway->tokenDetails('tok_1');
+    }
+
     public function test_the_driver_name_is_moyasar(): void
     {
         $this->assertSame('moyasar', $this->gateway->name());

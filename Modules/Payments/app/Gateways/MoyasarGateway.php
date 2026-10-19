@@ -5,6 +5,7 @@ namespace Modules\Payments\Gateways;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Modules\Payments\Contracts\PaymentGateway;
 use Modules\Payments\DTO\CardDetails;
 use Modules\Payments\DTO\ChargeRequest;
@@ -87,6 +88,12 @@ class MoyasarGateway implements PaymentGateway
         $response->throw();
 
         $data = $response->json();
+
+        if (isset($data['status']) && $data['status'] !== 'active') {
+            throw ValidationException::withMessages([
+                'token' => [(string) ($data['message'] ?? 'The card was not verified.')],
+            ]);
+        }
 
         return new CardDetails(
             brand: strtolower((string) ($data['brand'] ?? '')),
