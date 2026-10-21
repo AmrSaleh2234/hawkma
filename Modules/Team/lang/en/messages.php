@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'created' => 'Team member created successfully',
-    'updated' => 'Team member updated successfully',
-    'deleted' => 'Team member deleted successfully',
+    'created' => 'Board member created successfully',
+    'updated' => 'Board member updated successfully',
+    'deleted' => 'Board member deleted successfully',
 ];

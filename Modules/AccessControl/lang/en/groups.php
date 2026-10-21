@@ -12,5 +12,9 @@ return [
     'bookings' => 'Bookings',
     'reports' => 'Reports',
     'payments' => 'Payments',
-    'team' => 'Team',
+    'support_tickets' => 'Support tickets',
+    'join_requests' => 'Join requests',
+    'reviews' => 'Reviews',
+    'activity_logs' => 'Activity logs',
+    'team' => 'Advisory Board',
 ];

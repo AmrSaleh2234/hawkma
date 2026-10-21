@@ -57,9 +57,25 @@ return [
     'view-payments' => 'View payments',
     'refund-payments' => 'Refund payments',
 
+    // support tickets
+    'view-support-tickets' => 'View support tickets',
+    'reply-support-tickets' => 'Reply to support tickets',
+    'manage-support-tickets' => 'Manage support tickets',
+
+    // join requests
+    'view-join-requests' => 'View join requests',
+    'manage-join-requests' => 'Manage join requests',
+
+    // reviews
+    'view-reviews' => 'View reviews',
+    'manage-reviews' => 'Manage reviews',
+
+    // activity logs
+    'view-activity-logs' => 'View activity logs',
+
     // team
-    'view-team' => 'View team members',
-    'create-team' => 'Create team members',
-    'update-team' => 'Update team members',
-    'delete-team' => 'Delete team members',
+    'view-team' => 'View advisory board members',
+    'create-team' => 'Create advisory board members',
+    'update-team' => 'Update advisory board members',
+    'delete-team' => 'Delete advisory board members',
 ];

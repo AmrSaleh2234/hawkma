@@ -57,9 +57,25 @@ return [
     'view-payments' => 'عرض المدفوعات',
     'refund-payments' => 'استرداد المدفوعات',
 
+    // support tickets
+    'view-support-tickets' => 'عرض تذاكر الدعم',
+    'reply-support-tickets' => 'الرد على تذاكر الدعم',
+    'manage-support-tickets' => 'إدارة تذاكر الدعم',
+
+    // join requests
+    'view-join-requests' => 'عرض طلبات الانضمام',
+    'manage-join-requests' => 'إدارة طلبات الانضمام',
+
+    // reviews
+    'view-reviews' => 'عرض التقييمات',
+    'manage-reviews' => 'إدارة التقييمات',
+
+    // activity logs
+    'view-activity-logs' => 'عرض سجل النشاط',
+
     // team
-    'view-team' => 'عرض فريق العمل',
-    'create-team' => 'إضافة عضو للفريق',
-    'update-team' => 'تعديل عضو الفريق',
-    'delete-team' => 'حذف عضو الفريق',
+    'view-team' => 'عرض المجلس الاستشاري',
+    'create-team' => 'إضافة عضو للمجلس',
+    'update-team' => 'تعديل عضو المجلس',
+    'delete-team' => 'حذف عضو المجلس',
 ];

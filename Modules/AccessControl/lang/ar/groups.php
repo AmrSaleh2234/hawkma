@@ -12,5 +12,9 @@ return [
     'bookings' => 'الحجوزات',
     'reports' => 'التقارير',
     'payments' => 'المدفوعات',
-    'team' => 'فريق العمل',
+    'support_tickets' => 'تذاكر الدعم',
+    'join_requests' => 'طلبات الانضمام',
+    'reviews' => 'التقييمات',
+    'activity_logs' => 'سجل النشاط',
+    'team' => 'المجلس الاستشاري',
 ];
