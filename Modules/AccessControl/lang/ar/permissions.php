@@ -56,4 +56,10 @@ return [
     // payments
     'view-payments' => 'عرض المدفوعات',
     'refund-payments' => 'استرداد المدفوعات',
+
+    // team
+    'view-team' => 'عرض فريق العمل',
+    'create-team' => 'إضافة عضو للفريق',
+    'update-team' => 'تعديل عضو الفريق',
+    'delete-team' => 'حذف عضو الفريق',
 ];

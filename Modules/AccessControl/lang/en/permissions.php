@@ -56,4 +56,10 @@ return [
     // payments
     'view-payments' => 'View payments',
     'refund-payments' => 'Refund payments',
+
+    // team
+    'view-team' => 'View team members',
+    'create-team' => 'Create team members',
+    'update-team' => 'Update team members',
+    'delete-team' => 'Delete team members',
 ];

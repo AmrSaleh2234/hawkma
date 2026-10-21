@@ -13,5 +13,6 @@
     "SupportTickets": true,
     "JoinRequests": true,
     "Reviews": true,
-    "ActivityLogs": true
+    "ActivityLogs": true,
+    "Team": true
 }

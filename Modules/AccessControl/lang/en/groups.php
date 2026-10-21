@@ -12,4 +12,5 @@ return [
     'bookings' => 'Bookings',
     'reports' => 'Reports',
     'payments' => 'Payments',
+    'team' => 'Team',
 ];
