@@ -13,6 +13,10 @@ class JoinRequestResource extends JsonResource
         $cvUrl = $cv !== null
             ? url('/api/v1/admin/join-requests/'.$this->id.'/cv')
             : null;
+        $photo = $this->getFirstMedia('photo');
+        $photoUrl = $photo !== null
+            ? url('/api/v1/admin/join-requests/'.$this->id.'/photo')
+            : null;
 
         return [
             'id' => $this->id,
@@ -21,7 +25,14 @@ class JoinRequestResource extends JsonResource
             'phone' => $this->phone,
             'specialization' => $this->specialization,
             'bio' => $this->bio,
-            'licenses' => $this->licenses,
+            'photo_url' => $photoUrl,
+            'licenses' => $this->getMedia('licenses')->map(fn ($m) => [
+                'id' => $m->id,
+                'name' => $m->file_name,
+                'mime_type' => $m->mime_type,
+                'size' => $m->size,
+                'download_url' => url('/api/v1/admin/join-requests/'.$this->id.'/licenses/'.$m->id),
+            ])->all(),
             'cv_url' => $cvUrl,
             'cv' => $cv !== null ? [
                 'name' => $cv->file_name,

@@ -9,6 +9,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/', [JoinRequestsController::class, 'index'])->name('index');
         Route::get('{joinRequest}', [JoinRequestsController::class, 'show'])->name('show');
         Route::get('{joinRequest}/cv', [JoinRequestsController::class, 'downloadCv'])->name('cv');
+        Route::get('{joinRequest}/photo', [JoinRequestsController::class, 'downloadPhoto'])->name('photo');
+        Route::get('{joinRequest}/licenses/{media}', [JoinRequestsController::class, 'downloadLicense'])->name('licenses.show');
         Route::patch('{joinRequest}/approve', [JoinRequestsController::class, 'approve'])->middleware('permission:manage-join-requests,admin')->name('approve');
         Route::patch('{joinRequest}/reject', [JoinRequestsController::class, 'reject'])->middleware('permission:manage-join-requests,admin')->name('reject');
     });
