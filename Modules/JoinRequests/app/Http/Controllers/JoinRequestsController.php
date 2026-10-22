@@ -20,7 +20,12 @@ class JoinRequestsController extends ApiController
 
     public function store(StoreJoinRequestRequest $request): JsonResponse
     {
-        $joinRequest = $this->service->submit($request->safe()->except('cv'), $request->file('cv'));
+        $joinRequest = $this->service->submit(
+            $request->safe()->except(['cv', 'photo', 'licenses']),
+            $request->file('cv'),
+            $request->file('photo'),
+            (array) ($request->file('licenses') ?? []),
+        );
 
         return $this->created(JoinRequestResource::make($joinRequest), __('joinrequests::messages.submitted'));
     }
@@ -51,11 +56,31 @@ class JoinRequestsController extends ApiController
         return response()->download($media->getPath(), $media->file_name);
     }
 
-    public function approve(Request $request, string $joinRequest): JsonResponse
+    public function downloadPhoto(string $joinRequest): BinaryFileResponse
     {
         $joinRequest = JoinRequest::query()->findOrFail($joinRequest);
+        $media = $joinRequest->getFirstMedia('photo');
+        abort_if($media === null, 404);
 
-        return $this->success(JoinRequestResource::make($this->service->approve($joinRequest, $request->user('admin'))), __('joinrequests::messages.approved'));
+        return response()->download($media->getPath(), $media->file_name);
+    }
+
+    public function downloadLicense(string $joinRequest, string $media): BinaryFileResponse
+    {
+        $joinRequest = JoinRequest::query()->findOrFail($joinRequest);
+        $item = $joinRequest->getMedia('licenses')->firstWhere('id', (int) $media);
+        abort_if($item === null, 404);
+
+        return response()->download($item->getPath(), $item->file_name);
+    }
+
+    public function approve(Request $request, string $joinRequest): JsonResponse
+    {
+        $request->validate(['specialization' => ['nullable', 'string', 'max:191']]);
+        $joinRequest = JoinRequest::query()->findOrFail($joinRequest);
+        $specialization = $request->filled('specialization') ? $request->string('specialization')->toString() : null;
+
+        return $this->success(JoinRequestResource::make($this->service->approve($joinRequest, $request->user('admin'), $specialization)), __('joinrequests::messages.approved'));
     }
 
     public function reject(RejectJoinRequestRequest $request, string $joinRequest): JsonResponse

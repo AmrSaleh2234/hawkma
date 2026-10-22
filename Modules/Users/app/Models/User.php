@@ -13,6 +13,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Modules\Bookings\Models\Booking;
 use Modules\Consultants\Models\ConsultantAvailability;
 use Modules\Consultants\Models\ConsultantTimeOff;
+use Modules\Consultants\Models\TrainingSession;
 use Modules\Reports\Models\Report;
 use Modules\Users\Database\Factories\UserFactory;
 use Modules\Users\Enums\UserType;
@@ -37,6 +38,7 @@ class User extends Authenticatable implements HasMedia
         'specialization',
         'bio',
         'is_active',
+        'consultant_stage',
         'email_verified_at',
         'password',
         'last_login_at',
@@ -52,6 +54,7 @@ class User extends Authenticatable implements HasMedia
      */
     protected $attributes = [
         'is_active' => true,
+        'consultant_stage' => 'active',
     ];
 
     protected function casts(): array
@@ -112,6 +115,20 @@ class User extends Authenticatable implements HasMedia
         return $query->where('type', UserType::Consultant->value);
     }
 
+    /**
+     * A consultant who was approved through join-requests but is still in
+     * the training pipeline — invisible to the public consultants list.
+     */
+    public function isTrainee(): bool
+    {
+        return $this->isConsultant() && $this->consultant_stage === 'training';
+    }
+
+    public function scopeTrainees(Builder $query): Builder
+    {
+        return $query->where('consultant_stage', 'training');
+    }
+
     public function scopeStaff(Builder $query): Builder
     {
         return $query->where('type', UserType::Admin->value);
@@ -146,6 +163,11 @@ class User extends Authenticatable implements HasMedia
     public function timeOffs(): HasMany
     {
         return $this->hasMany(ConsultantTimeOff::class, 'consultant_id');
+    }
+
+    public function trainingSessions(): HasMany
+    {
+        return $this->hasMany(TrainingSession::class, 'consultant_id');
     }
 
     public function consultantBookings(): HasMany

@@ -6,6 +6,7 @@ use Modules\Consultants\Http\Controllers\Admin\ConsultantController;
 use Modules\Consultants\Http\Controllers\Admin\ConsultantRelationsController;
 use Modules\Consultants\Http\Controllers\Admin\ConsultantTimeOffController;
 use Modules\Consultants\Http\Controllers\Admin\MyAvailabilityController;
+use Modules\Consultants\Http\Controllers\Admin\TrainingController;
 use Modules\Consultants\Http\Controllers\Public\PublicConsultantController;
 
 Route::prefix('v1')->group(function () {
@@ -85,6 +86,29 @@ Route::prefix('v1')->group(function () {
         Route::get('consultants/{consultant}/stats', [ConsultantRelationsController::class, 'stats'])
             ->middleware('permission:view-consultants,admin')
             ->name('consultants.stats');
+
+        // Consultant training pipeline: approved join-requests land here until
+        // an admin promotes the trainee to a public, bookable consultant.
+        Route::prefix('training')->name('training.')->group(function () {
+            Route::get('/', [TrainingController::class, 'index'])
+                ->middleware('permission:view-training,admin')
+                ->name('index');
+            Route::get('mine', [TrainingController::class, 'mine'])
+                ->name('mine');
+            Route::get('{consultant}/sessions', [TrainingController::class, 'sessions'])
+                ->middleware('permission:view-training,admin')
+                ->name('sessions.index');
+            Route::post('{consultant}/sessions', [TrainingController::class, 'storeSession'])
+                ->middleware('permission:manage-training,admin')
+                ->name('sessions.store');
+            Route::delete('{consultant}/sessions/{trainingSession}', [TrainingController::class, 'destroySession'])
+                ->middleware('permission:manage-training,admin')
+                ->name('sessions.destroy')
+                ->scopeBindings();
+            Route::post('{consultant}/promote', [TrainingController::class, 'promote'])
+                ->middleware('permission:manage-training,admin')
+                ->name('promote');
+        });
 
         // Consultant self-service (only type=consultant, else 403).
         Route::prefix('my')->name('my.')->group(function () {

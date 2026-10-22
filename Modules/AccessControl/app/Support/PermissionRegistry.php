@@ -22,6 +22,8 @@ final class PermissionRegistry
 
     public const GROUP_AVAILABILITY = 'availability';
 
+    public const GROUP_TRAINING = 'training';
+
     public const GROUP_CLIENTS = 'clients';
 
     public const GROUP_PACKAGES = 'packages';
@@ -40,6 +42,8 @@ final class PermissionRegistry
 
     public const GROUP_ACTIVITY_LOGS = 'activity_logs';
 
+    public const GROUP_TEAM = 'team';
+
     /**
      * All permissions grouped by their group key.
      *
@@ -54,6 +58,7 @@ final class PermissionRegistry
             self::GROUP_USERS => ['view-users', 'create-users', 'update-users', 'delete-users', 'assign-roles'],
             self::GROUP_CONSULTANTS => ['view-consultants', 'create-consultants', 'update-consultants', 'delete-consultants'],
             self::GROUP_AVAILABILITY => ['view-availability', 'manage-availability'],
+            self::GROUP_TRAINING => ['view-training', 'manage-training'],
             self::GROUP_CLIENTS => ['view-clients', 'update-clients', 'delete-clients'],
             self::GROUP_PACKAGES => ['view-packages', 'create-packages', 'update-packages', 'delete-packages'],
             self::GROUP_BOOKINGS => ['view-bookings', 'complete-bookings', 'cancel-bookings', 'manage-meetings'],
@@ -63,6 +68,7 @@ final class PermissionRegistry
             self::GROUP_JOIN_REQUESTS => ['view-join-requests', 'manage-join-requests'],
             self::GROUP_REVIEWS => ['view-reviews', 'manage-reviews'],
             self::GROUP_ACTIVITY_LOGS => ['view-activity-logs'],
+            self::GROUP_TEAM => ['view-team', 'create-team', 'update-team', 'delete-team'],
         ];
     }
 

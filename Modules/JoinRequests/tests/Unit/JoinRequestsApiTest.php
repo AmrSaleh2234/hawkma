@@ -68,11 +68,15 @@ class JoinRequestsApiTest extends TestCase
 
     private function payload(): array
     {
-        return $this->record() + ['cv' => UploadedFile::fake()->createWithContent('cv.pdf', '%PDF-1.4 CV')];
+        return $this->record() + [
+            'cv' => UploadedFile::fake()->createWithContent('cv.pdf', '%PDF-1.4 CV'),
+            'photo' => UploadedFile::fake()->image('photo.jpg'),
+            'licenses' => [UploadedFile::fake()->createWithContent('license.pdf', '%PDF-1.4 LIC')],
+        ];
     }
 
     private function record(): array
     {
-        return ['name' => 'Expert Person', 'email' => 'expert@example.com', 'phone' => '+966500000000', 'specialization' => 'Governance', 'bio' => 'Ten years of experience.', 'licenses' => 'SCEGA license No. 12345', 'status' => 'pending'];
+        return ['name' => 'Expert Person', 'email' => 'expert@example.com', 'phone' => '+966500000000', 'specialization' => 'Governance', 'bio' => 'Ten years of experience.', 'status' => 'pending'];
     }
 }

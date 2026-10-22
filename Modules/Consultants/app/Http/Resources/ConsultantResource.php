@@ -35,6 +35,7 @@ class ConsultantResource extends JsonResource
             'avatar_url' => $this->avatar_url,
             'avatar_thumb_url' => $this->avatar_thumb_url,
             'is_active' => $this->is_active,
+            'consultant_stage' => $this->consultant_stage,
             'roles' => $this->getRoleNames()->values(),
             // Only when the counts were loaded (they need the bookings and
             // reports tables — wired in Phases 9/10).

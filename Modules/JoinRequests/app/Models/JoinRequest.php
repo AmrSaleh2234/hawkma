@@ -15,7 +15,7 @@ class JoinRequest extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia;
 
-    protected $fillable = ['name', 'email', 'phone', 'specialization', 'bio', 'licenses', 'status', 'rejection_reason', 'user_id', 'reviewed_by', 'reviewed_at'];
+    protected $fillable = ['name', 'email', 'phone', 'specialization', 'bio', 'status', 'rejection_reason', 'user_id', 'reviewed_by', 'reviewed_at'];
 
     protected function casts(): array
     {

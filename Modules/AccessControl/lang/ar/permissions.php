@@ -30,6 +30,10 @@ return [
     'view-availability' => 'عرض التوفر',
     'manage-availability' => 'إدارة التوفر',
 
+    // training
+    'view-training' => 'عرض تدريب المستشارين',
+    'manage-training' => 'إدارة تدريب المستشارين',
+
     // clients
     'view-clients' => 'عرض العملاء',
     'update-clients' => 'تعديل العملاء',
@@ -56,4 +60,26 @@ return [
     // payments
     'view-payments' => 'عرض المدفوعات',
     'refund-payments' => 'استرداد المدفوعات',
+
+    // support tickets
+    'view-support-tickets' => 'عرض تذاكر الدعم',
+    'reply-support-tickets' => 'الرد على تذاكر الدعم',
+    'manage-support-tickets' => 'إدارة تذاكر الدعم',
+
+    // join requests
+    'view-join-requests' => 'عرض طلبات الانضمام',
+    'manage-join-requests' => 'إدارة طلبات الانضمام',
+
+    // reviews
+    'view-reviews' => 'عرض التقييمات',
+    'manage-reviews' => 'إدارة التقييمات',
+
+    // activity logs
+    'view-activity-logs' => 'عرض سجل النشاط',
+
+    // team
+    'view-team' => 'عرض المجلس الاستشاري',
+    'create-team' => 'إضافة عضو للمجلس',
+    'update-team' => 'تعديل عضو المجلس',
+    'delete-team' => 'حذف عضو المجلس',
 ];

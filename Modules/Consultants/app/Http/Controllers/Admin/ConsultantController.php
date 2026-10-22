@@ -33,7 +33,11 @@ class ConsultantController extends ApiController
      */
     public function index(Request $request): JsonResponse
     {
-        $query = User::query()->consultants()->with(['roles', 'availabilities', 'media']);
+        $query = User::query()
+            ->consultants()
+            // Trainees are managed on the training page until they are promoted.
+            ->where('consultant_stage', 'active')
+            ->with(['roles', 'availabilities', 'media']);
 
         if ($request->user()->isConsultant()) {
             $query->whereKey($request->user()->id);
@@ -71,6 +75,7 @@ class ConsultantController extends ApiController
     {
         $baseQuery = fn () => User::query()
             ->consultants()
+            ->where('consultant_stage', 'active')
             ->when(
                 $request->user()->isConsultant(),
                 fn (Builder $q) => $q->whereKey($request->user()->id),
