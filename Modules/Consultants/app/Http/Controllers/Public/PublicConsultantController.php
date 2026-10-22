@@ -30,6 +30,7 @@ class PublicConsultantController extends ApiController
         $query = User::query()
             ->consultants()
             ->active()
+            ->where('consultant_stage', 'active')
             ->whereHas('availabilities')
             ->with(['availabilities', 'media']);
 
@@ -50,7 +51,7 @@ class PublicConsultantController extends ApiController
      */
     public function show(User $consultant): JsonResponse
     {
-        abort_unless($consultant->is_active, 404);
+        abort_unless($consultant->is_active && $consultant->consultant_stage === 'active', 404);
 
         return $this->success(PublicConsultantResource::make($consultant->load('availabilities')));
     }
@@ -60,7 +61,7 @@ class PublicConsultantController extends ApiController
      */
     public function availableDates(AvailableDatesRequest $request, User $consultant): JsonResponse
     {
-        abort_unless($consultant->is_active, 404);
+        abort_unless($consultant->is_active && $consultant->consultant_stage === 'active', 404);
 
         $month = CarbonImmutable::createFromFormat('Y-m', $request->string('month')->value(), config('app.timezone'))->startOfMonth();
 
@@ -75,7 +76,7 @@ class PublicConsultantController extends ApiController
      */
     public function slots(SlotsRequest $request, User $consultant): JsonResponse
     {
-        abort_unless($consultant->is_active, 404);
+        abort_unless($consultant->is_active && $consultant->consultant_stage === 'active', 404);
 
         return $this->success($this->slotsPayload($consultant, $request->string('date')->value()));
     }

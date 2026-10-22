@@ -30,6 +30,10 @@ return [
     'view-availability' => 'عرض التوفر',
     'manage-availability' => 'إدارة التوفر',
 
+    // training
+    'view-training' => 'عرض تدريب المستشارين',
+    'manage-training' => 'إدارة تدريب المستشارين',
+
     // clients
     'view-clients' => 'عرض العملاء',
     'update-clients' => 'تعديل العملاء',

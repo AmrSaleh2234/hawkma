@@ -7,6 +7,7 @@ return [
     'users' => 'المستخدمون',
     'consultants' => 'المستشارون',
     'availability' => 'التوفر',
+    'training' => 'تدريب المستشارين',
     'clients' => 'العملاء',
     'packages' => 'الباقات',
     'bookings' => 'الحجوزات',

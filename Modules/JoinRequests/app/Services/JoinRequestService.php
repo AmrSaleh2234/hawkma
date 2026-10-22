@@ -48,7 +48,10 @@ class JoinRequestService
             }
             // The admin may adjust the specialization after reviewing the uploaded licenses/CV.
             $specialization = $specialization ?: $request->specialization;
-            $user = $this->users->create(['type' => UserType::Consultant->value, 'name' => $request->name, 'email' => $request->email, 'phone' => $request->phone, 'specialization' => $specialization, 'bio' => $request->bio, 'is_active' => true]);
+            // Approved applicants enter the training pipeline first (consultant_stage =
+            // 'training'); they become public consultants only after an admin promotes
+            // them from the training page.
+            $user = $this->users->create(['type' => UserType::Consultant->value, 'name' => $request->name, 'email' => $request->email, 'phone' => $request->phone, 'specialization' => $specialization, 'bio' => $request->bio, 'is_active' => true, 'consultant_stage' => 'training']);
             if ($photo = $request->getFirstMedia('photo')) {
                 $photo->copy($user, 'avatar');
             }

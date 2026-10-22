@@ -22,6 +22,8 @@ final class PermissionRegistry
 
     public const GROUP_AVAILABILITY = 'availability';
 
+    public const GROUP_TRAINING = 'training';
+
     public const GROUP_CLIENTS = 'clients';
 
     public const GROUP_PACKAGES = 'packages';
@@ -56,6 +58,7 @@ final class PermissionRegistry
             self::GROUP_USERS => ['view-users', 'create-users', 'update-users', 'delete-users', 'assign-roles'],
             self::GROUP_CONSULTANTS => ['view-consultants', 'create-consultants', 'update-consultants', 'delete-consultants'],
             self::GROUP_AVAILABILITY => ['view-availability', 'manage-availability'],
+            self::GROUP_TRAINING => ['view-training', 'manage-training'],
             self::GROUP_CLIENTS => ['view-clients', 'update-clients', 'delete-clients'],
             self::GROUP_PACKAGES => ['view-packages', 'create-packages', 'update-packages', 'delete-packages'],
             self::GROUP_BOOKINGS => ['view-bookings', 'complete-bookings', 'cancel-bookings', 'manage-meetings'],

@@ -30,6 +30,10 @@ return [
     'view-availability' => 'View availability',
     'manage-availability' => 'Manage availability',
 
+    // training
+    'view-training' => 'View consultant training',
+    'manage-training' => 'Manage consultant training',
+
     // clients
     'view-clients' => 'View clients',
     'update-clients' => 'Update clients',

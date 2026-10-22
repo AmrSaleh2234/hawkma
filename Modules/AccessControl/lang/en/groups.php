@@ -7,6 +7,7 @@ return [
     'users' => 'Users',
     'consultants' => 'Consultants',
     'availability' => 'Availability',
+    'training' => 'Consultant training',
     'clients' => 'Clients',
     'packages' => 'Packages',
     'bookings' => 'Bookings',
