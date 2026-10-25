@@ -16,6 +16,7 @@ class TeamMember extends Model implements HasMedia
     protected $fillable = [
         'name',
         'job_title',
+        'bio',
         'experience_years',
         'sort_order',
         'is_active',
