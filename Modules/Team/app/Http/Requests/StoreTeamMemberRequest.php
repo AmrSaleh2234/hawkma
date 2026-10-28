@@ -16,6 +16,7 @@ class StoreTeamMemberRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:191'],
             'job_title' => ['required', 'string', 'max:191'],
+            'bio' => ['nullable', 'string', 'max:2000'],
             'experience_years' => ['required', 'integer', 'min:0', 'max:60'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],

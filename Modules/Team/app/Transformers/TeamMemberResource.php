@@ -15,6 +15,7 @@ class TeamMemberResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'job_title' => $this->job_title,
+            'bio' => $this->bio,
             'experience_years' => $this->experience_years,
             'avatar_url' => $this->avatar_url,
             'avatar_thumb_url' => $this->avatar_thumb_url,
