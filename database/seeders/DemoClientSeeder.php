@@ -14,7 +14,6 @@ use Modules\Packages\Models\ClientSubscription;
 use Modules\Packages\Models\Package;
 use Modules\Payments\Enums\PaymentRecordStatus;
 use Modules\Payments\Models\Payment;
-use Modules\Payments\Services\PaymentMethodService;
 use Modules\Reports\Models\Report;
 use Modules\Users\Enums\UserType;
 use Modules\Users\Models\User;
@@ -43,7 +42,17 @@ class DemoClientSeeder extends Seeder
 
         $this->seedLocations($client);
 
-        app(PaymentMethodService::class)->storeFromToken($client, 'tok_fake_success', true);
+        $client->paymentMethods()->firstOrCreate(
+            ['gateway' => 'fake', 'gateway_token' => 'tok_fake_success'],
+            [
+                'brand' => 'visa',
+                'last_four' => '4242',
+                'exp_month' => 12,
+                'exp_year' => (int) now()->year + 2,
+                'holder_name' => 'Test Card',
+                'is_default' => true,
+            ],
+        );
 
         $consultant = User::query()
             ->where('type', UserType::Consultant)
