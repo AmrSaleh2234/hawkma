@@ -19,7 +19,9 @@ class StoreBookingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'package_id' => ['required', 'integer', 'exists:packages,id'],
+            // Null → direct booking: the client pays the consultant's
+            // consultation_price instead of buying/using a package.
+            'package_id' => ['nullable', 'integer', 'exists:packages,id'],
             'consultant_id' => ['required', 'integer', 'exists:users,id'],
             'date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             'time' => ['required', 'date_format:H:i'],

@@ -19,4 +19,15 @@ return [
         'failed' => 'Payment failed',
         'refunded' => 'Refunded',
     ],
+    'report_approval_status' => [
+        'pending_review' => 'Pending review',
+        'approved' => 'Approved',
+        'rejected' => 'Rejected',
+        'returned' => 'Returned for revision',
+    ],
+    'payout_status' => [
+        'pending' => 'Pending',
+        'released' => 'Released',
+        'failed' => 'Failed',
+    ],
 ];

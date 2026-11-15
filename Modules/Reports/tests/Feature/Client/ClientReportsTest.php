@@ -17,8 +17,8 @@ class ClientReportsTest extends TestCase
     {
         $client = $this->actingAsClient();
 
-        $mine = Report::factory()->create(['title' => 'Governance review', 'client_id' => $client->id]);
-        Report::factory()->create(['title' => 'Governance review']); // another client's
+        $mine = Report::factory()->approved()->create(['title' => 'Governance review', 'client_id' => $client->id]);
+        Report::factory()->approved()->create(['title' => 'Governance review']); // another client's
 
         $response = $this->getJson('/api/v1/client/reports');
 
@@ -40,8 +40,8 @@ class ClientReportsTest extends TestCase
     {
         $client = $this->actingAsClient();
 
-        $mine = Report::factory()->create(['client_id' => $client->id]);
-        $theirs = Report::factory()->create();
+        $mine = Report::factory()->approved()->create(['client_id' => $client->id]);
+        $theirs = Report::factory()->approved()->create();
 
         $this->getJson('/api/v1/client/reports/'.$mine->id)
             ->assertOk()
@@ -61,7 +61,7 @@ class ClientReportsTest extends TestCase
     {
         $client = $this->actingAsClient();
 
-        $report = Report::factory()->create(['client_id' => $client->id]);
+        $report = Report::factory()->approved()->create(['client_id' => $client->id]);
         $report->addMediaFromString('%PDF-1.4 fake pdf content')->preservingOriginal()->usingFileName('report.pdf')->toMediaCollection('report_file');
 
         $response = $this->get('/api/v1/client/reports/'.$report->id.'/download');
@@ -81,9 +81,28 @@ class ClientReportsTest extends TestCase
     public function test_cli_rpt_03_another_clients_report_returns_404(): void
     {
         $this->actingAsClient();
-        $report = Report::factory()->create();
+        $report = Report::factory()->approved()->create();
         $report->addMediaFromString('%PDF-1.4 fake pdf content')->preservingOriginal()->toMediaCollection('report_file');
 
         $this->get('/api/v1/client/reports/'.$report->id.'/download')->assertNotFound();
+    }
+
+    public function test_client_reports_a_pending_review_report_is_invisible(): void
+    {
+        $client = $this->actingAsClient();
+
+        // Pending review — the client must not see it anywhere.
+        $pending = Report::factory()->create(['client_id' => $client->id]);
+        $pending->addMediaFromString('%PDF-1.4 fake pdf content')->preservingOriginal()->toMediaCollection('report_file');
+
+        $this->assertSame(0, $this->getJson('/api/v1/client/reports')->json('meta.total'));
+        $this->getJson('/api/v1/client/reports/'.$pending->id)->assertNotFound();
+        $this->get('/api/v1/client/reports/'.$pending->id.'/download')->assertNotFound();
+
+        // Once approved it shows up.
+        $pending->forceFill(['approval_status' => 'approved'])->save();
+
+        $this->assertSame(1, $this->getJson('/api/v1/client/reports')->json('meta.total'));
+        $this->get('/api/v1/client/reports/'.$pending->id.'/download')->assertOk();
     }
 }

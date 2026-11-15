@@ -4,6 +4,7 @@ namespace Modules\Reports\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Modules\Bookings\Models\Booking;
+use Modules\Reports\Enums\ReportApprovalStatus;
 use Modules\Reports\Models\Report;
 
 /**
@@ -25,6 +26,23 @@ class ReportFactory extends Factory
             'title' => fake()->sentence(4),
             'summary' => fake()->paragraph(),
             'uploaded_by' => fn (array $attributes) => Booking::query()->findOrFail($attributes['booking_id'])->consultant_id,
+            'approval_status' => ReportApprovalStatus::PendingReview,
         ];
+    }
+
+    public function approved(): static
+    {
+        return $this->state(fn () => [
+            'approval_status' => ReportApprovalStatus::Approved,
+            'reviewed_at' => now(),
+        ]);
+    }
+
+    public function rejected(): static
+    {
+        return $this->state(fn () => [
+            'approval_status' => ReportApprovalStatus::Rejected,
+            'reviewed_at' => now(),
+        ]);
     }
 }

@@ -34,6 +34,10 @@ final class PermissionRegistry
 
     public const GROUP_PAYMENTS = 'payments';
 
+    public const GROUP_PAYOUTS = 'payouts';
+
+    public const GROUP_SETTINGS = 'settings';
+
     public const GROUP_SUPPORT_TICKETS = 'support_tickets';
 
     public const GROUP_JOIN_REQUESTS = 'join_requests';
@@ -62,8 +66,10 @@ final class PermissionRegistry
             self::GROUP_CLIENTS => ['view-clients', 'update-clients', 'delete-clients'],
             self::GROUP_PACKAGES => ['view-packages', 'create-packages', 'update-packages', 'delete-packages'],
             self::GROUP_BOOKINGS => ['view-bookings', 'complete-bookings', 'cancel-bookings', 'manage-meetings'],
-            self::GROUP_REPORTS => ['view-reports', 'upload-reports', 'download-reports', 'delete-reports'],
+            self::GROUP_REPORTS => ['view-reports', 'upload-reports', 'download-reports', 'delete-reports', 'approve-reports'],
             self::GROUP_PAYMENTS => ['view-payments', 'refund-payments'],
+            self::GROUP_PAYOUTS => ['view-payouts', 'release-payouts'],
+            self::GROUP_SETTINGS => ['view-settings', 'update-settings'],
             self::GROUP_SUPPORT_TICKETS => ['view-support-tickets', 'reply-support-tickets', 'manage-support-tickets'],
             self::GROUP_JOIN_REQUESTS => ['view-join-requests', 'manage-join-requests'],
             self::GROUP_REVIEWS => ['view-reviews', 'manage-reviews'],
@@ -97,6 +103,7 @@ final class PermissionRegistry
             'view-reports',
             'upload-reports',
             'download-reports',
+            'view-payouts',
             'view-clients',
             'view-availability',
             'manage-availability',

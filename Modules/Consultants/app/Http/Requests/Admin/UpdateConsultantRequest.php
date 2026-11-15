@@ -22,6 +22,8 @@ class UpdateConsultantRequest extends FormRequest
             'specialization' => ['nullable', 'string', 'max:150'],
             'bio' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['boolean'],
+            'consultation_price' => ['nullable', 'integer', 'min:0'],
+            'platform_fee_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
     }
 }

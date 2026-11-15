@@ -28,7 +28,7 @@ class QuoteBookingAction
 
     /**
      * @return array{
-     *     package: Package,
+     *     package: ?Package,
      *     requires_payment: bool,
      *     amount: int,
      *     currency: string,
@@ -64,6 +64,45 @@ class QuoteBookingAction
             'amount' => $quote['amount'],
             'currency' => $package->currency,
             'subscription' => $quote['subscription'],
+            'slot_available' => $slotAvailable,
+        ];
+    }
+
+    /**
+     * Direct booking quote: no package — the client always pays the
+     * consultant's configured consultation_price.
+     *
+     * @return array{
+     *     package: null,
+     *     requires_payment: bool,
+     *     amount: int,
+     *     currency: string,
+     *     subscription: null,
+     *     slot_available: ?bool
+     * }
+     */
+    public function executeDirect(
+        Client $client,
+        User $consultant,
+        ?string $date = null,
+        ?string $time = null,
+    ): array {
+        if ($consultant->consultation_price === null) {
+            throw new BusinessException(ErrorCode::ConsultantPriceRequired);
+        }
+
+        $slotAvailable = null;
+        if ($date && $time) {
+            $startsAt = CarbonImmutable::parse($date.' '.$time, config('app.timezone'));
+            $slotAvailable = $this->slots->isSlotAvailable($consultant, $startsAt);
+        }
+
+        return [
+            'package' => null,
+            'requires_payment' => true,
+            'amount' => $consultant->consultation_price,
+            'currency' => 'SAR',
+            'subscription' => null,
             'slot_available' => $slotAvailable,
         ];
     }

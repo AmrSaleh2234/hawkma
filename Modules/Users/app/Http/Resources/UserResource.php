@@ -33,6 +33,13 @@ class UserResource extends JsonResource
             'avatar_url' => $this->avatar_url,
             'avatar_thumb_url' => $this->avatar_thumb_url,
             'is_active' => $this->is_active,
+            'consultation_price' => $this->when(
+                $this->isConsultant(),
+                $this->consultation_price,
+            ),
+            'iban' => $this->when($this->isConsultant(), $this->iban),
+            'bank_name' => $this->when($this->isConsultant(), $this->bank_name),
+            'bank_account_name' => $this->when($this->isConsultant(), $this->bank_account_name),
             'last_login_at' => $this->last_login_at?->toIso8601String(),
             'roles' => $this->getRoleNames()->values(),
             'permissions' => $this->when(

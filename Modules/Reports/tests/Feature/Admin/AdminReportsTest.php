@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Modules\Bookings\Models\Booking;
 use Modules\Reports\Models\Report;
 use Modules\Reports\Notifications\ReportReadyNotification;
+use Modules\Reports\Notifications\ReportReviewedNotification;
 use Tests\TestCase;
 
 class AdminReportsTest extends TestCase
@@ -38,6 +39,7 @@ class AdminReportsTest extends TestCase
 
         $this->assertApiSuccess($response, 201)
             ->assertJsonPath('data.title', 'Governance assessment report')
+            ->assertJsonPath('data.approval_status', 'pending_review')
             ->assertJsonPath('data.file.name', 'report.pdf')
             ->assertJsonPath('data.file.mime_type', 'application/pdf');
 
@@ -51,22 +53,16 @@ class AdminReportsTest extends TestCase
         $this->assertNotNull($media);
         $this->assertTrue(Storage::disk('local')->exists($media->getPathRelativeToRoot()));
 
-        // The booking flips to uploaded and the client is notified.
+        // The booking flips to uploaded; a pending_review history entry
+        // holds the file version; the client is NOT notified yet.
         $this->assertSame('uploaded', $booking->refresh()->report_status->value);
-        $this->assertNotNull($report->client_notified_at);
+        $this->assertNull($report->client_notified_at);
+        $this->assertCount(1, $report->reviews);
+        $this->assertSame('pending_review', $report->reviews->first()->status->value);
+        $this->assertSame($media->id, $report->reviews->first()->media_id);
+        $this->assertSame($media->id, $report->current_media_id);
 
-        Notification::assertSentTo(
-            $report->client,
-            ReportReadyNotification::class,
-            function ($notification) use ($report) {
-                $mail = $notification->toMail($report->client);
-                // Lines added after the action land in outroLines.
-                $body = implode(' ', array_merge($mail->introLines, $mail->outroLines));
-
-                return str_contains($mail->actionUrl ?? '', '/reports/'.$report->id)
-                    && str_contains($body, 'signed-download');
-            },
-        );
+        Notification::assertNotSentTo($report->client, ReportReadyNotification::class);
     }
 
     public function test_rpt_03_a_not_completed_booking_returns_422(): void
@@ -106,7 +102,7 @@ class AdminReportsTest extends TestCase
         ])->assertForbidden();
     }
 
-    public function test_rpt_03_replacing_keeps_one_report_row_and_one_file(): void
+    public function test_rpt_03_resubmission_keeps_one_row_and_both_file_versions(): void
     {
         $this->actingAsAdmin();
         $booking = Booking::factory()->withReportPending()->create();
@@ -116,22 +112,24 @@ class AdminReportsTest extends TestCase
             'file' => UploadedFile::fake()->createWithContent('v1.pdf', '%PDF-1.4 fake pdf content'),
         ])->assertCreated();
 
-        // Replace without asking to notify.
         $response = $this->postJson("/api/v1/admin/bookings/{$booking->id}/report", [
             'title' => 'v2',
             'file' => UploadedFile::fake()->createWithContent('v2.pdf', '%PDF-1.4 fake pdf content'),
-            'notify_client' => false,
         ]);
 
         $this->assertApiSuccess($response, 200)
             ->assertJsonPath('data.title', 'v2')
+            ->assertJsonPath('data.approval_status', 'pending_review')
             ->assertJsonPath('data.file.name', 'v2.pdf');
 
-        $this->assertSame(1, Report::count());
-        $this->assertCount(1, Report::sole()->getMedia('report_file'));
+        $report = Report::sole();
+        // Both versions are retained: v1 for the history, v2 as current.
+        $this->assertCount(2, $report->getMedia('report_file'));
+        $this->assertSame(2, $report->reviews()->count());
+        $this->assertSame('v2.pdf', $report->currentMedia()->file_name);
 
-        // Only the create notified the client.
-        Notification::assertSentTo(Report::sole()->client, ReportReadyNotification::class, 1);
+        // Still no client notification — approval comes first.
+        Notification::assertNotSentTo($report->client, ReportReadyNotification::class);
     }
 
     /*
@@ -220,12 +218,206 @@ class AdminReportsTest extends TestCase
     public function test_rpt_06_notify_client_resends_the_notification(): void
     {
         $this->actingAsAdmin();
-        $report = Report::factory()->create(['client_notified_at' => null]);
+        $report = Report::factory()->approved()->create(['client_notified_at' => null]);
 
         $this->postJson('/api/v1/admin/reports/'.$report->id.'/notify-client')->assertOk();
 
         Notification::assertSentTo($report->client, ReportReadyNotification::class);
         $this->assertNotNull($report->refresh()->client_notified_at);
+    }
+
+    public function test_rpt_06_notify_client_is_rejected_for_an_unapproved_report(): void
+    {
+        $this->actingAsAdmin();
+        $report = Report::factory()->create(['client_notified_at' => null]);
+
+        $this->assertApiError(
+            $this->postJson('/api/v1/admin/reports/'.$report->id.'/notify-client'),
+            422,
+            'REPORT_REVIEW_NOT_ALLOWED',
+        );
+
+        Notification::assertNotSentTo($report->client, ReportReadyNotification::class);
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | RPT-01c inbox + RPT-04a/b/c approve|reject|return + RPT-02b/c history
+    |----------------------------------------------------------------------
+    */
+
+    public function test_rpt_01c_the_inbox_lists_only_pending_review_reports(): void
+    {
+        $this->actingAsAdmin();
+
+        Report::factory()->create();
+        Report::factory()->approved()->create();
+        Report::factory()->rejected()->create();
+
+        $response = $this->getJson('/api/v1/admin/reports/inbox');
+
+        $this->assertApiSuccess($response);
+        $this->assertSame(1, $response->json('meta.total'));
+        $this->assertSame('pending_review', $response->json('data.0.approval_status'));
+    }
+
+    public function test_rpt_01c_the_inbox_requires_approve_reports_permission(): void
+    {
+        $staff = $this->createStaffWithPermissions(['view-reports']);
+        $this->actingAsAdmin($staff);
+
+        $this->getJson('/api/v1/admin/reports/inbox')->assertForbidden();
+    }
+
+    public function test_rpt_04a_approve_notifies_the_client_and_the_consultant(): void
+    {
+        $this->actingAsAdmin();
+        $report = Report::factory()->create();
+        $media = $report->addMediaFromString('%PDF-1.4')->preservingOriginal()->toMediaCollection('report_file');
+        $report->forceFill(['current_media_id' => $media->id])->save();
+
+        $response = $this->postJson("/api/v1/admin/reports/{$report->id}/approve", [
+            'note' => 'Looks good.',
+        ]);
+
+        $this->assertApiSuccess($response)
+            ->assertJsonPath('data.approval_status', 'approved')
+            ->assertJsonPath('data.review_note', 'Looks good.');
+
+        $report->refresh();
+        $this->assertNotNull($report->client_notified_at);
+        $this->assertNotNull($report->reviewed_at);
+
+        // The client finally learns about the report.
+        Notification::assertSentTo($report->client, ReportReadyNotification::class);
+        Notification::assertSentTo(
+            $report->consultant,
+            ReportReviewedNotification::class,
+        );
+
+        // The decision is recorded with the file version that was reviewed.
+        $decision = $report->reviews()->latest('id')->first();
+        $this->assertSame('approved', $decision->status->value);
+        $this->assertSame($media->id, $decision->media_id);
+    }
+
+    public function test_rpt_04a_approve_is_admin_only_and_needs_the_permission(): void
+    {
+        $report = Report::factory()->create();
+
+        // A consultant cannot review — even his own report.
+        $this->actingAsConsultant($report->consultant);
+        $this->postJson("/api/v1/admin/reports/{$report->id}/approve")->assertForbidden();
+
+        // A staff user without approve-reports is blocked by middleware.
+        $this->app['auth']->forgetGuards();
+        $staff = $this->createStaffWithPermissions(['view-reports']);
+        $this->actingAsAdmin($staff);
+        $this->postJson("/api/v1/admin/reports/{$report->id}/approve")->assertForbidden();
+    }
+
+    public function test_rpt_04b_reject_notifies_the_consultant_and_resets_the_booking(): void
+    {
+        $this->actingAsAdmin();
+        $booking = Booking::factory()->completed()->create(['report_status' => 'uploaded']);
+        $report = Report::factory()->create(['booking_id' => $booking->id]);
+
+        $this->postJson("/api/v1/admin/reports/{$report->id}/reject", [
+            'note' => 'Missing section 3.',
+        ])->assertOk();
+
+        $this->assertSame('rejected', $report->refresh()->approval_status->value);
+        $this->assertSame('pending', $booking->refresh()->report_status->value);
+
+        Notification::assertSentTo(
+            $report->consultant,
+            ReportReviewedNotification::class,
+        );
+        Notification::assertNotSentTo($report->client, ReportReadyNotification::class);
+    }
+
+    public function test_rpt_04c_return_sends_the_report_back_for_revision(): void
+    {
+        $this->actingAsAdmin();
+        $booking = Booking::factory()->completed()->create(['report_status' => 'uploaded']);
+        $report = Report::factory()->create(['booking_id' => $booking->id]);
+
+        $this->postJson("/api/v1/admin/reports/{$report->id}/return", [
+            'note' => 'Please add the risk appendix.',
+        ])->assertOk();
+
+        $this->assertSame('returned', $report->refresh()->approval_status->value);
+        $this->assertSame('pending', $booking->refresh()->report_status->value);
+
+        // Re-uploading puts the report back into pending_review.
+        $this->postJson("/api/v1/admin/bookings/{$booking->id}/report", [
+            'title' => 'v2 with appendix',
+            'file' => UploadedFile::fake()->createWithContent('v2.pdf', '%PDF-1.4 fake pdf content'),
+        ])->assertOk();
+
+        $this->assertSame('pending_review', $report->refresh()->approval_status->value);
+        $this->assertSame('uploaded', $booking->refresh()->report_status->value);
+        $this->assertSame(2, $report->reviews()->count());
+        $this->assertSame(
+            ['pending_review', 'returned'],
+            $report->reviews()->pluck('status')->map->value->all(),
+        );
+    }
+
+    public function test_reviewing_a_non_pending_report_fails(): void
+    {
+        $this->actingAsAdmin();
+        $report = Report::factory()->approved()->create();
+
+        $this->assertApiError(
+            $this->postJson("/api/v1/admin/reports/{$report->id}/approve"),
+            422,
+            'REPORT_REVIEW_NOT_ALLOWED',
+        );
+    }
+
+    public function test_rpt_02b_history_lists_every_step_with_its_file_version(): void
+    {
+        $this->actingAsAdmin();
+        $booking = Booking::factory()->withReportPending()->create();
+
+        $this->postJson("/api/v1/admin/bookings/{$booking->id}/report", [
+            'title' => 'v1',
+            'file' => UploadedFile::fake()->createWithContent('v1.pdf', '%PDF-1.4 fake pdf content'),
+        ])->assertCreated();
+
+        $report = Report::sole();
+        $this->postJson("/api/v1/admin/reports/{$report->id}/return", ['note' => 'fix it'])->assertOk();
+        $this->postJson("/api/v1/admin/bookings/{$booking->id}/report", [
+            'title' => 'v2',
+            'file' => UploadedFile::fake()->createWithContent('v2.pdf', '%PDF-1.4 fake pdf content'),
+        ])->assertOk();
+        $this->postJson("/api/v1/admin/reports/{$report->id}/approve")->assertOk();
+
+        $history = $this->getJson("/api/v1/admin/reports/{$report->id}/history")->json('data');
+
+        $this->assertSame(['approved', 'pending_review', 'returned', 'pending_review'],
+            array_column($history, 'status'));
+        $this->assertSame('v2.pdf', $history[0]['file']['name']);
+        $this->assertSame('v1.pdf', $history[2]['file']['name']);
+    }
+
+    public function test_rpt_02c_downloads_the_file_of_one_history_entry(): void
+    {
+        $this->actingAsAdmin();
+        $report = Report::factory()->create();
+        $media = $report->addMediaFromString('%PDF-1.4 v1 content')->preservingOriginal()
+            ->usingFileName('v1.pdf')->toMediaCollection('report_file');
+        $review = $report->reviews()->create([
+            'status' => 'pending_review',
+            'media_id' => $media->id,
+        ]);
+
+        $response = $this->get("/api/v1/admin/report-reviews/{$review->id}/download");
+
+        $response->assertOk();
+        $response->assertHeader('content-disposition', 'attachment; filename=v1.pdf');
+        $this->assertSame('%PDF-1.4 v1 content', $response->streamedContent());
     }
 
     /*

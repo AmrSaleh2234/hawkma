@@ -31,7 +31,15 @@ class ProfileController extends ApiController
         $user->fill($request->safe()->only(['name', 'email', 'phone']));
 
         if ($user->isConsultant()) {
-            $user->fill($request->safe()->only(['title', 'specialization', 'bio']));
+            $user->fill($request->safe()->only([
+                'title',
+                'specialization',
+                'bio',
+                'consultation_price',
+                'iban',
+                'bank_name',
+                'bank_account_name',
+            ]));
         }
 
         $user->save();

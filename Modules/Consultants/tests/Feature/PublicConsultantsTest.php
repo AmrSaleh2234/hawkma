@@ -38,6 +38,27 @@ class PublicConsultantsTest extends TestCase
         $this->assertSame([0, 1, 2, 3, 4], $response->json('data.0.working_days'));
     }
 
+    public function test_pub_03_exposes_the_consultation_price_but_no_bank_details(): void
+    {
+        $priced = $this->createConsultant(['consultation_price' => 50000, 'iban' => 'SA0380000000608010167519']);
+        $unpriced = $this->createConsultant(['consultation_price' => null]);
+
+        $list = $this->getJson('/api/v1/public/consultants')->json('data');
+        $byId = collect($list)->keyBy('id');
+
+        $this->assertSame(50000, $byId[$priced->id]['consultation_price']);
+        $this->assertNotEmpty($byId[$priced->id]['consultation_price_formatted']);
+        $this->assertSame('SAR', $byId[$priced->id]['currency']);
+        $this->assertNull($byId[$unpriced->id]['consultation_price']);
+        $this->assertNull($byId[$unpriced->id]['consultation_price_formatted']);
+        $this->assertArrayNotHasKey('iban', $byId[$priced->id]);
+        $this->assertArrayNotHasKey('bank_name', $byId[$priced->id]);
+
+        $this->getJson("/api/v1/public/consultants/{$priced->id}")
+            ->assertOk()
+            ->assertJsonPath('data.consultation_price', 50000);
+    }
+
     public function test_pub_03_search_by_name_and_specialization(): void
     {
         $this->createConsultant(['name' => 'Ahmad', 'specialization' => 'الحوكمة']);

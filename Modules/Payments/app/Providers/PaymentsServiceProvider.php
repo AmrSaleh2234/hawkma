@@ -3,7 +3,10 @@
 namespace Modules\Payments\Providers;
 
 use Modules\Payments\Contracts\PaymentGateway;
+use Modules\Payments\Contracts\PayoutGateway;
 use Modules\Payments\Gateways\FakeGateway;
+use Modules\Payments\Gateways\FakePayoutGateway;
+use Modules\Payments\Gateways\ManualPayoutGateway;
 use Modules\Payments\Gateways\MoyasarGateway;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
@@ -40,6 +43,13 @@ class PaymentsServiceProvider extends ModuleServiceProvider
         $this->app->bind(PaymentGateway::class, fn () => match (config('payments.driver')) {
             'moyasar' => app(MoyasarGateway::class),
             default => app(FakeGateway::class),
+        });
+
+        // The payout gateway driver is chosen by config('payments.payout_driver')
+        // and is only invoked when the `payout.auto_transfer` setting is on.
+        $this->app->bind(PayoutGateway::class, fn () => match (config('payments.payout_driver')) {
+            'fake' => app(FakePayoutGateway::class),
+            default => app(ManualPayoutGateway::class),
         });
     }
 

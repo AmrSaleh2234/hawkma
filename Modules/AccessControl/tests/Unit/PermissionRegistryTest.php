@@ -28,8 +28,8 @@ class PermissionRegistryTest extends TestCase
         }
     }
 
-    public function test_the_registry_has_42_permissions(): void
+    public function test_the_registry_has_53_permissions(): void
     {
-        $this->assertCount(42, PermissionRegistry::names());
+        $this->assertCount(53, PermissionRegistry::names());
     }
 }

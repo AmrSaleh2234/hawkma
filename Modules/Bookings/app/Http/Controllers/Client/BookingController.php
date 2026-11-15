@@ -35,23 +35,35 @@ class BookingController extends ApiController
      */
     public function quote(QuoteBookingRequest $request, QuoteBookingAction $action): JsonResponse
     {
-        // withTrashed: quoting must work for a drafted package when an
-        // active subscription covers the booking (remaining quota).
-        $package = Package::withTrashed()->findOrFail($request->integer('package_id'));
         $consultant = $request->filled('consultant_id')
             ? User::query()->findOrFail($request->integer('consultant_id'))
             : null;
 
-        $result = $action->execute(
-            $request->user('client'),
-            $package,
-            $consultant,
-            $request->input('date'),
-            $request->input('time'),
-        );
+        if ($request->filled('package_id')) {
+            // withTrashed: quoting must work for a drafted package when an
+            // active subscription covers the booking (remaining quota).
+            $package = Package::withTrashed()->findOrFail($request->integer('package_id'));
+
+            $result = $action->execute(
+                $request->user('client'),
+                $package,
+                $consultant,
+                $request->input('date'),
+                $request->input('time'),
+            );
+        } else {
+            // Direct booking quote (validation guarantees a consultant): the
+            // amount is his consultation_price — no package, no subscription.
+            $result = $action->executeDirect(
+                $request->user('client'),
+                $consultant,
+                $request->input('date'),
+                $request->input('time'),
+            );
+        }
 
         return $this->success([
-            'package' => PackageResource::make($result['package']),
+            'package' => $result['package'] ? PackageResource::make($result['package']) : null,
             'requires_payment' => $result['requires_payment'],
             'amount' => $result['amount'],
             'amount_formatted' => Money::format($result['amount'], $result['currency']),

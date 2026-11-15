@@ -29,9 +29,27 @@ Route::prefix('v1')->group(function () {
         Route::get('reports/stats', [AdminReportController::class, 'stats'])
             ->middleware('permission:view-reports,admin')
             ->name('reports.stats');
+        Route::get('reports/inbox', [AdminReportController::class, 'inbox'])
+            ->middleware('permission:approve-reports,admin')
+            ->name('reports.inbox');
         Route::get('reports/{report}', [AdminReportController::class, 'show'])
             ->middleware('permission:view-reports,admin')
             ->name('reports.show');
+        Route::get('reports/{report}/history', [AdminReportController::class, 'history'])
+            ->middleware('permission:view-reports,admin')
+            ->name('reports.history');
+        Route::get('report-reviews/{review}/download', [AdminReportController::class, 'downloadReviewFile'])
+            ->middleware('permission:download-reports,admin')
+            ->name('reports.reviews.download');
+        Route::post('reports/{report}/approve', [AdminReportController::class, 'approve'])
+            ->middleware('permission:approve-reports,admin')
+            ->name('reports.approve');
+        Route::post('reports/{report}/reject', [AdminReportController::class, 'reject'])
+            ->middleware('permission:approve-reports,admin')
+            ->name('reports.reject');
+        Route::post('reports/{report}/return', [AdminReportController::class, 'returnForRevision'])
+            ->middleware('permission:approve-reports,admin')
+            ->name('reports.return');
         Route::get('reports/{report}/download', [AdminReportController::class, 'download'])
             ->middleware('permission:download-reports,admin')
             ->name('reports.download');

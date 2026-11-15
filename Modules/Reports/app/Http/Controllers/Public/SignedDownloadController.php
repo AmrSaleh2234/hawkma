@@ -16,9 +16,11 @@ class SignedDownloadController extends ApiController
      */
     public function __invoke(string $report): BinaryFileResponse
     {
-        $report = Report::query()->findOrFail($report);
+        // Only approved reports may be downloaded — a pending/rejected one
+        // must not leak through an old signed link.
+        $report = Report::query()->approved()->findOrFail($report);
 
-        $media = $report->getFirstMedia('report_file');
+        $media = $report->currentMedia();
         abort_if($media === null, 404);
 
         if ($report->first_downloaded_at === null) {

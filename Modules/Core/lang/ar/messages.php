@@ -25,4 +25,10 @@ return [
     'payment_method_deleted' => 'تم حذف طريقة الدفع بنجاح.',
     'default_payment_method_set' => 'تم تحديث طريقة الدفع الافتراضية بنجاح.',
     'cannot_deactivate_self' => 'لا يمكنك تعطيل حسابك الخاص.',
+    'settings_updated' => 'تم تحديث الإعدادات بنجاح.',
+    'report_submitted' => 'تم إرسال التقرير للمراجعة بنجاح.',
+    'report_approved' => 'تمت الموافقة على التقرير بنجاح.',
+    'report_rejected' => 'تم رفض التقرير.',
+    'report_returned' => 'تمت إعادة التقرير إلى المستشار للتعديل.',
+    'payout_released' => 'تم صرف الدفعة بنجاح.',
 ];

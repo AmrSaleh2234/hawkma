@@ -120,8 +120,13 @@ client submits wizard
     completed  (report_status = pending)  → shows in "Pending reports" tab
         │ consultant/admin uploads a report
         ▼
-    completed  (report_status = uploaded) → shows in "Reports" tab, client gets an email
+    completed  (report_status = uploaded) → report approval_status = pending_review
+        │ admin approves  (reject/return → booking back to report_status = pending)
+        ▼
+    report approval_status = approved → shows in "Reports" tab, client gets an email
 ```
+
+Each completed booking also creates a **payout** for the consultant (gross = his `consultation_price`, minus the platform fee — his `platform_fee_percent` override or the global `platform_fee_percent` setting, default 15%). A consultant without a price gets no payout. Admins release payouts manually by default; `payout_auto_transfer` routes the release through the configured `payments.payout_driver` gateway instead.
 
 ---
 
@@ -190,7 +195,7 @@ These are decisions this plan made because the request did not cover them. They 
 | A9 | Payment hold | A `pending_payment` booking holds the slot for 15 minutes (`BOOKING_PAYMENT_HOLD_MINUTES=15`), then it is cancelled automatically. | — |
 | A10 | Client cancellation | A client can cancel a `pending` booking up to 24 hours before it starts (`BOOKING_CLIENT_CANCEL_HOURS=24`). The consultation is returned to the subscription quota. **No automatic refund**: `refund_status` is set to `requested` and an admin handles it manually. | ❓ Refund policy? |
 | A11 | Complete button | A booking can be marked completed only when `now >= starts_at`. | — |
-| A12 | One report per booking | Each booking has at most one report. Uploading again **replaces** the file. | ❓ Can there be several reports per booking? |
+| A12 | One report per booking | Each booking has at most one report row. Uploading again **appends a new file version** — every version is kept in the review history. The client only sees the report after an admin approves it. | — |
 | A13 | Consultant password | When an admin creates a consultant or user without a password, a random password is generated and a "set your password" email (password reset link) is sent. | — |
 | A14 | Location meaning | The meeting is online (Google Meet), so the location is the client company branch the booking belongs to. It is stored on the booking for the invoice/report. | ❓ Are some sessions in person at the location? |
 | A15 | Languages | API messages come in Arabic (`ar`, the default) or English (`en`) depending on the `Accept-Language` header. Packages have `name_ar`/`name_en`, etc. | — |
@@ -213,9 +218,9 @@ Create exactly these modules. The order matters, because it is also the dependen
 | 4 | `Consultants` | `ConsultantAvailability`, `ConsultantTimeOff` | Consultant CRUD (consultants are `User` with `type=consultant`), availability, time off, slot generation, public consultant listing. |
 | 5 | `Clients` | `Client`, `ClientLocation` | Client authentication, client profile, locations, admin list of clients. |
 | 6 | `Packages` | `Package`, `ClientSubscription` | Packages CRUD, public packages, subscriptions and quota. |
-| 7 | `Payments` | `Payment`, `PaymentMethod` | Gateway interface + drivers (fake, moyasar), saved cards, charging, webhook, admin payments list. |
-| 8 | `Bookings` | `Booking` | Booking wizard endpoints (quote/create), life cycle (complete/cancel), meeting provider (Google Meet), booking emails, scheduled expiry. |
-| 9 | `Reports` | `Report` | Report upload/replace/download, report-ready email, signed download link. |
+| 7 | `Payments` | `Payment`, `PaymentMethod`, `Payout` | Payment gateway interface + drivers (fake, moyasar), saved cards, charging, webhook, admin payments list. **Payouts:** payout per completed booking, `PayoutGateway` abstraction (manual default, fake for dev/tests), admin/consultant payout APIs. |
+| 8 | `Bookings` | `Booking` | Booking wizard endpoints (quote/create), life cycle (complete/cancel), meeting provider (Google Meet), booking emails, scheduled expiry, payout creation on completion. |
+| 9 | `Reports` | `Report`, `ReportReview` | Report upload (keeps every file version), **admin review workflow** (inbox, approve/reject/return with notes, per-version history), report-ready email on approval only, signed download link, client access gated on `approval_status = approved`. |
 | 10 | `Dashboard` | — | Statistics endpoints. |
 
 ### 5.2 Folder layout inside every module (laravel-modules v13 default)
@@ -421,6 +426,10 @@ BOOKING_INVALID_STATUS,       // e.g. completing a cancelled booking
 BOOKING_NOT_STARTED,          // completing before starts_at
 BOOKING_CANCEL_WINDOW_PASSED,
 REPORT_NOT_ALLOWED,           // uploading a report for a booking that is not completed
+REPORT_REVIEW_NOT_ALLOWED,    // approving/rejecting/returning/notifying a report that is not pending_review (or not approved for notify)
+PAYOUT_ALREADY_RELEASED,      // releasing a payout that is not pending
+PAYOUT_NOT_RELEASABLE,        // gateway transfer failed (e.g. missing IBAN)
+CONSULTANT_PRICE_MISSING,     // payout cannot be computed: consultant has no consultation_price
 MEETING_CREATION_FAILED,
 PACKAGE_HAS_SUBSCRIPTIONS
 ```
@@ -596,12 +605,12 @@ Naming: `{action}-{resource}` in kebab-case, plural resource.
 | `clients` | `view-clients`, `update-clients`, `delete-clients` |
 | `packages` | `view-packages`, `create-packages`, `update-packages`, `delete-packages` |
 | `bookings` | `view-bookings`, `complete-bookings`, `cancel-bookings`, `manage-meetings` |
-| `reports` | `view-reports`, `upload-reports`, `download-reports`, `delete-reports` |
+| `reports` | `view-reports`, `upload-reports`, `download-reports`, `delete-reports`, `approve-reports` |
 | `payments` | `view-payments`, `refund-payments` |
+| `payouts` | `view-payouts`, `release-payouts` |
+| `settings` | `view-settings`, `update-settings` |
 
-Total: 34 permissions. All use `guard_name = 'admin'`.
-
-The permissions table has an extra column `group` (added by our own migration, see 8.2), so the UI can show permissions grouped with check boxes.
+All use `guard_name = 'admin'`. The permissions table has an extra column `group` (added by our own migration, see 8.2), so the UI can show permissions grouped with check boxes.
 
 ### 7.2 Roles
 
@@ -618,7 +627,7 @@ Gate::before(fn ($user, $ability) => ($user instanceof User && $user->hasRole('a
 
 ### 7.3 Default consultant permissions (editable later)
 
-`view-dashboard`, `view-bookings`, `complete-bookings`, `cancel-bookings`, `view-reports`, `upload-reports`, `download-reports`, `view-clients`, `view-availability`, `manage-availability`
+`view-dashboard`, `view-bookings`, `complete-bookings`, `cancel-bookings`, `view-reports`, `upload-reports`, `download-reports`, `view-clients`, `view-payouts`, `view-availability`, `manage-availability`
 
 ### 7.4 Seeders
 
@@ -1002,7 +1011,7 @@ Scheduled command `subscriptions:expire` (daily, 00:05): sets `status = expired`
 Input (validated in `StoreBookingRequest`):
 
 ```
-package_id          required, exists, active
+package_id          nullable, exists, active   (null = direct booking, see below)
 consultant_id       required, exists in users where type=consultant and is_active
 date                required, date_format:Y-m-d, after_or_equal:today
 time                required, date_format:H:i
@@ -1021,7 +1030,10 @@ Steps:
       (this serializes concurrent bookings for the same consultant → no double booking)
    b. startsAt = CarbonImmutable::createFromFormat('Y-m-d H:i', "$date $time", 'Asia/Riyadh')
    c. If !SlotService->isSlotAvailable(consultant, startsAt) → BusinessException(SLOT_NOT_AVAILABLE, status 409)
-   d. quote = SubscriptionService->quote(client, package)
+   d. package given → quote = SubscriptionService->quote(client, package)
+      package null    → direct booking: consultant.consultation_price is required
+                        (else CONSULTANT_PRICE_REQUIRED, 422); quote = { requires_payment: true,
+                        amount: consultation_price, subscription: null }
    e. If quote.requires_payment AND no payment_method_id AND no card_token → BusinessException(PAYMENT_METHOD_REQUIRED)
    f. Create the booking:
         status = requires_payment ? pending_payment : pending
@@ -1029,6 +1041,8 @@ Steps:
         amount = quote.amount, expires_at = requires_payment ? now + hold : null
         location_snapshot = the location's name/city/address
         client_subscription_id = quote.subscription?.id
+        direct booking: package_id, package_snapshot and client_subscription_id are NULL,
+                        currency = SAR (bookings.package_id is nullable)
    g. If NOT requires_payment: SubscriptionService->consume(subscription)
 2. After commit:
    - If NOT requires_payment → dispatch CreateMeetingJob(booking) and return the booking (status pending).
@@ -1057,6 +1071,8 @@ Response of `POST /client/bookings` (201):
 ```
 
 `payment` is `null` when payment is not required. When the payment is `paid`, `requires_action` is `false` and `transaction_url` is `null`.
+
+**Direct booking (no package).** A direct booking always requires payment. `BookingStateMachine::markPaid()` activates and consumes a subscription only when `package_id` is not null, so a paid direct booking creates no subscription. `POST /client/bookings/quote` accepts `package_id` or `consultant_id` (`QuoteBookingAction::executeDirect()` for the consultant-only form) and returns `package: null`. At completion the payout is built from the consultant's `consultation_price` as for any booking. `GET /public/consultants` exposes `consultation_price`, `consultation_price_formatted` and `currency` (never the bank details).
 
 ### 9.6 Payment flow (`Modules\Payments`)
 
@@ -1214,10 +1230,11 @@ A consultant is **never** allowed on `/admin/consultants/*` for another consulta
 ### 9.9 Report flow (`Modules\Reports\Actions\UploadReportAction`)
 
 1. The booking must be `completed` (else `REPORT_NOT_ALLOWED`). The user must pass `BookingPolicy::uploadReport` (admin, or the booking's consultant) and have the `upload-reports` permission.
-2. `Report::updateOrCreate(['booking_id' => ...], [...])` → `addMedia($file)->toMediaCollection('report_file')` (the single-file collection replaces the old file).
-3. `BookingStateMachine::markReportUploaded()` → `report_status = uploaded`.
-4. Send `ReportReadyNotification` to the client (queued) → set `client_notified_at`. On a **replace**, send it again only if the request has `notify_client = true` (default true).
-5. The email contains:
+2. `Report::updateOrCreate(['booking_id' => ...], [...])` → `addMedia($file)->toMediaCollection('report_file')` — **every version is kept**; `current_media_id` points at the newest file.
+3. `approval_status = pending_review` and a `ReportReview` history row records the submission (status `pending_review`, `media_id`, `actor_id`, optional `note`).
+4. `BookingStateMachine::markReportUploaded()` → `report_status = uploaded`. **No client notification yet.**
+5. An admin reviews from `GET /admin/reports/inbox` (`approve-reports`): `approve` → `approval_status = approved`, `ReportReadyNotification` to the client (queued) + `client_notified_at`; `reject`/`return` → `approval_status = rejected|returned`, `ReportReviewedNotification` to the consultant, booking `report_status` back to `pending`. Every decision appends a `ReportReview` row with the reviewed `media_id`. Reviewing a non-`pending_review` report → `REPORT_REVIEW_NOT_ALLOWED`.
+6. The email contains:
    - A button link to the client dashboard: `{CLIENT_FRONTEND_URL}/reports/{report_id}`
    - A direct download link valid for 7 days: `URL::temporarySignedRoute('public.reports.signed-download', now()->addDays(7), ['report' => $id])`
 
@@ -1686,9 +1703,18 @@ Tests: an admin sees all clients; consultant A sees only the clients who booked 
 #### RPT-02 `GET /api/v1/admin/reports/{report}` — Perm: `view-reports` + ReportPolicy::view
 
 #### RPT-03 `POST /api/v1/admin/bookings/{booking}/report` — Perm: `upload-reports` + BookingPolicy::uploadReport (multipart)
-- Body: `title` required|max:191, `summary` nullable|max:5000, `file` required|file|mimes:pdf,doc,docx|max:20480, `notify_client` boolean default true.
-- Creates the report or replaces it (9.9). 201 on create, 200 on replace.
-- Tests: `Storage::fake('local')`, `Notification::fake()`; upload for a completed booking → the report is created, the file is stored, `report_status = uploaded`, `ReportReadyNotification` is sent to the client with the signed URL; the booking is not completed → 422 `REPORT_NOT_ALLOWED`; an exe file → 422; another consultant → 403; replacing keeps one report row.
+- Body: `title` required|max:191, `summary` nullable|max:5000, `file` required|file|mimes:pdf,doc,docx|max:20480, `note` nullable (stored on the review history entry).
+- Creates the report or appends a new file version (9.9). 201 on create, 200 on resubmission. Always lands in `pending_review`.
+- Tests: `Storage::fake('local')`, `Notification::fake()`; upload for a completed booking → the report is created, the file is stored, `report_status = uploaded`, `approval_status = pending_review`, a history entry exists, and **no** `ReportReadyNotification` yet; the booking is not completed → 422 `REPORT_NOT_ALLOWED`; an exe file → 422; another consultant → 403; resubmission keeps both file versions.
+
+#### RPT-01c `GET /api/v1/admin/reports/inbox` — Perm: `approve-reports`
+- Only `approval_status = pending_review` reports; the admin "needs action" list.
+
+#### RPT-04a/b/c `POST /api/v1/admin/reports/{report}/approve|reject|return` — Perm: `approve-reports` + `ReportPolicy::review` (admin only)
+- Body: `note` nullable|max:2000. Only while `pending_review` (else 422 `REPORT_REVIEW_NOT_ALLOWED`). Approve notifies the client (`ReportReadyNotification`); all three notify the consultant (`ReportReviewedNotification`); reject/return reset the booking to `report_status = pending`.
+
+#### RPT-02b/c `GET /api/v1/admin/reports/{report}/history` + `GET /api/v1/admin/report-reviews/{reportReview}/download`
+- History: every submission + decision with its own file version; admin or the report's consultant. Download streams the file of one history entry (`download-reports`).
 
 #### RPT-04 `GET /api/v1/admin/reports/{report}/download` — Perm: `download-reports` + policy
 - Streams the file. Tests: 200 + header `content-disposition` contains `attachment`; another consultant → 403.
@@ -1697,7 +1723,7 @@ Tests: an admin sees all clients; consultant A sees only the clients who booked 
 - Deletes the report and its media; the booking `report_status` goes back to `pending`.
 
 #### RPT-06 `POST /api/v1/admin/reports/{report}/notify-client` — Perm: `upload-reports` + policy
-- Sends `ReportReadyNotification` again.
+- Sends `ReportReadyNotification` again — only for `approved` reports (else 422 `REPORT_REVIEW_NOT_ALLOWED`).
 
 ### 10.13 Payments (admin side) [Payments] (auth:admin, scoped)
 
@@ -1705,6 +1731,24 @@ Tests: an admin sees all clients; consultant A sees only the clients who booked 
 |---|---|---|---|
 | PAY-01 | `GET /api/v1/admin/payments` | `view-payments` | Query: `status`, `client_id`, `booking_id`, `date_from`, `date_to`, `search` (booking reference, gateway_payment_id, client company). `PaymentResource` + client. |
 | PAY-02 | `GET /api/v1/admin/payments/{payment}` | `view-payments` | + booking summary. **Never** returns `gateway_response`. |
+
+### 10.13b Payouts (admin side) [Payments] (auth:admin, consultant-scoped)
+
+| ID | Method & URL | Perm | Notes |
+|---|---|---|---|
+| PO-01 | `GET /api/v1/admin/payouts` | `view-payouts` | Query: `status`, `consultant_id` (admin only), `date_from`, `date_to`. One row per completed booking. |
+| PO-01b | `GET /api/v1/admin/payouts/stats` | `view-payouts` | `by_status` (count + `net_total`) + `auto_transfer` flag. |
+| PO-02 | `GET /api/v1/admin/payouts/{payout}` | `view-payouts` | Amounts, fee snapshot, consultant `bank`, transfer data, release audit. |
+| PO-03 | `POST /api/v1/admin/payouts/{payout}/release` | `release-payouts` | Body: `transfer_reference?`, `note?`. Manual mode (default) records the transfer; `payout_auto_transfer` uses the configured `payments.payout_driver` gateway. Errors: `PAYOUT_ALREADY_RELEASED`, `PAYOUT_NOT_RELEASABLE`. |
+
+Payout creation is automatic in `BookingStateMachine::complete` → `PayoutService::createForBooking` (idempotent, unique per booking). `net_amount = consultation_price − price × fee`; fee = consultant `platform_fee_percent` override or global `platform_fee_percent` (default 15, `Modules\Core\Support\Settings`). `PayoutGateway` interface (`transfer(PayoutRequest): PayoutResult`) with drivers `manual` (rejects transfers — admin wires money) and `fake` (dev/tests).
+
+### 10.13c Settings [Core] (auth:admin)
+
+| ID | Method & URL | Perm | Notes |
+|---|---|---|---|
+| SET-01 | `GET /api/v1/admin/settings` | `view-settings` | Editable keys: `platform_fee_percent` (0–100, default 15), `payout_auto_transfer` (bool, default false). |
+| SET-02 | `PUT /api/v1/admin/settings` | `update-settings` | Same keys; stored in the `settings` table, cached per-key in `Modules\Core\Support\Settings`. |
 
 ### 10.14 Dashboard [Dashboard] (auth:admin)
 

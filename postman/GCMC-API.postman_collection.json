@@ -5228,7 +5228,8 @@
                                     "  pm.expect(j).to.have.property(\"data\");",
                                     "});",
                                     "pm.environment.set(\"slot_time\", j.data.slots[0].time);",
-                                    "pm.environment.set(\"slot_time_2\", j.data.slots[1].time);"
+                                    "pm.environment.set(\"slot_time_2\", j.data.slots[1].time);",
+                                    "pm.environment.set(\"slot_time_3\", j.data.slots[2].time);"
                                 ]
                             }
                         }
@@ -5375,6 +5376,115 @@
                                     "});",
                                     "pm.test(\"requires payment\", () => pm.expect(j.data.requires_payment).to.be.true);",
                                     "pm.test(\"slot available\", () => pm.expect(j.data.slot_available).to.be.true);"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Quote – direct with consultant (CLI-BKG-01)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/client/bookings/quote",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "client",
+                                "bookings",
+                                "quote"
+                            ]
+                        },
+                        "description": "Direct booking quote: send only `consultant_id` (no `package_id`). The amount is the consultant's `consultation_price`, `requires_payment` is always true and `package`/`subscription` are null.\n\n| Field | Rules |\n|---|---|\n| consultant_id | required without package_id |\n| package_id | omit for a direct booking |\n| date | optional Y-m-d |\n| time | optional H:i |\n\n**Errors:** 422 `CONSULTANT_PRICE_REQUIRED` (the consultant has no price), 422 `VALIDATION_ERROR`",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"consultant_id\": \"{{consultant_id}}\",\n    \"date\": \"{{slot_date}}\",\n    \"time\": \"{{slot_time_3}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});",
+                                    "pm.test(\"direct quote\", () => { pm.expect(j.data.package).to.be.null; pm.expect(j.data.requires_payment).to.be.true; pm.expect(j.data.amount).to.be.above(0); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create booking – direct, no package (CLI-BKG-02)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/client/bookings",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "client",
+                                "bookings"
+                            ]
+                        },
+                        "description": "Books the consultant directly without a package: omit `package_id`. The client pays the consultant's `consultation_price` (always paid, no subscription is created). Same payment fields and 3DS/verify flow as a package booking.\n\n**Errors:** 422 `CONSULTANT_PRICE_REQUIRED`, 422 `PAYMENT_METHOD_REQUIRED`, 409 `SLOT_NOT_AVAILABLE`, 402 `PAYMENT_FAILED`",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"consultant_id\": \"{{consultant_id}}\",\n    \"date\": \"{{slot_date}}\",\n    \"time\": \"{{slot_time_3}}\",\n    \"client_location_id\": \"{{location_id}}\",\n    \"card_token\": \"tok_fake_success\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});",
+                                    "pm.test(\"direct booking paid\", () => { pm.expect(j.data.booking.package).to.be.null; pm.expect(j.data.booking.payment_status).to.eql(\"paid\"); });"
                                 ]
                             }
                         }
@@ -5829,6 +5939,61 @@
                             ]
                         },
                         "description": "Only the active ones."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Book from subscription (CLI-BKG-06)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/client/subscriptions/{{subscription_id}}/bookings",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "client",
+                                "subscriptions",
+                                "{{subscription_id}}",
+                                "bookings"
+                            ]
+                        },
+                        "description": "Books a meeting inside an already-purchased package: consumes one consultation credit of the active subscription instead of charging a card.\n\n| Field | Rules |\n|---|---|\n| consultant_id | required |\n| starts_at | required ISO-8601 slot |\n| client_location_id | optional |\n| client_notes | optional |\n\n**Errors:** 422 `VALIDATION_ERROR`, 422 `BOOKING_SLOT_TAKEN`, 422 `SUBSCRIPTION_*`",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"consultant_id\": \"{{consultant_id}}\",\n    \"starts_at\": \"{{slot_start}}\",\n    \"client_notes\": \"Follow-up session.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
                     },
                     "event": [
                         {
@@ -6503,6 +6668,12 @@
                                     "disabled": true
                                 },
                                 {
+                                    "key": "approval_status",
+                                    "value": "",
+                                    "description": "pending_review | approved | rejected | returned",
+                                    "disabled": true
+                                },
+                                {
                                     "key": "date_from",
                                     "value": "",
                                     "description": "YYYY-MM-DD",
@@ -6614,7 +6785,7 @@
                                 "report"
                             ]
                         },
-                        "description": "Uploads the report of a completed booking (pdf/doc/docx ≤ 20 MB, private disk). Uploading again replaces the file. The client gets an email with a dashboard link and a 7-day signed download link unless `notify_client` is false.\n\n**Permission:** `upload-reports`\n\n| Field | Rules |\n|---|---|\n| title | required, max 191 |\n| summary | optional |\n| file | required pdf/doc/docx ≤ 20 MB |\n| notify_client | optional, default true |\n\n**Errors:** 422 `REPORT_NOT_ALLOWED` (booking not completed), 422 `VALIDATION_ERROR`, 403 `FORBIDDEN`",
+                        "description": "Uploads the report of a completed booking (pdf/doc/docx ≤ 20 MB, private disk). The report enters `pending_review` — the client is only notified after an admin approves it. Uploading again keeps every file version in the review history and resets the status to `pending_review`.\n\n**Permission:** `upload-reports`\n\n| Field | Rules |\n|---|---|\n| title | required, max 191 |\n| summary | optional |\n| file | required pdf/doc/docx ≤ 20 MB |\n| note | optional note stored in the review history |\n\n**Errors:** 422 `REPORT_NOT_ALLOWED` (booking not completed), 422 `VALIDATION_ERROR`, 403 `FORBIDDEN`",
                         "body": {
                             "mode": "formdata",
                             "formdata": [
@@ -6702,6 +6873,51 @@
                     "response": []
                 },
                 {
+                    "name": "Review inbox (RPT-01c)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/reports/inbox",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "reports",
+                                "inbox"
+                            ]
+                        },
+                        "description": "Only reports awaiting review (`approval_status = pending_review`) — the admin \"needs action\" list.\n\n**Permission:** `approve-reports`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
                     "name": "Download report (RPT-04)",
                     "request": {
                         "method": "GET",
@@ -6727,7 +6943,263 @@
                                 "download"
                             ]
                         },
-                        "description": "Streams the file as an attachment.\n\n**Permission:** `download-reports`\n\n**Errors:** 404 `NOT_FOUND`, 403 `FORBIDDEN`"
+                        "description": "Streams the current file version as an attachment.\n\n**Permission:** `download-reports`\n\n**Errors:** 404 `NOT_FOUND`, 403 `FORBIDDEN`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                                    "pm.test(\"attachment\", () => {",
+                                    "  const cd = pm.response.headers.get(\"Content-Disposition\") || \"\";",
+                                    "  pm.expect(cd).to.include(\"attachment\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Approve report (RPT-04a)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/reports/{{report_id}}/approve",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "reports",
+                                "{{report_id}}",
+                                "approve"
+                            ]
+                        },
+                        "description": "Approves a pending-review report: the client is notified with the signed download link and the report becomes visible to him.\n\n**Permission:** `approve-reports`\n\n| Field | Rules |\n|---|---|\n| note | optional reviewer note shown to the consultant |\n\n**Errors:** 422 `REPORT_REVIEW_NOT_ALLOWED` (not pending_review), 403 `FORBIDDEN`",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"note\": \"Approved for release.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Reject report (RPT-04b)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/reports/{{report_id}}/reject",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "reports",
+                                "{{report_id}}",
+                                "reject"
+                            ]
+                        },
+                        "description": "Rejects a pending-review report: the consultant is notified with the note and the booking goes back to awaiting a report.\n\n**Permission:** `approve-reports`\n\n| Field | Rules |\n|---|---|\n| note | optional reviewer note shown to the consultant |\n\n**Errors:** 422 `REPORT_REVIEW_NOT_ALLOWED` (not pending_review), 403 `FORBIDDEN`",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"note\": \"Section 3 is missing.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Return report for revision (RPT-04c)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/reports/{{report_id}}/return",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "reports",
+                                "{{report_id}}",
+                                "return"
+                            ]
+                        },
+                        "description": "Sends a pending-review report back to the consultant for revision. Same effects as reject: consultant notification + booking back to pending.\n\n**Permission:** `approve-reports`\n\n| Field | Rules |\n|---|---|\n| note | optional reviewer note shown to the consultant |\n\n**Errors:** 422 `REPORT_REVIEW_NOT_ALLOWED` (not pending_review), 403 `FORBIDDEN`",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"note\": \"Please add the risk appendix.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Review history (RPT-02b)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/reports/{{report_id}}/history",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "reports",
+                                "{{report_id}}",
+                                "history"
+                            ]
+                        },
+                        "description": "Every submission and decision with its own file version, newest first. `file.download_url` points at RPT-02c.\n\n**Permission:** `view-reports`\n\n**Errors:** 404 `NOT_FOUND`, 403 `FORBIDDEN`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Download history file (RPT-02c)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/report-reviews/{{report_review_id}}/download",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "report-reviews",
+                                "{{report_review_id}}",
+                                "download"
+                            ]
+                        },
+                        "description": "Streams the file version attached to one history entry — the exact file that was submitted or reviewed.\n\n**Permission:** `download-reports`\n\n**Errors:** 404 `NOT_FOUND`, 403 `FORBIDDEN`"
                     },
                     "event": [
                         {
@@ -6772,7 +7244,7 @@
                                 "notify-client"
                             ]
                         },
-                        "description": "Resends the report-ready email.\n\n**Permission:** `upload-reports`"
+                        "description": "Resends the report-ready email. Only possible after the report is approved.\n\n**Permission:** `upload-reports`\n\n**Errors:** 422 `REPORT_REVIEW_NOT_ALLOWED` (not approved)"
                     },
                     "event": [
                         {
@@ -9342,6 +9814,115 @@
                     "response": []
                 },
                 {
+                    "name": "Applicant photo",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/join-requests/{{join_request_id}}/photo",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "join-requests",
+                                "{{join_request_id}}",
+                                "photo"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                                    "pm.test(\"attachment\", () => {",
+                                    "  const cd = pm.response.headers.get(\"Content-Disposition\") || \"\";",
+                                    "  pm.expect(cd).to.include(\"attachment\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "License scan",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/join-requests/{{join_request_id}}/licenses/{{license_index}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "join-requests",
+                                "{{join_request_id}}",
+                                "licenses",
+                                "{{license_index}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                                    "pm.test(\"attachment\", () => {",
+                                    "  const cd = pm.response.headers.get(\"Content-Disposition\") || \"\";",
+                                    "  pm.expect(cd).to.include(\"attachment\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
                     "name": "Approve join request",
                     "request": {
                         "method": "PATCH",
@@ -10030,6 +10611,1091 @@
                         "type": "string"
                     }
                 ]
+            }
+        },
+        {
+            "name": "28 Admin › Settings",
+            "item": [
+                {
+                    "name": "Show settings (SET-01)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/settings",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "settings"
+                            ]
+                        },
+                        "description": "The editable platform settings: `platform_fee_percent` (default 15) and `payout_auto_transfer` (default false — manual payouts).\n\n**Permission:** `view-settings`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Update settings (SET-02)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/settings",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "settings"
+                            ]
+                        },
+                        "description": "Updates the editable settings. `platform_fee_percent` is the global platform cut used for new payouts unless the consultant has his own `platform_fee_percent` override. `payout_auto_transfer` switches payouts from manual release to the configured gateway driver.\n\n**Permission:** `update-settings`\n\n| Field | Rules |\n|---|---|\n| platform_fee_percent | optional numeric 0–100 |\n| payout_auto_transfer | optional boolean |\n\n**Errors:** 422 `VALIDATION_ERROR`",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"platform_fee_percent\": 15,\n    \"payout_auto_transfer\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                }
+            ],
+            "auth": {
+                "type": "bearer",
+                "bearer": [
+                    {
+                        "key": "token",
+                        "value": "{{admin_token}}",
+                        "type": "string"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "29 Admin › Payouts",
+            "item": [
+                {
+                    "name": "List payouts (PO-01)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/payouts",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "payouts"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "pending | released | failed",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "consultant_id",
+                                    "value": "",
+                                    "description": "admin only",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "",
+                                    "description": "YYYY-MM-DD",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "",
+                                    "description": "YYYY-MM-DD",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "One payout per completed booking. A consultant only sees his own.\n\n**Permission:** `view-payouts`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});",
+                                    "pm.environment.set(\"payout_id\", j.data[0].id);"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Payouts stats (PO-01b)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/payouts/stats",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "payouts",
+                                "stats"
+                            ]
+                        },
+                        "description": "Counts and totals grouped by status plus the `auto_transfer` flag.\n\n**Permission:** `view-payouts`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Show payout (PO-02)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/payouts/{{payout_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "payouts",
+                                "{{payout_id}}"
+                            ]
+                        },
+                        "description": "One payout with amounts, consultant bank details and release audit data.\n\n**Permission:** `view-payouts`\n\n**Errors:** 404 `NOT_FOUND`, 403 `FORBIDDEN`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Release payout (PO-03)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/payouts/{{payout_id}}/release",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "payouts",
+                                "{{payout_id}}",
+                                "release"
+                            ]
+                        },
+                        "description": "Marks a pending payout paid. Manual mode (default): records `transfer_reference`/`note` after the admin wired the money. With `payout_auto_transfer` on, the configured gateway driver performs the transfer — failures mark the payout `failed`.\n\n**Permission:** `release-payouts`\n\n| Field | Rules |\n|---|---|\n| transfer_reference | optional reference stored on the payout |\n| note | optional |\n\n**Errors:** 422 `PAYOUT_ALREADY_RELEASED`, 422 `PAYOUT_NOT_RELEASABLE`, 403 `FORBIDDEN`",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"transfer_reference\": \"TRX-9988\",\n    \"note\": \"Sent via bank portal.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                }
+            ],
+            "auth": {
+                "type": "bearer",
+                "bearer": [
+                    {
+                        "key": "token",
+                        "value": "{{admin_token}}",
+                        "type": "string"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "30 Admin › Training",
+            "item": [
+                {
+                    "name": "List trainees (TRN-01)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/training",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "training"
+                            ]
+                        },
+                        "description": "Approved join-requests that became trainees, waiting to be promoted to public consultants.\n\n**Permission:** `view-training`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});",
+                                    "pm.environment.set(\"trainee_id\", j.data[0].id);"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "My training (TRN-02)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/training/mine",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "training",
+                                "mine"
+                            ]
+                        },
+                        "description": "The training pipeline of the logged-in consultant."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Training sessions (TRN-03)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/training/{{trainee_id}}/sessions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "training",
+                                "{{trainee_id}}",
+                                "sessions"
+                            ]
+                        },
+                        "description": "The recorded training sessions of one trainee.\n\n**Permission:** `view-training`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Add session (TRN-04)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/training/{{trainee_id}}/sessions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "training",
+                                "{{trainee_id}}",
+                                "sessions"
+                            ]
+                        },
+                        "description": "Records a training session for the trainee.\n\n**Permission:** `manage-training`",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Shadowed consultation\",\n    \"starts_at\": \"{{slot_start}}\",\n    \"duration_minutes\": 60\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Delete session (TRN-05)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/training/{{trainee_id}}/sessions/{{training_session_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "training",
+                                "{{trainee_id}}",
+                                "sessions",
+                                "{{training_session_id}}"
+                            ]
+                        },
+                        "description": "Removes a recorded session.\n\n**Permission:** `manage-training`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Promote trainee (TRN-06)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/training/{{trainee_id}}/promote",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "training",
+                                "{{trainee_id}}",
+                                "promote"
+                            ]
+                        },
+                        "description": "Promotes a finished trainee to a public, bookable consultant.\n\n**Permission:** `manage-training`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                }
+            ],
+            "auth": {
+                "type": "bearer",
+                "bearer": [
+                    {
+                        "key": "token",
+                        "value": "{{admin_token}}",
+                        "type": "string"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "31 Team",
+            "item": [
+                {
+                    "name": "Public team members",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/public/team-members",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "public",
+                                "team-members"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "description": "The team shown on the public about page."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "List team members",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/team-members",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "team-members"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "All team members for the admin grid.\n\n**Permission:** `view-team`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});",
+                                    "pm.environment.set(\"team_member_id\", j.data[0].id);"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create team member",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/team-members",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "team-members"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Creates a team member.\n\n**Permission:** `create-team`",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "value": "Team Member",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "title",
+                                    "value": "Consultant",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "bio",
+                                    "value": "About the member",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "sort_order",
+                                    "value": "10",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": null
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});",
+                                    "pm.environment.set(\"team_member_id\", j.data.id);"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Show team member",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/team-members/{{team_member_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "team-members",
+                                "{{team_member_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Update team member",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/team-members/{{team_member_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "team-members",
+                                "{{team_member_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Updates a team member.\n\n**Permission:** `update-team`",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Team Member\",\n    \"title\": \"Senior Consultant\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Update team member (multipart)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/team-members/{{team_member_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "team-members",
+                                "{{team_member_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "POST duplicate of the PUT so multipart updates (photo) work.\n\n**Permission:** `update-team`",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "value": "Team Member",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "title",
+                                    "value": "Senior Consultant",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": null
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Delete team member",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/team-members/{{team_member_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "team-members",
+                                "{{team_member_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{admin_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Removes a team member.\n\n**Permission:** `delete-team`"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"status is 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                                    "const j = pm.response.json();",
+                                    "pm.test(\"envelope\", () => {",
+                                    "  pm.expect(j).to.have.property(\"success\", true);",
+                                    "  pm.expect(j).to.have.property(\"data\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                }
+            ],
+            "auth": {
+                "type": "noauth"
             }
         },
         {

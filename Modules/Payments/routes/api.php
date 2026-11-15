@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Payments\Http\Controllers\Admin\PaymentController as AdminPaymentController;
+use Modules\Payments\Http\Controllers\Admin\PayoutController as AdminPayoutController;
 use Modules\Payments\Http\Controllers\Client\PaymentController;
 use Modules\Payments\Http\Controllers\Client\PaymentMethodController;
 use Modules\Payments\Http\Controllers\WebhookController;
@@ -28,5 +29,21 @@ Route::prefix('v1')->group(function () {
         Route::get('/', [AdminPaymentController::class, 'index'])->name('index');
         Route::get('stats', [AdminPaymentController::class, 'stats'])->name('stats');
         Route::get('{payment}', [AdminPaymentController::class, 'show'])->name('show');
+    });
+
+    // PO-01..03: consultants see only their own payouts via the visibleTo scope.
+    Route::prefix('admin/payouts')->name('admin.payouts.')->middleware(['auth:admin', 'active.user', 'throttle:api'])->group(function () {
+        Route::get('/', [AdminPayoutController::class, 'index'])
+            ->middleware('permission:view-payouts,admin')
+            ->name('index');
+        Route::get('stats', [AdminPayoutController::class, 'stats'])
+            ->middleware('permission:view-payouts,admin')
+            ->name('stats');
+        Route::get('{payout}', [AdminPayoutController::class, 'show'])
+            ->middleware('permission:view-payouts,admin')
+            ->name('show');
+        Route::post('{payout}/release', [AdminPayoutController::class, 'release'])
+            ->middleware('permission:release-payouts,admin')
+            ->name('release');
     });
 });

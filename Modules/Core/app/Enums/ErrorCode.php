@@ -45,6 +45,12 @@ enum ErrorCode: string
     case BookingCancelWindowPassed = 'BOOKING_CANCEL_WINDOW_PASSED';
 
     case ReportNotAllowed = 'REPORT_NOT_ALLOWED';
+    case ReportReviewNotAllowed = 'REPORT_REVIEW_NOT_ALLOWED';
+    case ReportAlreadyApproved = 'REPORT_ALREADY_APPROVED';
 
     case MeetingCreationFailed = 'MEETING_CREATION_FAILED';
+
+    case PayoutNotReleasable = 'PAYOUT_NOT_RELEASABLE';
+    case PayoutAlreadyReleased = 'PAYOUT_ALREADY_RELEASED';
+    case ConsultantPriceRequired = 'CONSULTANT_PRICE_REQUIRED';
 }

@@ -17,6 +17,7 @@ use Modules\Core\Exceptions\BusinessException;
 use Modules\Packages\Services\SubscriptionService;
 use Modules\Payments\Models\Payment;
 use Modules\Payments\Notifications\PaymentFailedNotification;
+use Modules\Payments\Services\PayoutService;
 use Modules\Users\Models\User;
 
 /**
@@ -26,7 +27,10 @@ use Modules\Users\Models\User;
  */
 class BookingStateMachine
 {
-    public function __construct(protected SubscriptionService $subscriptions) {}
+    public function __construct(
+        protected SubscriptionService $subscriptions,
+        protected PayoutService $payouts,
+    ) {}
 
     /**
      * pending_payment → pending: the payment succeeded.
@@ -43,14 +47,19 @@ class BookingStateMachine
                 throw new BusinessException(ErrorCode::BookingInvalidStatus);
             }
 
-            $subscription = $this->subscriptions->activateFromPayment($locked->client, $locked->package, $payment);
-            $this->subscriptions->consume($subscription);
+            // Direct bookings have no package → no subscription is created.
+            $subscription = $locked->package_id !== null
+                ? $this->subscriptions->activateFromPayment($locked->client, $locked->package, $payment)
+                : null;
+            if ($subscription !== null) {
+                $this->subscriptions->consume($subscription);
+            }
 
             $locked->forceFill([
                 'status' => BookingStatus::Pending,
                 'payment_status' => PaymentStatus::Paid,
                 'expires_at' => null,
-                'client_subscription_id' => $subscription->id,
+                'client_subscription_id' => $subscription?->id,
             ])->save();
 
             return $locked;
@@ -141,6 +150,10 @@ class BookingStateMachine
                 'completed_by' => $by->id,
                 'report_status' => ReportStatus::Pending,
             ])->save();
+
+            // The consultant's payout (his price minus the platform fee) is
+            // queued as pending inside the same transaction.
+            $this->payouts->createForBooking($locked);
 
             return $locked;
         });

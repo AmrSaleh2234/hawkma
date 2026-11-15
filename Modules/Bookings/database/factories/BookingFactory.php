@@ -65,6 +65,19 @@ class BookingFactory extends Factory
         ]);
     }
 
+    /**
+     * Direct booking: paid the consultant's consultation_price, no package
+     * and no subscription involved.
+     */
+    public function direct(): static
+    {
+        return $this->state(fn () => [
+            'package_id' => null,
+            'package_snapshot' => null,
+            'client_subscription_id' => null,
+        ]);
+    }
+
     public function completed(): static
     {
         return $this->state(fn () => [

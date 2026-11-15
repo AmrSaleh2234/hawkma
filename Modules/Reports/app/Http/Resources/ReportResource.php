@@ -13,12 +13,19 @@ class ReportResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $media = $this->getFirstMedia('report_file');
+        $media = $this->currentMedia();
 
         return [
             'id' => $this->id,
             'title' => $this->title,
             'summary' => $this->summary,
+            'approval_status' => $this->approval_status->value,
+            'review_note' => $this->review_note,
+            'reviewed_by' => $this->reviewer === null ? null : [
+                'id' => $this->reviewer->id,
+                'name' => $this->reviewer->name,
+            ],
+            'reviewed_at' => $this->reviewed_at?->toIso8601String(),
             'booking' => $this->booking === null ? null : [
                 'id' => $this->booking->id,
                 'reference' => $this->booking->reference,

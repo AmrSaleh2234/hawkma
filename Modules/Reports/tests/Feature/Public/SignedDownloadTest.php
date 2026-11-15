@@ -10,7 +10,7 @@ class SignedDownloadTest extends TestCase
 {
     public function test_pub_07_a_valid_signature_downloads_the_report(): void
     {
-        $report = Report::factory()->create();
+        $report = Report::factory()->approved()->create();
         $report->addMediaFromString('%PDF-1.4 fake pdf content')->preservingOriginal()->usingFileName('report.pdf')->toMediaCollection('report_file');
 
         $url = URL::temporarySignedRoute('public.reports.signed-download', now()->addDays(7), ['report' => $report->id]);
@@ -27,7 +27,7 @@ class SignedDownloadTest extends TestCase
 
     public function test_pub_07_an_invalid_signature_returns_403(): void
     {
-        $report = Report::factory()->create();
+        $report = Report::factory()->approved()->create();
         $report->addMediaFromString('%PDF-1.4 fake pdf content')->preservingOriginal()->toMediaCollection('report_file');
 
         $url = URL::temporarySignedRoute('public.reports.signed-download', now()->addDays(7), ['report' => $report->id]);
@@ -35,5 +35,15 @@ class SignedDownloadTest extends TestCase
         // Tamper with the URL.
         $this->get($url.'tampered')->assertForbidden();
         $this->get('/api/v1/public/reports/'.$report->id.'/signed-download')->assertForbidden();
+    }
+
+    public function test_pub_07_an_unapproved_report_returns_404(): void
+    {
+        $report = Report::factory()->create(); // pending_review
+        $report->addMediaFromString('%PDF-1.4 fake pdf content')->preservingOriginal()->toMediaCollection('report_file');
+
+        $url = URL::temporarySignedRoute('public.reports.signed-download', now()->addDays(7), ['report' => $report->id]);
+
+        $this->get($url)->assertNotFound();
     }
 }

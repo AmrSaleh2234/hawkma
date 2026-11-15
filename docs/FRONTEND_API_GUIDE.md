@@ -238,6 +238,9 @@ of strings) and `user.type` (`admin` | `consultant`) in the store.
 | Clients | `view-clients` |
 | Packages | `view-packages` |
 | Payments | `view-payments` |
+| Payouts | `view-payouts` |
+| Report review inbox | `approve-reports` |
+| Settings | `view-settings` |
 | Activity logs | `view-activity-logs` |
 | Profile | — (every logged-in user) |
 | My availability (consultant) | `view-availability` |
@@ -258,8 +261,11 @@ of strings) and `user.type` (`admin` | `consultant`) in the store.
 | Regenerate meeting link | `manage-meetings` |
 | Mark booking refunded | `refund-payments` |
 | Upload report / resend report email | `upload-reports` |
+| Approve / reject / return a report | `approve-reports` (admin only) |
 | Download report | `download-reports` |
 | Delete report | `delete-reports` |
+| Release a payout | `release-payouts` |
+| Update settings | `update-settings` |
 
 ### 3.3 Admin vs consultant (`user.type`)
 
@@ -269,7 +275,7 @@ of strings) and `user.type` (`admin` | `consultant`) in the store.
   **403** (policy) or **404**. The consultants list returns only himself.
 - Consultant default permissions: `view-dashboard`, `view-bookings`,
   `complete-bookings`, `cancel-bookings`, `view-reports`, `upload-reports`,
-  `download-reports`, `view-clients`, `view-availability`,
+  `download-reports`, `view-clients`, `view-payouts`, `view-availability`,
   `manage-availability`.
 - The dashboard stats response for a consultant has the same shape but **no
   `consultants` and no `revenue` keys** — check for their presence.
@@ -378,17 +384,42 @@ Same payloads as above against `GET|PUT /admin/my/availability` (MY-01/02),
 - Upload report from the booking: see Reports below.
 
 #### Reports
-- List: `GET /admin/reports?consultant_id=&client_id=&date_from=&date_to=&search=` (RPT-01).
-- Show: `GET /admin/reports/{id}` (RPT-02) — `download_url` is guard-specific.
+- List: `GET /admin/reports?consultant_id=&client_id=&approval_status=&date_from=&date_to=&search=` (RPT-01).
+  `approval_status`: `pending_review | approved | rejected | returned`.
+- Review inbox: `GET /admin/reports/inbox` (RPT-01c, `approve-reports`) —
+  only `pending_review` reports; the "needs action" list.
+- Show: `GET /admin/reports/{id}` (RPT-02) — `download_url` is guard-specific;
+  response includes `approval_status`, `review_note`, `reviewed_at`.
 - Upload: `POST /admin/bookings/{booking}/report` (RPT-03, **FormData**):
-  `title*`, `summary`, `file*` (pdf/doc/docx ≤ 20 MB), `notify_client`
-  (default true → the client gets the email with the 7-day signed link).
-  Uploading again **replaces** the file. Booking must be `completed`
+  `title*`, `summary`, `file*` (pdf/doc/docx ≤ 20 MB), `note` (optional,
+  stored in the review history). The report enters `pending_review` — the
+  client is **not** notified. Uploading again **keeps every file version**
+  and resets the status to `pending_review`. Booking must be `completed`
   (`REPORT_NOT_ALLOWED`).
-- Download: `GET /admin/reports/{id}/download` (RPT-04) — see §6.2.
-- Resend email: `POST /admin/reports/{id}/notify-client` (RPT-06).
+- Approve: `POST /admin/reports/{id}/approve` (RPT-04a, `approve-reports`,
+  `{ "note"? }`) — the client gets the report-ready email with the 7-day
+  signed link and the report becomes visible to him.
+- Reject: `POST /admin/reports/{id}/reject` (RPT-04b, `approve-reports`,
+  `{ "note"? }`) — the consultant is notified; the booking returns to
+  "awaiting report".
+- Return for revision: `POST /admin/reports/{id}/return` (RPT-04c,
+  `approve-reports`, `{ "note"? }`) — same effects as reject; the consultant
+  uploads a revised file afterwards.
+- History: `GET /admin/reports/{id}/history` (RPT-02b) — every submission
+  and decision, newest first, each with its own `file` version; the
+  consultant of the report may also call this.
+- History file: `GET /admin/report-reviews/{id}/download` (RPT-02c,
+  `download-reports`) — the exact file attached to one history entry.
+- Download: `GET /admin/reports/{id}/download` (RPT-04) — the **current**
+  version, see §6.2.
+- Resend email: `POST /admin/reports/{id}/notify-client` (RPT-06) — only
+  after approval (`REPORT_REVIEW_NOT_ALLOWED` otherwise).
 - Delete: `DELETE /admin/reports/{id}` (RPT-05) — the booking returns to
   "awaiting report".
+
+> **Client side:** `GET /client/reports*`, the download endpoint and the
+> public signed link only expose `approved` reports — pending/rejected/
+> returned reports look like 404s to the client.
 
 #### Clients
 - List: `GET /admin/clients?search=&is_active=&consultant_id=&has_active_subscription=` (ADM-CL-01) — includes `bookings_count`, `reports_count`, `active_subscription`.
@@ -427,6 +458,34 @@ Same payloads as above against `GET|PUT /admin/my/availability` (MY-01/02),
   `status`: `initiated | paid | failed | refunded`. `gateway_response` is never
   exposed.
 - Show: `GET /admin/payments/{id}` (PAY-02) — payment + booking summary.
+
+#### Payouts
+- List: `GET /admin/payouts?status=&consultant_id=&date_from=&date_to=` (PO-01,
+  `view-payouts`). `status`: `pending | released | failed`. A consultant
+  only sees his own.
+- Stats: `GET /admin/payouts/stats` (PO-01b) — `by_status` (count +
+  `net_total` per status) and `auto_transfer`.
+- Show: `GET /admin/payouts/{id}` (PO-02) — `amount`, `fee_percent`,
+  `fee_amount`, `net_amount` (halalas), consultant `bank { iban, bank_name,
+  account_name }`, `transfer_reference`, `driver`, `released_at/by`.
+- Release: `POST /admin/payouts/{id}/release` (PO-03, `release-payouts`,
+  `{ "transfer_reference"?, "note"? }`) — manual mode (default): the admin
+  wires the money, then records the reference. With
+  `payout_auto_transfer` on, the configured gateway transfers instead and a
+  gateway failure marks the payout `failed`. `PAYOUT_ALREADY_RELEASED` /
+  `PAYOUT_NOT_RELEASABLE` on invalid states.
+- A payout is created **automatically when a booking completes** — one per
+  booking, from the consultant's `consultation_price` minus the platform
+  fee (his `platform_fee_percent` override or the global setting). A
+  consultant **without a price gets no payout**.
+
+#### Settings
+- Show: `GET /admin/settings` (SET-01, `view-settings`) —
+  `{ "platform_fee_percent": 15, "payout_auto_transfer": false }`.
+- Update: `PUT /admin/settings` (SET-02, `update-settings`) — same keys;
+  `platform_fee_percent` numeric 0–100, `payout_auto_transfer` boolean.
+  `payout_auto_transfer` switches PO-03 from manual recording to the
+  configured payout gateway (default `manual`).
 
 #### Activity logs
 - List: `GET /admin/activity-logs` (LOG-01) — the audit trail: every
@@ -598,6 +657,33 @@ POST /client/bookings
   booking and a new charge (the held slot answers 409 `SLOT_NOT_AVAILABLE`,
   but a different slot would charge the card again).
 
+### 5.6b Direct booking — no package
+
+Omit `package_id` to book a consultant directly. The price is the
+consultant's `consultation_price`, which `GET /public/consultants` and
+`GET /public/consultants/{id}` now return (halalas) with
+`consultation_price_formatted` and `currency`. Both price fields are `null`
+when no price is set: hide "Book now" for that consultant.
+
+```
+POST /client/bookings/quote
+{ "consultant_id", "date"?, "time"? }
+→ data { package: null, subscription: null, requires_payment: true,
+         amount, currency, slot_available }
+
+POST /client/bookings
+{ "consultant_id", "date", "time", "client_location_id",
+  "payment_method_id" | "card_token", "save_card"?, "client_notes"? }
+→ 201 data { booking, payment }     // booking.package === null
+```
+
+- Payment is **always required**; the 3-D Secure / verify / `402` / `503`
+  handling is exactly §5.6. No subscription is created.
+- Render `booking.package === null` as "حجز مباشر" (direct booking).
+- `422 CONSULTANT_PRICE_REQUIRED`: the consultant has no price.
+- The quote needs `package_id` **or** `consultant_id`, otherwise
+  `422 VALIDATION_ERROR`.
+
 ### 5.7 `SLOT_NOT_AVAILABLE` (409)
 
 The slot was taken between the quote and the submit. Re-call PUB-06 for the
@@ -714,6 +800,23 @@ use them; the colors below are suggestions.
 | `none` | — | gray |
 | `pending` | بانتظار التقرير | amber |
 | `uploaded` | تم رفع التقرير | green |
+
+`report.approval_status` (review workflow — only `approved` is visible to the client):
+
+| Value | Label (ar) | Color |
+|---|---|---|
+| `pending_review` | بانتظار المراجعة | amber |
+| `approved` | معتمد | green |
+| `rejected` | مرفوض | red |
+| `returned` | مُعاد للمراجعة | blue |
+
+`payout.status` (consultant payout):
+
+| Value | Label (ar) | Color |
+|---|---|---|
+| `pending` | بانتظار التحويل | amber |
+| `released` | تم التحويل | green |
+| `failed` | فشل التحويل | red |
 
 ### 7.3 Payment statuses
 

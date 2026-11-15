@@ -30,4 +30,18 @@ class ReportPolicy
     {
         return $user->isAdmin() || $report->consultant_id === $user->id;
     }
+
+    /**
+     * Only admins decide on reports — even a consultant holding the
+     * approve-reports permission cannot review his own submissions.
+     */
+    public function review(User $user, Report $report): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function viewHistory(User $user, Report $report): bool
+    {
+        return $user->isAdmin() || $report->consultant_id === $user->id;
+    }
 }

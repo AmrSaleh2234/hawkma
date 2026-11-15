@@ -19,4 +19,15 @@ return [
         'failed' => 'فشل الدفع',
         'refunded' => 'مسترد',
     ],
+    'report_approval_status' => [
+        'pending_review' => 'بانتظار المراجعة',
+        'approved' => 'تمت الموافقة',
+        'rejected' => 'مرفوض',
+        'returned' => 'معاد للتعديل',
+    ],
+    'payout_status' => [
+        'pending' => 'قيد الانتظار',
+        'released' => 'تم الصرف',
+        'failed' => 'فشل',
+    ],
 ];

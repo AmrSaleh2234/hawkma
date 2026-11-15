@@ -42,6 +42,12 @@ return [
     'BOOKING_CANCEL_WINDOW_PASSED' => 'انتهت مهلة الإلغاء.',
 
     'REPORT_NOT_ALLOWED' => 'يمكن رفع التقرير فقط لحجز مكتمل.',
+    'REPORT_REVIEW_NOT_ALLOWED' => 'لا يمكن مراجعة هذا التقرير في حالته الحالية.',
+    'REPORT_ALREADY_APPROVED' => 'تمت الموافقة على هذا التقرير مسبقاً.',
 
     'MEETING_CREATION_FAILED' => 'تعذر إنشاء الاجتماع عبر الإنترنت.',
+
+    'PAYOUT_NOT_RELEASABLE' => 'لا يمكن صرف هذه الدفعة في حالتها الحالية.',
+    'PAYOUT_ALREADY_RELEASED' => 'تم صرف هذه الدفعة مسبقاً.',
+    'CONSULTANT_PRICE_REQUIRED' => 'لم يحدد هذا المستشار سعر الاستشارة بعد.',
 ];

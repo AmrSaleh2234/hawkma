@@ -15,7 +15,8 @@ class ReportController extends ApiController
     /**
      * CLI-RPT-01 GET /api/v1/client/reports
      *
-     * Only the client's own reports. Query: search (title, consultant
+     * Only the client's own *approved* reports — reports still under
+     * review are invisible to clients. Query: search (title, consultant
      * name), date_from, date_to. download_url points to CLI-RPT-03.
      */
     public function index(Request $request): JsonResponse
@@ -28,6 +29,7 @@ class ReportController extends ApiController
         ]);
 
         $query = $request->user('client')->reports()
+            ->approved()
             ->with(['booking', 'consultant', 'client', 'media'])
             ->when($request->query('date_from'), fn (Builder $q, $from) => $q->where('created_at', '>=', $from.' 00:00:00'))
             ->when($request->query('date_to'), fn (Builder $q, $to) => $q->where('created_at', '<=', $to.' 23:59:59'))
@@ -52,6 +54,7 @@ class ReportController extends ApiController
     public function show(Request $request, string $report): JsonResponse
     {
         $report = $request->user('client')->reports()
+            ->approved()
             ->with(['booking', 'consultant', 'client'])
             ->findOrFail($report);
 
@@ -65,9 +68,9 @@ class ReportController extends ApiController
      */
     public function download(Request $request, string $report): BinaryFileResponse
     {
-        $report = $request->user('client')->reports()->findOrFail($report);
+        $report = $request->user('client')->reports()->approved()->findOrFail($report);
 
-        $media = $report->getFirstMedia('report_file');
+        $media = $report->currentMedia();
         abort_if($media === null, 404);
 
         if ($report->first_downloaded_at === null) {

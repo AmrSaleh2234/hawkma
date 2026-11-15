@@ -45,8 +45,10 @@ class CreateBookingAction
         // withTrashed: a drafted (soft-deleted) package must still serve the
         // remaining quota of an active subscription — the purchase terms are
         // frozen on the subscription (§9.4), so only NEW purchases require
-        // an active package.
-        $package = Package::withTrashed()->findOrFail($data['package_id']);
+        // an active package. Null → direct booking (consultant's price).
+        $package = isset($data['package_id'])
+            ? Package::withTrashed()->findOrFail($data['package_id'])
+            : null;
 
         $consultant = User::query()->findOrFail($data['consultant_id']);
         if (! $consultant->isConsultant() || ! $consultant->is_active) {
@@ -85,14 +87,27 @@ class CreateBookingAction
                 throw new BusinessException(ErrorCode::SlotNotAvailable, status: 409);
             }
 
-            // (d)
-            $quote = $this->subscriptions->quote($client, $package);
+            // (d) Package → subscription/purchase quote; direct → the
+            // consultant's consultation_price, always a payment.
+            if ($package !== null) {
+                $quote = $this->subscriptions->quote($client, $package);
 
-            // (e) A drafted or deactivated package can still serve the
-            // remaining quota of an active subscription; a new purchase
-            // requires an active, non-drafted package.
-            if ($quote['requires_payment'] && (! $package->is_active || $package->trashed())) {
-                throw new BusinessException(ErrorCode::PackageInactive);
+                // (e) A drafted or deactivated package can still serve the
+                // remaining quota of an active subscription; a new purchase
+                // requires an active, non-drafted package.
+                if ($quote['requires_payment'] && (! $package->is_active || $package->trashed())) {
+                    throw new BusinessException(ErrorCode::PackageInactive);
+                }
+            } else {
+                if ($lockedConsultant->consultation_price === null) {
+                    throw new BusinessException(ErrorCode::ConsultantPriceRequired);
+                }
+
+                $quote = [
+                    'requires_payment' => true,
+                    'amount' => $lockedConsultant->consultation_price,
+                    'subscription' => null,
+                ];
             }
 
             if ($quote['requires_payment'] && $method === null && $cardToken === null) {
@@ -105,8 +120,10 @@ class CreateBookingAction
             $booking = Booking::query()->create([
                 'client_id' => $client->id,
                 'consultant_id' => $consultant->id,
-                'package_id' => $package->id,
-                'package_snapshot' => $quote['subscription']?->package_snapshot ?? $package->snapshot(),
+                'package_id' => $package?->id,
+                'package_snapshot' => $package === null
+                    ? null
+                    : ($quote['subscription']?->package_snapshot ?? $package->snapshot()),
                 'client_subscription_id' => $quote['subscription']?->id,
                 'client_location_id' => $location->id,
                 'location_snapshot' => [
@@ -119,7 +136,7 @@ class CreateBookingAction
                 'status' => $quote['requires_payment'] ? BookingStatus::PendingPayment : BookingStatus::Pending,
                 'payment_status' => $quote['requires_payment'] ? PaymentStatus::Unpaid : PaymentStatus::NotRequired,
                 'amount' => $quote['amount'],
-                'currency' => $package->currency,
+                'currency' => $package?->currency ?? 'SAR',
                 'expires_at' => $quote['requires_payment']
                     ? now()->addMinutes((int) config('bookings.payment_hold_minutes', 15))
                     : null,

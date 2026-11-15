@@ -3,6 +3,10 @@
 return [
     'driver' => env('PAYMENT_GATEWAY', 'fake'),
 
+    // The payout driver used only when the `payout.auto_transfer` setting
+    // is enabled. 'manual' (default) = admin transfers by hand.
+    'payout_driver' => env('PAYOUT_GATEWAY', 'manual'),
+
     'currency' => 'SAR',
 
     'callback_url' => env('PAYMENT_CALLBACK_URL', env('CLIENT_FRONTEND_URL', 'http://localhost:3001').'/bookings/payment-callback'),

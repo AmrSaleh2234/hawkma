@@ -36,6 +36,11 @@ class ConsultantResource extends JsonResource
             'avatar_thumb_url' => $this->avatar_thumb_url,
             'is_active' => $this->is_active,
             'consultant_stage' => $this->consultant_stage,
+            'consultation_price' => $this->consultation_price,
+            'platform_fee_percent' => $this->platform_fee_percent !== null ? (float) $this->platform_fee_percent : null,
+            'iban' => $this->iban,
+            'bank_name' => $this->bank_name,
+            'bank_account_name' => $this->bank_account_name,
             'roles' => $this->getRoleNames()->values(),
             // Only when the counts were loaded (they need the bookings and
             // reports tables — wired in Phases 9/10).

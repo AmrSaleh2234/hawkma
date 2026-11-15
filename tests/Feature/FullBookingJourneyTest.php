@@ -239,8 +239,8 @@ class FullBookingJourneyTest extends TestCase
 
         /*
          * 15. The consultant uploads a PDF → it appears in /admin/reports
-         *     with the consultant and client names; the client gets the
-         *     ReportReadyNotification with the signed link.
+         *     as pending_review with the consultant and client names; the
+         *     client is NOT notified yet.
          */
         $reportId = $this->as($consultantToken)->post("/api/v1/admin/bookings/{$bookingId}/report", [
             'title' => 'Journey report',
@@ -254,6 +254,23 @@ class FullBookingJourneyTest extends TestCase
 
         $this->assertSame('Journey Consultant', $adminReport['consultant']['name']);
         $this->assertSame('Journey Client', $adminReport['client']['name']);
+        $this->assertSame('pending_review', $adminReport['approval_status']);
+
+        // The report shows up in the admin review inbox, and the client
+        // cannot see it yet.
+        $inbox = $this->as($adminToken)
+            ->getJson('/api/v1/admin/reports/inbox')->assertOk()->json('data');
+        $this->assertSame([$reportId], array_column($inbox, 'id'));
+
+        Notification::assertNotSentTo($client, ReportReadyNotification::class);
+        $this->as($clientToken)->getJson("/api/v1/client/reports/{$reportId}")->assertNotFound();
+
+        /*
+         * 15b. The admin approves the report → the client gets the
+         *      ReportReadyNotification with the signed link.
+         */
+        $this->as($adminToken)
+            ->postJson("/api/v1/admin/reports/{$reportId}/approve")->assertOk();
 
         Notification::assertSentTo(
             $client,

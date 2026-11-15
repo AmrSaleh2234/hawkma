@@ -3,18 +3,21 @@
 namespace Modules\Reports\Actions;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Modules\Bookings\Enums\BookingStatus;
 use Modules\Bookings\Models\Booking;
 use Modules\Bookings\Services\BookingStateMachine;
 use Modules\Core\Enums\ErrorCode;
 use Modules\Core\Exceptions\BusinessException;
+use Modules\Reports\Enums\ReportApprovalStatus;
 use Modules\Reports\Models\Report;
-use Modules\Reports\Notifications\ReportReadyNotification;
 use Modules\Users\Models\User;
 
 /**
- * The report flow (plan §9.9): one report per booking; uploading again
- * replaces the file (single-file collection).
+ * The report flow: one report per booking; every upload adds a new file
+ * version (kept for the review history) and puts the report back into
+ * `pending_review`. The client is only notified once an admin approves the
+ * report — never on upload.
  */
 class UploadReportAction
 {
@@ -30,31 +33,39 @@ class UploadReportAction
             throw new BusinessException(ErrorCode::ReportNotAllowed);
         }
 
-        $report = Report::query()->updateOrCreate(
-            ['booking_id' => $booking->id],
-            [
-                'consultant_id' => $booking->consultant_id,
-                'client_id' => $booking->client_id,
-                'title' => $data['title'],
-                'summary' => $data['summary'] ?? null,
-                'uploaded_by' => $by->id,
-            ],
-        );
+        return DB::transaction(function () use ($booking, $by, $data, $file): array {
+            $report = Report::query()->updateOrCreate(
+                ['booking_id' => $booking->id],
+                [
+                    'consultant_id' => $booking->consultant_id,
+                    'client_id' => $booking->client_id,
+                    'title' => $data['title'],
+                    'summary' => $data['summary'] ?? null,
+                    'uploaded_by' => $by->id,
+                    'approval_status' => ReportApprovalStatus::PendingReview,
+                    'review_note' => null,
+                    'reviewed_by' => null,
+                    'reviewed_at' => null,
+                ],
+            );
 
-        $created = $report->wasRecentlyCreated;
+            $created = $report->wasRecentlyCreated;
 
-        // singleFile() replaces the old file.
-        $report->addMedia($file)->toMediaCollection('report_file');
+            // Every submission is a new version: the file is appended to the
+            // collection and recorded in the review history.
+            $media = $report->addMedia($file)->toMediaCollection('report_file');
+            $report->forceFill(['current_media_id' => $media->id])->save();
 
-        $this->stateMachine->markReportUploaded($booking);
+            $report->reviews()->create([
+                'status' => ReportApprovalStatus::PendingReview,
+                'note' => $data['note'] ?? null,
+                'media_id' => $media->id,
+                'actor_id' => $by->id,
+            ]);
 
-        // On a replace the client is notified again only when asked (§9.9.4).
-        $notify = (bool) ($data['notify_client'] ?? true);
-        if ($created || $notify) {
-            $report->client->notify(new ReportReadyNotification($report));
-            $report->forceFill(['client_notified_at' => now()])->save();
-        }
+            $this->stateMachine->markReportUploaded($booking);
 
-        return ['report' => $report->refresh(), 'created' => $created];
+            return ['report' => $report->refresh(), 'created' => $created];
+        });
     }
 }

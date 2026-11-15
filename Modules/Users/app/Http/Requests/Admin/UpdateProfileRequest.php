@@ -21,6 +21,10 @@ class UpdateProfileRequest extends FormRequest
             'title' => ['nullable', 'string', 'max:150'],
             'specialization' => ['nullable', 'string', 'max:150'],
             'bio' => ['nullable', 'string'],
+            'consultation_price' => ['nullable', 'integer', 'min:0'],
+            'iban' => ['nullable', 'string', 'max:34'],
+            'bank_name' => ['nullable', 'string', 'max:150'],
+            'bank_account_name' => ['nullable', 'string', 'max:150'],
         ];
     }
 }

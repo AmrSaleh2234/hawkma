@@ -17,7 +17,7 @@ class UploadReportRequest extends FormRequest
             'title' => ['required', 'string', 'max:191'],
             'summary' => ['nullable', 'string', 'max:5000'],
             'file' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:20480'],
-            'notify_client' => ['boolean'],
+            'note' => ['nullable', 'string', 'max:2000'],
         ];
     }
 }

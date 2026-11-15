@@ -7,6 +7,8 @@ use Illuminate\Http\JsonResponse;
 use Modules\Bookings\Enums\BookingStatus;
 use Modules\Bookings\Enums\PaymentStatus;
 use Modules\Bookings\Enums\ReportStatus;
+use Modules\Payments\Enums\PayoutStatus;
+use Modules\Reports\Enums\ReportApprovalStatus;
 
 class MetaController extends ApiController
 {
@@ -21,6 +23,8 @@ class MetaController extends ApiController
         return $this->success([
             'booking_statuses' => $this->enumOptions(BookingStatus::cases(), 'bookings::labels.status'),
             'report_statuses' => $this->enumOptions(ReportStatus::cases(), 'bookings::labels.report_status'),
+            'report_approval_statuses' => $this->enumOptions(ReportApprovalStatus::cases(), 'bookings::labels.report_approval_status'),
+            'payout_statuses' => $this->enumOptions(PayoutStatus::cases(), 'bookings::labels.payout_status'),
             'payment_statuses' => $this->enumOptions(PaymentStatus::cases(), 'bookings::labels.payment_status'),
             'days_of_week' => $this->daysOfWeek(),
             'booking' => [

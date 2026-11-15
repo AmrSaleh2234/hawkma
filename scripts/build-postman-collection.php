@@ -734,6 +734,7 @@ $wizard = folder('12 Client › Booking wizard', [
         'tests' => [
             $set('slot_time', 'j.data.slots[0].time'),
             $set('slot_time_2', 'j.data.slots[1].time'),
+            $set('slot_time_3', 'j.data.slots[2].time'),
         ],
     ]),
     req('Step 5 – Locations (CLI-LOC-01)', 'GET', 'client/locations', [
@@ -750,6 +751,20 @@ $wizard = folder('12 Client › Booking wizard', [
         'tests' => [
             'pm.test("requires payment", () => pm.expect(j.data.requires_payment).to.be.true);',
             'pm.test("slot available", () => pm.expect(j.data.slot_available).to.be.true);',
+        ],
+    ]),
+    req('Quote – direct with consultant (CLI-BKG-01)', 'POST', 'client/bookings/quote', [
+        'description' => desc('Direct booking quote: send only `consultant_id` (no `package_id`). The amount is the consultant\'s `consultation_price`, `requires_payment` is always true and `package`/`subscription` are null.', fields: ['consultant_id' => 'required without package_id', 'package_id' => 'omit for a direct booking', 'date' => 'optional Y-m-d', 'time' => 'optional H:i'], errors: ['422 `CONSULTANT_PRICE_REQUIRED` (the consultant has no price)', '422 `VALIDATION_ERROR`']),
+        'body' => ['consultant_id' => '{{consultant_id}}', 'date' => '{{slot_date}}', 'time' => '{{slot_time_3}}'],
+        'tests' => [
+            'pm.test("direct quote", () => { pm.expect(j.data.package).to.be.null; pm.expect(j.data.requires_payment).to.be.true; pm.expect(j.data.amount).to.be.above(0); });',
+        ],
+    ]),
+    req('Create booking – direct, no package (CLI-BKG-02)', 'POST', 'client/bookings', [
+        'description' => desc('Books the consultant directly without a package: omit `package_id`. The client pays the consultant\'s `consultation_price` (always paid, no subscription is created). Same payment fields and 3DS/verify flow as a package booking.', errors: ['422 `CONSULTANT_PRICE_REQUIRED`', '422 `PAYMENT_METHOD_REQUIRED`', '409 `SLOT_NOT_AVAILABLE`', '402 `PAYMENT_FAILED`']),
+        'body' => ['consultant_id' => '{{consultant_id}}', 'date' => '{{slot_date}}', 'time' => '{{slot_time_3}}', 'client_location_id' => '{{location_id}}', 'card_token' => 'tok_fake_success'],
+        'tests' => [
+            'pm.test("direct booking paid", () => { pm.expect(j.data.booking.package).to.be.null; pm.expect(j.data.booking.payment_status).to.eql("paid"); });',
         ],
     ]),
     req('Create booking – saved card (CLI-BKG-02)', 'POST', 'client/bookings', [
@@ -806,6 +821,10 @@ $clientBookings = folder('13 Client › Bookings, Payments, Subscriptions, Dashb
     ]),
     req('Active subscriptions (CLI-SUB-02)', 'GET', 'client/subscriptions/active', [
         'description' => desc('Only the active ones.'),
+    ]),
+    req('Book from subscription (CLI-BKG-06)', 'POST', 'client/subscriptions/{{subscription_id}}/bookings', [
+        'description' => desc('Books a meeting inside an already-purchased package: consumes one consultation credit of the active subscription instead of charging a card.', null, ['consultant_id' => 'required', 'starts_at' => 'required ISO-8601 slot', 'client_location_id' => 'optional', 'client_notes' => 'optional'], ['422 `VALIDATION_ERROR`', '422 `BOOKING_SLOT_TAKEN`', '422 `SUBSCRIPTION_*`']),
+        'body' => ['consultant_id' => '{{consultant_id}}', 'starts_at' => '{{slot_start}}', 'client_notes' => 'Follow-up session.'],
     ]),
     req('Dashboard (CLI-DSH-01)', 'GET', 'client/dashboard', [
         'description' => desc('The client home: next booking, counters, unread reports, active subscriptions.'),
@@ -894,6 +913,7 @@ $adminReports = folder('15 Admin › Reports', [
         'query' => [
             ['consultant_id', '', 'admin only', true],
             ['client_id', '', '', true],
+            ['approval_status', '', 'pending_review | approved | rejected | returned', true],
             ['date_from', '', 'YYYY-MM-DD', true],
             ['date_to', '', 'YYYY-MM-DD', true],
             ['search', '', 'title or booking reference', true],
@@ -906,7 +926,7 @@ $adminReports = folder('15 Admin › Reports', [
         'description' => desc('Aggregated counts for the reports page: total, pending (completed bookings missing a report), uploaded, by_month, by_consultant.', 'view-reports'),
     ]),
     req('Upload report (RPT-03)', 'POST', 'admin/bookings/{{completed_booking_id}}/report', [
-        'description' => desc('Uploads the report of a completed booking (pdf/doc/docx ≤ 20 MB, private disk). Uploading again replaces the file. The client gets an email with a dashboard link and a 7-day signed download link unless `notify_client` is false.', 'upload-reports', ['title' => 'required, max 191', 'summary' => 'optional', 'file' => 'required pdf/doc/docx ≤ 20 MB', 'notify_client' => 'optional, default true'], ['422 `REPORT_NOT_ALLOWED` (booking not completed)', '422 `VALIDATION_ERROR`', '403 `FORBIDDEN`']),
+        'description' => desc('Uploads the report of a completed booking (pdf/doc/docx ≤ 20 MB, private disk). The report enters `pending_review` — the client is only notified after an admin approves it. Uploading again keeps every file version in the review history and resets the status to `pending_review`.', 'upload-reports', ['title' => 'required, max 191', 'summary' => 'optional', 'file' => 'required pdf/doc/docx ≤ 20 MB', 'note' => 'optional note stored in the review history'], ['422 `REPORT_NOT_ALLOWED` (booking not completed)', '422 `VALIDATION_ERROR`', '403 `FORBIDDEN`']),
         'formdata' => [
             ['title', 'تقرير الحوكمة المؤسسية'],
             ['summary', 'تقييم شامل لممارسات الحوكمة مع التوصيات.'],
@@ -920,12 +940,34 @@ $adminReports = folder('15 Admin › Reports', [
     req('Show report (RPT-02)', 'GET', 'admin/reports/{{report_id}}', [
         'description' => desc('One report with the guard-specific download_url.', 'view-reports', errors: ['404 `NOT_FOUND`', '403 `FORBIDDEN`']),
     ]),
+    req('Review inbox (RPT-01c)', 'GET', 'admin/reports/inbox', [
+        'description' => desc('Only reports awaiting review (`approval_status = pending_review`) — the admin "needs action" list.', 'approve-reports'),
+    ]),
     req('Download report (RPT-04)', 'GET', 'admin/reports/{{report_id}}/download', [
-        'description' => desc('Streams the file as an attachment.', 'download-reports', errors: ['404 `NOT_FOUND`', '403 `FORBIDDEN`']),
+        'description' => desc('Streams the current file version as an attachment.', 'download-reports', errors: ['404 `NOT_FOUND`', '403 `FORBIDDEN`']),
+        'raw_tests' => downloadTests(),
+    ]),
+    req('Approve report (RPT-04a)', 'POST', 'admin/reports/{{report_id}}/approve', [
+        'description' => desc('Approves a pending-review report: the client is notified with the signed download link and the report becomes visible to him.', 'approve-reports', ['note' => 'optional reviewer note shown to the consultant'], ['422 `REPORT_REVIEW_NOT_ALLOWED` (not pending_review)', '403 `FORBIDDEN`']),
+        'body' => ['note' => 'Approved for release.'],
+    ]),
+    req('Reject report (RPT-04b)', 'POST', 'admin/reports/{{report_id}}/reject', [
+        'description' => desc('Rejects a pending-review report: the consultant is notified with the note and the booking goes back to awaiting a report.', 'approve-reports', ['note' => 'optional reviewer note shown to the consultant'], ['422 `REPORT_REVIEW_NOT_ALLOWED` (not pending_review)', '403 `FORBIDDEN`']),
+        'body' => ['note' => 'Section 3 is missing.'],
+    ]),
+    req('Return report for revision (RPT-04c)', 'POST', 'admin/reports/{{report_id}}/return', [
+        'description' => desc('Sends a pending-review report back to the consultant for revision. Same effects as reject: consultant notification + booking back to pending.', 'approve-reports', ['note' => 'optional reviewer note shown to the consultant'], ['422 `REPORT_REVIEW_NOT_ALLOWED` (not pending_review)', '403 `FORBIDDEN`']),
+        'body' => ['note' => 'Please add the risk appendix.'],
+    ]),
+    req('Review history (RPT-02b)', 'GET', 'admin/reports/{{report_id}}/history', [
+        'description' => desc('Every submission and decision with its own file version, newest first. `file.download_url` points at RPT-02c.', 'view-reports', errors: ['404 `NOT_FOUND`', '403 `FORBIDDEN`']),
+    ]),
+    req('Download history file (RPT-02c)', 'GET', 'admin/report-reviews/{{report_review_id}}/download', [
+        'description' => desc('Streams the file version attached to one history entry — the exact file that was submitted or reviewed.', 'download-reports', errors: ['404 `NOT_FOUND`', '403 `FORBIDDEN`']),
         'raw_tests' => downloadTests(),
     ]),
     req('Notify client (RPT-06)', 'POST', 'admin/reports/{{report_id}}/notify-client', [
-        'description' => desc('Resends the report-ready email.', 'upload-reports'),
+        'description' => desc('Resends the report-ready email. Only possible after the report is approved.', 'upload-reports', errors: ['422 `REPORT_REVIEW_NOT_ALLOWED` (not approved)']),
     ]),
     req('Delete report (RPT-05)', 'DELETE', 'admin/reports/{{report_id}}', [
         'description' => desc('Deletes the report and its file; the booking goes back to awaiting a report. (Deletes the report uploaded above — the seeded demo report survives for the client folder.)', 'delete-reports', errors: ['403 `FORBIDDEN`']),
@@ -1139,6 +1181,8 @@ $joinRequests = folder('25 Join Us', [
     req('List join requests', 'GET', 'admin/join-requests', ['auth' => bearerAuth('admin_token'), 'query' => [['status', 'pending', 'status filter', true], ['search', 'Expert', 'search', true]]]),
     req('Show join request', 'GET', 'admin/join-requests/{{join_request_id}}', ['auth' => bearerAuth('admin_token')]),
     req('Download CV', 'GET', 'admin/join-requests/{{join_request_id}}/cv', ['auth' => bearerAuth('admin_token'), 'raw_tests' => downloadTests()]),
+    req('Applicant photo', 'GET', 'admin/join-requests/{{join_request_id}}/photo', ['auth' => bearerAuth('admin_token'), 'raw_tests' => downloadTests()]),
+    req('License scan', 'GET', 'admin/join-requests/{{join_request_id}}/licenses/{{license_index}}', ['auth' => bearerAuth('admin_token'), 'raw_tests' => downloadTests()]),
     req('Approve join request', 'PATCH', 'admin/join-requests/{{join_request_id}}/approve', ['auth' => bearerAuth('admin_token')]),
     req('Reject join request', 'PATCH', 'admin/join-requests/{{join_request_id}}/reject', ['auth' => bearerAuth('admin_token'), 'body' => ['reason' => 'Experience requirements were not met.']]),
 ], 'none');
@@ -1170,6 +1214,105 @@ $activityLogs = folder('27 Admin › Activity Logs', [
         'description' => desc('The values behind the LOG-01 filter dropdowns: modules that produced log rows, the event names and the log sources.', 'view-activity-logs'),
     ]),
 ], 'admin_token');
+$adminSettings = folder('28 Admin › Settings', [
+    req('Show settings (SET-01)', 'GET', 'admin/settings', [
+        'description' => desc('The editable platform settings: `platform_fee_percent` (default 15) and `payout_auto_transfer` (default false — manual payouts).', 'view-settings'),
+    ]),
+    req('Update settings (SET-02)', 'PUT', 'admin/settings', [
+        'description' => desc('Updates the editable settings. `platform_fee_percent` is the global platform cut used for new payouts unless the consultant has his own `platform_fee_percent` override. `payout_auto_transfer` switches payouts from manual release to the configured gateway driver.', 'update-settings', ['platform_fee_percent' => 'optional numeric 0–100', 'payout_auto_transfer' => 'optional boolean'], ['422 `VALIDATION_ERROR`']),
+        'body' => ['platform_fee_percent' => 15, 'payout_auto_transfer' => false],
+    ]),
+], 'admin_token');
+
+$adminPayouts = folder('29 Admin › Payouts', [
+    req('List payouts (PO-01)', 'GET', 'admin/payouts', [
+        'description' => desc('One payout per completed booking. A consultant only sees his own.', 'view-payouts'),
+        'query' => [
+            ['status', '', 'pending | released | failed', true],
+            ['consultant_id', '', 'admin only', true],
+            ['date_from', '', 'YYYY-MM-DD', true],
+            ['date_to', '', 'YYYY-MM-DD', true],
+        ],
+        'tests' => [
+            $set('payout_id', 'j.data[0].id'),
+        ],
+    ]),
+    req('Payouts stats (PO-01b)', 'GET', 'admin/payouts/stats', [
+        'description' => desc('Counts and totals grouped by status plus the `auto_transfer` flag.', 'view-payouts'),
+    ]),
+    req('Show payout (PO-02)', 'GET', 'admin/payouts/{{payout_id}}', [
+        'description' => desc('One payout with amounts, consultant bank details and release audit data.', 'view-payouts', errors: ['404 `NOT_FOUND`', '403 `FORBIDDEN`']),
+    ]),
+    req('Release payout (PO-03)', 'POST', 'admin/payouts/{{payout_id}}/release', [
+        'description' => desc('Marks a pending payout paid. Manual mode (default): records `transfer_reference`/`note` after the admin wired the money. With `payout_auto_transfer` on, the configured gateway driver performs the transfer — failures mark the payout `failed`.', 'release-payouts', ['transfer_reference' => 'optional reference stored on the payout', 'note' => 'optional'], ['422 `PAYOUT_ALREADY_RELEASED`', '422 `PAYOUT_NOT_RELEASABLE`', '403 `FORBIDDEN`']),
+        'body' => ['transfer_reference' => 'TRX-9988', 'note' => 'Sent via bank portal.'],
+    ]),
+], 'admin_token');
+
+$adminTraining = folder('30 Admin › Training', [
+    req('List trainees (TRN-01)', 'GET', 'admin/training', [
+        'description' => desc('Approved join-requests that became trainees, waiting to be promoted to public consultants.', 'view-training'),
+        'tests' => [
+            $set('trainee_id', 'j.data[0].id'),
+        ],
+    ]),
+    req('My training (TRN-02)', 'GET', 'admin/training/mine', [
+        'description' => desc('The training pipeline of the logged-in consultant.'),
+    ]),
+    req('Training sessions (TRN-03)', 'GET', 'admin/training/{{trainee_id}}/sessions', [
+        'description' => desc('The recorded training sessions of one trainee.', 'view-training'),
+    ]),
+    req('Add session (TRN-04)', 'POST', 'admin/training/{{trainee_id}}/sessions', [
+        'description' => desc('Records a training session for the trainee.', 'manage-training'),
+        'body' => ['title' => 'Shadowed consultation', 'starts_at' => '{{slot_start}}', 'duration_minutes' => 60],
+    ]),
+    req('Delete session (TRN-05)', 'DELETE', 'admin/training/{{trainee_id}}/sessions/{{training_session_id}}', [
+        'description' => desc('Removes a recorded session.', 'manage-training'),
+    ]),
+    req('Promote trainee (TRN-06)', 'POST', 'admin/training/{{trainee_id}}/promote', [
+        'description' => desc('Promotes a finished trainee to a public, bookable consultant.', 'manage-training'),
+    ]),
+], 'admin_token');
+
+$team = folder('31 Team', [
+    req('Public team members', 'GET', 'public/team-members', [
+        'auth' => ['type' => 'noauth'],
+        'description' => desc('The team shown on the public about page.'),
+    ]),
+    req('List team members', 'GET', 'admin/team-members', [
+        'auth' => bearerAuth('admin_token'),
+        'description' => desc('All team members for the admin grid.', 'view-team'),
+        'tests' => [
+            $set('team_member_id', 'j.data[0].id'),
+        ],
+    ]),
+    req('Create team member', 'POST', 'admin/team-members', [
+        'auth' => bearerAuth('admin_token'),
+        'description' => desc('Creates a team member.', 'create-team'),
+        'formdata' => [['name', 'Team Member'], ['title', 'Consultant'], ['bio', 'About the member'], ['sort_order', '10'], ['photo', null, 'file']],
+        'tests' => [
+            $set('team_member_id', 'j.data.id'),
+        ],
+    ]),
+    req('Show team member', 'GET', 'admin/team-members/{{team_member_id}}', [
+        'auth' => bearerAuth('admin_token'),
+    ]),
+    req('Update team member', 'PUT', 'admin/team-members/{{team_member_id}}', [
+        'auth' => bearerAuth('admin_token'),
+        'description' => desc('Updates a team member.', 'update-team'),
+        'body' => ['name' => 'Team Member', 'title' => 'Senior Consultant'],
+    ]),
+    req('Update team member (multipart)', 'POST', 'admin/team-members/{{team_member_id}}', [
+        'auth' => bearerAuth('admin_token'),
+        'description' => desc('POST duplicate of the PUT so multipart updates (photo) work.', 'update-team'),
+        'formdata' => [['name', 'Team Member'], ['title', 'Senior Consultant'], ['photo', null, 'file']],
+    ]),
+    req('Delete team member', 'DELETE', 'admin/team-members/{{team_member_id}}', [
+        'auth' => bearerAuth('admin_token'),
+        'description' => desc('Removes a team member.', 'delete-team'),
+    ]),
+], 'none');
+
 // ---------------------------------------------------------------------
 // Collection
 // ---------------------------------------------------------------------
@@ -1186,7 +1329,7 @@ $collection = [
         $packages, $clientAuth, $clientProfile, $locations, $paymentMethods,
         $wizard, $clientBookings, $adminBookings, $adminReports, $clientReports,
         $adminClients, $adminPayments, $dashboard, $webhooks,
-        $adminNotifications, $clientNotifications, $adminSupportTickets, $clientSupportTickets, $joinRequests, $reviews, $activityLogs, $logout,
+        $adminNotifications, $clientNotifications, $adminSupportTickets, $clientSupportTickets, $joinRequests, $reviews, $activityLogs, $adminSettings, $adminPayouts, $adminTraining, $team, $logout,
     ],
 ];
 

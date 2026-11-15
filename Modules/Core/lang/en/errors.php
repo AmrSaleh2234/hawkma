@@ -42,6 +42,12 @@ return [
     'BOOKING_CANCEL_WINDOW_PASSED' => 'The cancellation window has passed.',
 
     'REPORT_NOT_ALLOWED' => 'A report can only be uploaded for a completed booking.',
+    'REPORT_REVIEW_NOT_ALLOWED' => 'This report cannot be reviewed in its current status.',
+    'REPORT_ALREADY_APPROVED' => 'This report has already been approved.',
 
     'MEETING_CREATION_FAILED' => 'Could not create the online meeting.',
+
+    'PAYOUT_NOT_RELEASABLE' => 'This payout cannot be released in its current status.',
+    'PAYOUT_ALREADY_RELEASED' => 'This payout has already been released.',
+    'CONSULTANT_PRICE_REQUIRED' => 'This consultant has not set a consultation price yet.',
 ];

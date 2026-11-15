@@ -25,4 +25,10 @@ return [
     'payment_method_deleted' => 'Payment method deleted successfully.',
     'default_payment_method_set' => 'Default payment method updated successfully.',
     'cannot_deactivate_self' => 'You cannot deactivate your own account.',
+    'settings_updated' => 'Settings updated successfully.',
+    'report_submitted' => 'Report submitted for approval successfully.',
+    'report_approved' => 'Report approved successfully.',
+    'report_rejected' => 'Report rejected successfully.',
+    'report_returned' => 'Report returned to the consultant for revision.',
+    'payout_released' => 'Payout released successfully.',
 ];

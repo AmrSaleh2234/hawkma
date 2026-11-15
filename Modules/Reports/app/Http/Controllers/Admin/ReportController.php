@@ -9,13 +9,19 @@ use Illuminate\Support\Facades\DB;
 use Modules\Bookings\Enums\BookingStatus;
 use Modules\Bookings\Enums\ReportStatus;
 use Modules\Bookings\Models\Booking;
+use Modules\Core\Enums\ErrorCode;
+use Modules\Core\Exceptions\BusinessException;
 use Modules\Core\Http\Controllers\ApiController;
 use Modules\Core\Support\QueryFilters;
+use Modules\Reports\Actions\ReviewReportAction;
 use Modules\Reports\Actions\UploadReportAction;
 use Modules\Reports\Http\Requests\Admin\ReportIndexRequest;
+use Modules\Reports\Http\Requests\Admin\ReviewReportRequest;
 use Modules\Reports\Http\Requests\Admin\UploadReportRequest;
 use Modules\Reports\Http\Resources\ReportResource;
+use Modules\Reports\Http\Resources\ReportReviewResource;
 use Modules\Reports\Models\Report;
+use Modules\Reports\Models\ReportReview;
 use Modules\Reports\Notifications\ReportReadyNotification;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -41,6 +47,7 @@ class ReportController extends ApiController
             ->visibleTo($user)
             ->when($filters['consultant_id'] ?? null, fn (Builder $q, $id) => $q->where('consultant_id', $id))
             ->when($filters['client_id'] ?? null, fn (Builder $q, $id) => $q->where('client_id', $id))
+            ->when($filters['approval_status'] ?? null, fn (Builder $q, $status) => $q->where('approval_status', $status))
             ->when($filters['date_from'] ?? null, fn (Builder $q, $from) => $q->where('created_at', '>=', $from.' 00:00:00'))
             ->when($filters['date_to'] ?? null, fn (Builder $q, $to) => $q->where('created_at', '<=', $to.' 23:59:59'));
 
@@ -123,11 +130,32 @@ class ReportController extends ApiController
     }
 
     /**
+     * RPT-01c GET /api/v1/admin/reports/inbox — Perm: approve-reports
+     *
+     * The review inbox: reports waiting for an admin decision, oldest
+     * submission first.
+     */
+    public function inbox(Request $request): JsonResponse
+    {
+        $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $reports = Report::query()
+            ->with(['booking', 'consultant', 'client', 'media'])
+            ->awaitingReview()
+            ->oldest()
+            ->paginate(QueryFilters::perPage($request));
+
+        return $this->paginated(ReportResource::collection($reports));
+    }
+
+    /**
      * RPT-02 GET /api/v1/admin/reports/{report} — Perm: view-reports + policy
      */
     public function show(string $report): JsonResponse
     {
-        $report = Report::query()->with(['booking', 'consultant', 'client'])->findOrFail($report);
+        $report = Report::query()->with(['booking', 'consultant', 'client', 'reviewer'])->findOrFail($report);
 
         $this->authorize('view', $report);
 
@@ -135,10 +163,46 @@ class ReportController extends ApiController
     }
 
     /**
+     * RPT-02b GET /api/v1/admin/reports/{report}/history
+     * Perm: view-reports + policy
+     *
+     * The full review trail: every submission and decision, each pointing
+     * at the file version of that step.
+     */
+    public function history(string $report): JsonResponse
+    {
+        $report = Report::query()->findOrFail($report);
+        $this->authorize('viewHistory', $report);
+
+        $reviews = $report->reviews()->with(['actor', 'media'])->get();
+
+        return $this->success(ReportReviewResource::collection($reviews));
+    }
+
+    /**
+     * RPT-02c GET /api/v1/admin/report-reviews/{review}/download
+     * Perm: download-reports + policy
+     *
+     * Streams the file version attached to one history entry.
+     */
+    public function downloadReviewFile(string $review): BinaryFileResponse
+    {
+        $review = ReportReview::query()->with('report')->findOrFail($review);
+        $this->authorize('download', $review->report);
+
+        $media = $review->media;
+        abort_if($media === null, 404);
+
+        return response()->download($media->getPath(), $media->file_name);
+    }
+
+    /**
      * RPT-03 POST /api/v1/admin/bookings/{booking}/report (multipart)
      * Perm: upload-reports + BookingPolicy::uploadReport
      *
-     * Creates the report or replaces it (§9.9). 201 on create, 200 on replace.
+     * Creates the report or submits a new version: the report goes to
+     * pending_review and the client is only notified on approval.
+     * 201 on create, 200 on resubmission.
      */
     public function upload(UploadReportRequest $request, string $booking, UploadReportAction $action): JsonResponse
     {
@@ -168,10 +232,66 @@ class ReportController extends ApiController
         $report = Report::query()->findOrFail($report);
         $this->authorize('download', $report);
 
-        $media = $report->getFirstMedia('report_file');
+        $media = $report->currentMedia();
         abort_if($media === null, 404);
 
         return response()->download($media->getPath(), $media->file_name);
+    }
+
+    /**
+     * RPT-04a POST /api/v1/admin/reports/{report}/approve
+     * Perm: approve-reports + policy (admin only)
+     *
+     * Approves the report: the client sees it and gets the ready email.
+     */
+    public function approve(ReviewReportRequest $request, string $report, ReviewReportAction $action): JsonResponse
+    {
+        $report = Report::query()->findOrFail($report);
+        $this->authorize('review', $report);
+
+        $report = $action->approve($report, $request->user('admin'), $request->input('note'));
+
+        return $this->success(
+            ReportResource::make($report->loadMissing(['booking', 'consultant', 'client', 'reviewer'])),
+            __('core::messages.report_approved'),
+        );
+    }
+
+    /**
+     * RPT-04b POST /api/v1/admin/reports/{report}/reject
+     * Perm: approve-reports + policy (admin only)
+     */
+    public function reject(ReviewReportRequest $request, string $report, ReviewReportAction $action): JsonResponse
+    {
+        $report = Report::query()->findOrFail($report);
+        $this->authorize('review', $report);
+
+        $report = $action->reject($report, $request->user('admin'), $request->input('note'));
+
+        return $this->success(
+            ReportResource::make($report->loadMissing(['booking', 'consultant', 'client', 'reviewer'])),
+            __('core::messages.report_rejected'),
+        );
+    }
+
+    /**
+     * RPT-04c POST /api/v1/admin/reports/{report}/return
+     * Perm: approve-reports + policy (admin only)
+     *
+     * Returns the report to the consultant for revision (the note tells him
+     * what to fix); the booking asks for a report again.
+     */
+    public function returnForRevision(ReviewReportRequest $request, string $report, ReviewReportAction $action): JsonResponse
+    {
+        $report = Report::query()->findOrFail($report);
+        $this->authorize('review', $report);
+
+        $report = $action->returnForRevision($report, $request->user('admin'), $request->input('note'));
+
+        return $this->success(
+            ReportResource::make($report->loadMissing(['booking', 'consultant', 'client', 'reviewer'])),
+            __('core::messages.report_returned'),
+        );
     }
 
     /**
@@ -207,6 +327,10 @@ class ReportController extends ApiController
     {
         $report = Report::query()->findOrFail($report);
         $this->authorize('notifyClient', $report);
+
+        if (! $report->isApproved()) {
+            throw new BusinessException(ErrorCode::ReportReviewNotAllowed);
+        }
 
         $report->client->notify(new ReportReadyNotification($report));
         $report->forceFill(['client_notified_at' => now()])->save();
