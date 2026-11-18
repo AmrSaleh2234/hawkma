@@ -56,10 +56,19 @@ return [
     'upload-reports' => 'Upload reports',
     'download-reports' => 'Download reports',
     'delete-reports' => 'Delete reports',
+    'approve-reports' => 'Approve reports',
 
     // payments
     'view-payments' => 'View payments',
     'refund-payments' => 'Refund payments',
+
+    // payouts
+    'view-payouts' => 'View payouts',
+    'release-payouts' => 'Release payouts',
+
+    // settings
+    'view-settings' => 'View settings',
+    'update-settings' => 'Update settings',
 
     // support tickets
     'view-support-tickets' => 'View support tickets',

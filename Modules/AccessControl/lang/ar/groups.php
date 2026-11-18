@@ -13,6 +13,8 @@ return [
     'bookings' => 'الحجوزات',
     'reports' => 'التقارير',
     'payments' => 'المدفوعات',
+    'payouts' => 'مستحقات المستشارين',
+    'settings' => 'الإعدادات',
     'support_tickets' => 'تذاكر الدعم',
     'join_requests' => 'طلبات الانضمام',
     'reviews' => 'التقييمات',

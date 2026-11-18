@@ -56,10 +56,19 @@ return [
     'upload-reports' => 'رفع التقارير',
     'download-reports' => 'تنزيل التقارير',
     'delete-reports' => 'حذف التقارير',
+    'approve-reports' => 'اعتماد التقارير',
 
     // payments
     'view-payments' => 'عرض المدفوعات',
     'refund-payments' => 'استرداد المدفوعات',
+
+    // payouts
+    'view-payouts' => 'عرض مستحقات المستشارين',
+    'release-payouts' => 'صرف مستحقات المستشارين',
+
+    // settings
+    'view-settings' => 'عرض الإعدادات',
+    'update-settings' => 'تحديث الإعدادات',
 
     // support tickets
     'view-support-tickets' => 'عرض تذاكر الدعم',

@@ -5,6 +5,7 @@ namespace Modules\Consultants\Http\Controllers\Admin;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Consultants\Http\Requests\Admin\PromoteTraineeRequest;
 use Modules\Consultants\Http\Requests\Admin\StoreTrainingSessionRequest;
 use Modules\Consultants\Http\Resources\TraineeResource;
 use Modules\Consultants\Http\Resources\TrainingSessionResource;
@@ -73,9 +74,9 @@ class TrainingController extends ApiController
         return $this->noContent(__('consultants::training.session_deleted'));
     }
 
-    public function promote(User $consultant): JsonResponse
+    public function promote(PromoteTraineeRequest $request, User $consultant): JsonResponse
     {
-        $consultant = $this->service->promote($consultant);
+        $consultant = $this->service->promote($consultant, $request->validated('password'));
         $consultant->load(['media', 'trainingSessions.scheduler:id,name']);
 
         return $this->success(TraineeResource::make($consultant), __('consultants::training.promoted'));

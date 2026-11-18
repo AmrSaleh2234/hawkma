@@ -13,6 +13,8 @@ return [
     'bookings' => 'Bookings',
     'reports' => 'Reports',
     'payments' => 'Payments',
+    'payouts' => 'Payouts',
+    'settings' => 'Settings',
     'support_tickets' => 'Support tickets',
     'join_requests' => 'Join requests',
     'reviews' => 'Reviews',
