@@ -3,6 +3,7 @@
 namespace Modules\Consultants\Services;
 
 use Modules\Consultants\Models\TrainingSession;
+use Modules\Consultants\Notifications\ConsultantPromotedNotification;
 use Modules\Core\Enums\ErrorCode;
 use Modules\Core\Exceptions\BusinessException;
 use Modules\Users\Models\User;
@@ -30,12 +31,19 @@ class TrainingService
 
     /**
      * Promote: the consultant becomes publicly listed and bookable.
+     * The admin sets a password that the consultant will use to log in.
+     * An email with the credentials is sent to the consultant.
      */
-    public function promote(User $trainee): User
+    public function promote(User $trainee, string $password): User
     {
         $this->assertTrainee($trainee);
 
-        $trainee->forceFill(['consultant_stage' => 'active'])->save();
+        $trainee->forceFill([
+            'consultant_stage' => 'active',
+            'password' => $password,
+        ])->save();
+
+        $trainee->notify(new ConsultantPromotedNotification($trainee->email, $password));
 
         return $trainee;
     }
