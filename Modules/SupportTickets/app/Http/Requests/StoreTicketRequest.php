@@ -15,6 +15,6 @@ class StoreTicketRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['category' => ['required', Rule::enum(TicketCategory::class)], 'description' => ['required', 'string', 'max:5000'], 'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'], 'voice' => ['nullable', 'file', 'mimes:mp3,m4a,ogg,wav,webm', 'max:20480']];
+        return ['category' => ['required', Rule::enum(TicketCategory::class)], 'description' => ['required', 'string', 'max:5000'], 'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'], 'voice' => ['nullable', 'file', 'mimes:mp3,m4a,aac,mp4,oga,ogg,wav,webm', 'max:20480']];
     }
 }
