@@ -30,7 +30,8 @@ class PaymentFailedNotification extends Notification implements ShouldQueue
             ->line(__('payments::notifications.payment_failed.intro', ['reference' => $this->booking->reference]))
             ->action(
                 __('payments::notifications.payment_failed.retry'),
-                rtrim((string) config('app.client_frontend_url'), '/').'/bookings/new',
+                rtrim((string) config('app.client_frontend_url'), '/')
+                    .($this->booking->package?->slug ? '/book/'.$this->booking->package->slug : '/bookings'),
             );
     }
 
