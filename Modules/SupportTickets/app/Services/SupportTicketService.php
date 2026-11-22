@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
+use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
+use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
+use Spatie\MediaLibrary\MediaCollections\Exceptions\FileUnacceptableForCollection;
 use Modules\Bookings\Models\Booking;
 use Modules\Clients\Models\Client;
 use Modules\Packages\Enums\SubscriptionStatus;
@@ -37,14 +41,17 @@ class SupportTicketService
         if ($isInternal) {
             abort_unless($sender instanceof User && $sender->isAdmin(), 403);
         }
-        $message = $ticket->messages()->create(['sender_type' => $sender->getMorphClass(), 'sender_id' => $sender->getKey(), 'body' => $body, 'is_internal' => $isInternal]);
-        if ($image) {
-            $message->addMedia($image)->toMediaCollection('image');
-        }
-        if ($voice) {
-            $message->addMedia($voice)->toMediaCollection('voice');
-        }
-        $ticket->forceFill(['status' => $ticket->status === TicketStatus::Resolved ? TicketStatus::InProgress : $ticket->status, 'last_message_at' => now()])->save();
+        // One transaction: if an attachment is rejected by its media collection
+        // (e.g. unrecognised MIME), the message row rolls back with it instead
+        // of surviving as an orphan and the client gets a clean 422.
+        $message = DB::transaction(function () use ($ticket, $sender, $body, $image, $voice, $isInternal): SupportTicketMessage {
+            $message = $ticket->messages()->create(['sender_type' => $sender->getMorphClass(), 'sender_id' => $sender->getKey(), 'body' => $body, 'is_internal' => $isInternal]);
+            $this->attachMedia($message, $image, 'image');
+            $this->attachMedia($message, $voice, 'voice');
+            $ticket->forceFill(['status' => $ticket->status === TicketStatus::Resolved ? TicketStatus::InProgress : $ticket->status, 'last_message_at' => now()])->save();
+
+            return $message;
+        });
         if ($notify && ! $isInternal) {
             if ($sender instanceof Client) {
                 $this->notifyStaffAndConsultant($ticket, 'message');
@@ -54,6 +61,19 @@ class SupportTicketService
         }
 
         return $message->load(['media', 'sender']);
+    }
+
+    private function attachMedia(SupportTicketMessage $message, ?UploadedFile $file, string $collection): void
+    {
+        if ($file === null) {
+            return;
+        }
+
+        try {
+            $message->addMedia($file)->toMediaCollection($collection);
+        } catch (FileDoesNotExist|FileIsTooBig|FileUnacceptableForCollection) {
+            throw ValidationException::withMessages([$collection => [__('validation.uploaded', ['attribute' => $collection])]]);
+        }
     }
 
     public function activeConsultantId(Client $client): ?int

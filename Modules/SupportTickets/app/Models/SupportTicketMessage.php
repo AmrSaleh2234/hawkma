@@ -28,8 +28,17 @@ class SupportTicketMessage extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('image')->singleFile()->useDisk('local')->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
-        $this->addMediaCollection('voice')->singleFile()->useDisk('local')->acceptsMimeTypes(['audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/wav', 'audio/webm']);
+        // MIME aliases included deliberately: validation checks extensions but
+        // the collection sniffs content, and real files surface as aliases
+        // (audio/x-wav, audio/x-m4a, video/webm/mp4 shared containers).
+        $this->addMediaCollection('image')->singleFile()->useDisk('local')->acceptsMimeTypes(['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png', 'image/webp']);
+        $this->addMediaCollection('voice')->singleFile()->useDisk('local')->acceptsMimeTypes([
+            'audio/mpeg', 'audio/mpeg3', 'audio/mp3', 'audio/x-mp3',
+            'audio/mp4', 'video/mp4', 'audio/x-m4a', 'audio/aac', 'audio/mp4a-latm', 'audio/x-mp4a',
+            'audio/ogg', 'audio/vorbis', 'audio/oga',
+            'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/x-wave', 'audio/vnd.wave', 'audio/x-pn-wav',
+            'audio/webm', 'video/webm',
+        ]);
     }
 
     public function ticket(): BelongsTo
