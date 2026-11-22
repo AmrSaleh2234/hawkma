@@ -91,4 +91,10 @@ return [
     'create-team' => 'Create advisory board members',
     'update-team' => 'Update advisory board members',
     'delete-team' => 'Delete advisory board members',
+
+    // certificates
+    'view-certificates' => 'View certificates',
+    'create-certificates' => 'Create certificates',
+    'update-certificates' => 'Update certificates',
+    'delete-certificates' => 'Delete certificates',
 ];

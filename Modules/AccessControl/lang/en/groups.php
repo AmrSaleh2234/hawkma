@@ -20,4 +20,5 @@ return [
     'reviews' => 'Reviews',
     'activity_logs' => 'Activity logs',
     'team' => 'Advisory Board',
+    'certificates' => 'Certificates',
 ];
