@@ -2,7 +2,9 @@
 
 namespace Modules\Notifications\Listeners;
 
+use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Support\Facades\Log;
 use Modules\Clients\Models\Client;
 use Modules\Notifications\Events\NotificationReceived;
 use Modules\Users\Models\User;
@@ -32,16 +34,25 @@ class BroadcastNotification
         $channel = $event->notifiable instanceof User ? 'admin' : 'client';
         $data = $event->notification->toArray($event->notifiable);
 
-        NotificationReceived::dispatch(
-            $event->notifiable,
-            [
-                'id' => $event->notification->id,
-                'type' => $data['type'] ?? null,
-                'data' => $data,
-                'read_at' => null,
-                'created_at' => now()->toIso8601String(),
-            ],
-            "{$channel}.{$event->notifiable->getKey()}",
-        );
+        // WebSocket delivery is best-effort: the database row is the source
+        // of truth, so a down broadcaster must not fail the whole request.
+        try {
+            NotificationReceived::dispatch(
+                $event->notifiable,
+                [
+                    'id' => $event->notification->id,
+                    'type' => $data['type'] ?? null,
+                    'data' => $data,
+                    'read_at' => null,
+                    'created_at' => now()->toIso8601String(),
+                ],
+                "{$channel}.{$event->notifiable->getKey()}",
+            );
+        } catch (BroadcastException $e) {
+            Log::warning('Skipping realtime notification — broadcaster unreachable', [
+                'notifiable' => $event->notifiable->getKey(),
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
