@@ -91,4 +91,10 @@ return [
     'create-team' => 'إضافة عضو للمجلس',
     'update-team' => 'تعديل عضو المجلس',
     'delete-team' => 'حذف عضو المجلس',
+
+    // certificates
+    'view-certificates' => 'عرض الشهادات',
+    'create-certificates' => 'إضافة شهادات',
+    'update-certificates' => 'تعديل الشهادات',
+    'delete-certificates' => 'حذف الشهادات',
 ];

@@ -1,0 +1,11 @@
+{
+    "name": "Certificates",
+    "alias": "certificates",
+    "description": "Landing-page certificates & accreditations (ISO etc.), admin-managed.",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Certificates\\Providers\\CertificatesServiceProvider"
+    ],
+    "files": []
+}

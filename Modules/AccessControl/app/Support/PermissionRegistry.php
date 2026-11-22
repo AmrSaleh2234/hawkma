@@ -48,6 +48,8 @@ final class PermissionRegistry
 
     public const GROUP_TEAM = 'team';
 
+    public const GROUP_CERTIFICATES = 'certificates';
+
     /**
      * All permissions grouped by their group key.
      *
@@ -75,6 +77,7 @@ final class PermissionRegistry
             self::GROUP_REVIEWS => ['view-reviews', 'manage-reviews'],
             self::GROUP_ACTIVITY_LOGS => ['view-activity-logs'],
             self::GROUP_TEAM => ['view-team', 'create-team', 'update-team', 'delete-team'],
+            self::GROUP_CERTIFICATES => ['view-certificates', 'create-certificates', 'update-certificates', 'delete-certificates'],
         ];
     }
 

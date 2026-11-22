@@ -14,5 +14,6 @@
     "JoinRequests": true,
     "Reviews": true,
     "ActivityLogs": true,
-    "Team": true
+    "Team": true,
+    "Certificates": true
 }

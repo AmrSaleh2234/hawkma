@@ -20,4 +20,5 @@ return [
     'reviews' => 'التقييمات',
     'activity_logs' => 'سجل النشاط',
     'team' => 'المجلس الاستشاري',
+    'certificates' => 'الشهادات',
 ];
