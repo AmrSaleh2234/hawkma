@@ -52,6 +52,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             SetLocaleFromHeader::class,
         ]);
+
+        // The framework default redirects guests to route('login'), which does
+        // not exist in this API-only app: any unauthenticated request without
+        // Accept: application/json then crashes with RouteNotFoundException
+        // (500) instead of returning a clean 401. API guests get a null
+        // redirect target, so the AuthenticationException is rendered normally.
+        $middleware->redirectGuestsTo(
+            fn (Request $request) => $request->is('api/*') ? null : '/login',
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

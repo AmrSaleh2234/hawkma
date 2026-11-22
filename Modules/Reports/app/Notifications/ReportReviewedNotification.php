@@ -40,9 +40,10 @@ class ReportReviewedNotification extends Notification implements ShouldQueue
             $mail->line(__('reports::notifications.report_reviewed.note', ['note' => $this->note]));
         }
 
+        // No /admin/reports/{id} route exists — the consultant lands on the list.
         return $mail->action(
             __('reports::notifications.report_reviewed.view'),
-            rtrim((string) config('app.admin_frontend_url'), '/').'/reports/'.$this->report->id,
+            rtrim((string) config('app.admin_frontend_url'), '/').'/reports',
         );
     }
 
