@@ -43,6 +43,9 @@ enum ErrorCode: string
     case BookingInvalidStatus = 'BOOKING_INVALID_STATUS';
     case BookingNotStarted = 'BOOKING_NOT_STARTED';
     case BookingCancelWindowPassed = 'BOOKING_CANCEL_WINDOW_PASSED';
+    case TransferNotAllowed = 'TRANSFER_NOT_ALLOWED';
+    case TransferAlreadyPending = 'TRANSFER_ALREADY_PENDING';
+    case TransferInvalidStatus = 'TRANSFER_INVALID_STATUS';
 
     case ReportNotAllowed = 'REPORT_NOT_ALLOWED';
     case ReportReviewNotAllowed = 'REPORT_REVIEW_NOT_ALLOWED';

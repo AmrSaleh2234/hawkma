@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Bookings\Http\Controllers\Admin\BookingController as AdminBookingController;
+use Modules\Bookings\Http\Controllers\Admin\BookingTransferController;
 use Modules\Bookings\Http\Controllers\Client\BookingController;
 
 Route::prefix('v1')->group(function () {
@@ -46,6 +47,28 @@ Route::prefix('v1')->group(function () {
         Route::post('{booking}/mark-refunded', [AdminBookingController::class, 'markRefunded'])
             ->middleware('permission:refund-payments,admin')
             ->name('mark-refunded');
+    });
+
+    // Consultant handoff requests (booking → another consultant).
+    Route::prefix('admin/booking-transfers')->name('admin.booking-transfers.')->middleware(['auth:admin', 'active.user', 'throttle:api'])->group(function () {
+        Route::get('targets', [BookingTransferController::class, 'targets'])
+            ->middleware('permission:request-booking-transfers,admin')
+            ->name('targets');
+        Route::get('/', [BookingTransferController::class, 'index'])
+            ->middleware('permission:view-booking-transfers,admin')
+            ->name('index');
+        Route::post('/', [BookingTransferController::class, 'store'])
+            ->middleware('permission:request-booking-transfers,admin')
+            ->name('store');
+        Route::post('{transfer}/approve', [BookingTransferController::class, 'approve'])
+            ->middleware('permission:manage-booking-transfers,admin')
+            ->name('approve');
+        Route::post('{transfer}/reject', [BookingTransferController::class, 'reject'])
+            ->middleware('permission:manage-booking-transfers,admin')
+            ->name('reject');
+        Route::post('{transfer}/cancel', [BookingTransferController::class, 'cancel'])
+            ->middleware('permission:request-booking-transfers,admin')
+            ->name('cancel');
     });
 
     // TODO Phase 9: CLI-BKG-03..05 (client bookings).

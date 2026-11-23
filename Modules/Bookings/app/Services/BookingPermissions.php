@@ -15,7 +15,7 @@ use Modules\Users\Models\User;
 class BookingPermissions
 {
     /**
-     * @return array{complete: bool, cancel: bool, upload_report: bool}
+     * @return array{complete: bool, cancel: bool, upload_report: bool, request_transfer: bool}
      */
     public static function for(Booking $booking, User|Client|null $actor): array
     {
@@ -24,6 +24,7 @@ class BookingPermissions
                 'complete' => false,
                 'cancel' => self::clientCanCancel($booking),
                 'upload_report' => false,
+                'request_transfer' => false,
             ];
         }
 
@@ -39,10 +40,16 @@ class BookingPermissions
                 'upload_report' => $actor->hasPermissionTo('upload-reports', 'admin')
                     && $actor->can('uploadReport', $booking)
                     && $booking->status === BookingStatus::Completed,
+                'request_transfer' => $actor->isConsultant()
+                    && $actor->hasPermissionTo('request-booking-transfers', 'admin')
+                    && $booking->consultant_id === $actor->id
+                    && $booking->status === BookingStatus::Pending
+                    && $booking->starts_at->isFuture()
+                    && $booking->pendingTransfer()->doesntExist(),
             ];
         }
 
-        return ['complete' => false, 'cancel' => false, 'upload_report' => false];
+        return ['complete' => false, 'cancel' => false, 'upload_report' => false, 'request_transfer' => false];
     }
 
     /**

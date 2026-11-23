@@ -67,7 +67,7 @@ final class PermissionRegistry
             self::GROUP_TRAINING => ['view-training', 'manage-training'],
             self::GROUP_CLIENTS => ['view-clients', 'update-clients', 'delete-clients'],
             self::GROUP_PACKAGES => ['view-packages', 'create-packages', 'update-packages', 'delete-packages'],
-            self::GROUP_BOOKINGS => ['view-bookings', 'complete-bookings', 'cancel-bookings', 'manage-meetings'],
+            self::GROUP_BOOKINGS => ['view-bookings', 'complete-bookings', 'cancel-bookings', 'manage-meetings', 'view-booking-transfers', 'request-booking-transfers', 'manage-booking-transfers'],
             self::GROUP_REPORTS => ['view-reports', 'upload-reports', 'download-reports', 'delete-reports', 'approve-reports'],
             self::GROUP_PAYMENTS => ['view-payments', 'refund-payments'],
             self::GROUP_PAYOUTS => ['view-payouts', 'release-payouts'],
@@ -112,6 +112,8 @@ final class PermissionRegistry
             'manage-availability',
             'view-support-tickets',
             'reply-support-tickets',
+            'view-booking-transfers',
+            'request-booking-transfers',
         ];
     }
 }

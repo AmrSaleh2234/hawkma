@@ -40,6 +40,9 @@ return [
     'BOOKING_INVALID_STATUS' => 'حالة الحجز لا تسمح بهذا الإجراء.',
     'BOOKING_NOT_STARTED' => 'لم يبدأ الحجز بعد.',
     'BOOKING_CANCEL_WINDOW_PASSED' => 'انتهت مهلة الإلغاء.',
+    'TRANSFER_NOT_ALLOWED' => 'لا يمكن تحويل هذا الحجز في حالته الحالية أو إلى هذا المستشار.',
+    'TRANSFER_ALREADY_PENDING' => 'يوجد بالفعل طلب تحويل قيد المراجعة لهذا الحجز.',
+    'TRANSFER_INVALID_STATUS' => 'تم اتخاذ قرار بشأن طلب التحويل هذا مسبقاً.',
 
     'REPORT_NOT_ALLOWED' => 'يمكن رفع التقرير فقط لحجز مكتمل.',
     'REPORT_REVIEW_NOT_ALLOWED' => 'لا يمكن مراجعة هذا التقرير في حالته الحالية.',

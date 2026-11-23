@@ -50,6 +50,9 @@ return [
     'complete-bookings' => 'إكمال الحجوزات',
     'cancel-bookings' => 'إلغاء الحجوزات',
     'manage-meetings' => 'إدارة الاجتماعات',
+    'view-booking-transfers' => 'عرض طلبات تحويل الحجوزات',
+    'request-booking-transfers' => 'طلب تحويل الحجوزات',
+    'manage-booking-transfers' => 'الموافقة أو رفض تحويل الحجوزات',
 
     // reports
     'view-reports' => 'عرض التقارير',

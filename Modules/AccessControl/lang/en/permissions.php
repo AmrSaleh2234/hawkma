@@ -50,6 +50,9 @@ return [
     'complete-bookings' => 'Complete bookings',
     'cancel-bookings' => 'Cancel bookings',
     'manage-meetings' => 'Manage meetings',
+    'view-booking-transfers' => 'View booking transfer requests',
+    'request-booking-transfers' => 'Request booking transfers',
+    'manage-booking-transfers' => 'Approve or reject booking transfers',
 
     // reports
     'view-reports' => 'View reports',

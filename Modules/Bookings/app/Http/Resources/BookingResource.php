@@ -8,6 +8,7 @@ use Modules\Bookings\Enums\BookingStatus;
 use Modules\Bookings\Services\BookingPermissions;
 use Modules\Core\Support\Money;
 use Modules\Payments\Http\Resources\PaymentResource;
+use Modules\Users\Models\User;
 
 /**
  * Plan §8.10. `location` comes from the snapshot (it still shows after the
@@ -75,6 +76,19 @@ class BookingResource extends JsonResource
                 'uploaded_at' => $this->report->created_at?->toIso8601String(),
             ]),
             'client_notes' => $this->client_notes,
+            'pending_transfer' => $this->when($actor instanceof User,
+                $this->whenLoaded('pendingTransfer',
+                    fn () => $this->pendingTransfer === null ? null : [
+                        'id' => $this->pendingTransfer->id,
+                        'status' => $this->pendingTransfer->status->value,
+                        'status_label' => __('bookings::labels.transfer_status.'.$this->pendingTransfer->status->value),
+                        'to_consultant' => $this->pendingTransfer->toConsultant === null ? null : [
+                            'id' => $this->pendingTransfer->toConsultant->id,
+                            'name' => $this->pendingTransfer->toConsultant->name,
+                        ],
+                        'reason' => $this->pendingTransfer->reason,
+                        'created_at' => $this->pendingTransfer->created_at?->toIso8601String(),
+                    ])),
             'can' => BookingPermissions::for($this->resource, $actor),
             'expires_at' => $this->expires_at?->toIso8601String(),
             'completed_at' => $this->completed_at?->toIso8601String(),

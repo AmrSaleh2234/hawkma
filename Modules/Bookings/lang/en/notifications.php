@@ -25,4 +25,19 @@ return [
         ],
         'reason' => 'Reason: :reason',
     ],
+    'transfer_requested' => [
+        'subject' => 'Transfer request for booking :reference',
+        'greeting' => 'Hello :name,',
+        'intro' => ':from asked to transfer booking :reference (:company — :date at :time) to :to. Reason: :reason',
+    ],
+    'transfer_approved' => [
+        'subject' => 'Booking :reference was transferred',
+        'greeting' => 'Hello :name,',
+        'intro' => 'Booking :reference (:company — :date at :time) was transferred from :from to :to.',
+    ],
+    'transfer_rejected' => [
+        'subject' => 'Transfer request for booking :reference was rejected',
+        'greeting' => 'Hello :name,',
+        'intro' => 'Your request to transfer booking :reference to :to was rejected. Note: :note',
+    ],
 ];

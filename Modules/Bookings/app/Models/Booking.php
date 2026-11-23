@@ -15,6 +15,7 @@ use Modules\Bookings\Enums\MeetingStatus;
 use Modules\Bookings\Enums\PaymentStatus;
 use Modules\Bookings\Enums\RefundStatus;
 use Modules\Bookings\Enums\ReportStatus;
+use Modules\Bookings\Enums\TransferStatus;
 use Modules\Bookings\Services\BookingQueryService;
 use Modules\Clients\Models\Client;
 use Modules\Clients\Models\ClientLocation;
@@ -250,5 +251,16 @@ class Booking extends Model
     public function report(): HasOne
     {
         return $this->hasOne(Report::class);
+    }
+
+    public function transferRequests(): HasMany
+    {
+        return $this->hasMany(BookingTransferRequest::class);
+    }
+
+    public function pendingTransfer(): HasOne
+    {
+        return $this->hasOne(BookingTransferRequest::class)
+            ->where('status', TransferStatus::Pending);
     }
 }

@@ -30,4 +30,10 @@ return [
         'released' => 'Released',
         'failed' => 'Failed',
     ],
+    'transfer_status' => [
+        'pending' => 'Pending',
+        'approved' => 'Approved',
+        'rejected' => 'Rejected',
+        'cancelled' => 'Withdrawn',
+    ],
 ];

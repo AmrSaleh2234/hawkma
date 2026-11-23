@@ -25,4 +25,19 @@ return [
         ],
         'reason' => 'السبب: :reason',
     ],
+    'transfer_requested' => [
+        'subject' => 'طلب تحويل للحجز :reference',
+        'greeting' => 'مرحباً :name،',
+        'intro' => 'طلب :from تحويل الحجز :reference (:company — يوم :date الساعة :time) إلى :to. السبب: :reason',
+    ],
+    'transfer_approved' => [
+        'subject' => 'تم تحويل الحجز :reference',
+        'greeting' => 'مرحباً :name،',
+        'intro' => 'تم تحويل الحجز :reference (:company — يوم :date الساعة :time) من :from إلى :to.',
+    ],
+    'transfer_rejected' => [
+        'subject' => 'تم رفض طلب تحويل الحجز :reference',
+        'greeting' => 'مرحباً :name،',
+        'intro' => 'تم رفض طلبك بتحويل الحجز :reference إلى :to. ملاحظة: :note',
+    ],
 ];
