@@ -40,6 +40,9 @@ return [
     'BOOKING_INVALID_STATUS' => 'The booking status does not allow this action.',
     'BOOKING_NOT_STARTED' => 'The booking has not started yet.',
     'BOOKING_CANCEL_WINDOW_PASSED' => 'The cancellation window has passed.',
+    'TRANSFER_NOT_ALLOWED' => 'This booking cannot be transferred in its current state or to this consultant.',
+    'TRANSFER_ALREADY_PENDING' => 'A transfer request for this booking is already pending review.',
+    'TRANSFER_INVALID_STATUS' => 'This transfer request has already been decided.',
 
     'REPORT_NOT_ALLOWED' => 'A report can only be uploaded for a completed booking.',
     'REPORT_REVIEW_NOT_ALLOWED' => 'This report cannot be reviewed in its current status.',

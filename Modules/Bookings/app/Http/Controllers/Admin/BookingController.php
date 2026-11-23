@@ -335,6 +335,6 @@ class BookingController extends ApiController
      */
     protected function listEagerLoads(): array
     {
-        return ['client', 'consultant.media', 'package', 'latestPayment', 'report.media'];
+        return ['client', 'consultant.media', 'package', 'latestPayment', 'report.media', 'pendingTransfer.fromConsultant', 'pendingTransfer.toConsultant'];
     }
 }

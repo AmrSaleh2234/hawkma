@@ -30,4 +30,10 @@ return [
         'released' => 'تم الصرف',
         'failed' => 'فشل',
     ],
+    'transfer_status' => [
+        'pending' => 'قيد الانتظار',
+        'approved' => 'تمت الموافقة',
+        'rejected' => 'مرفوض',
+        'cancelled' => 'مسحوب',
+    ],
 ];
